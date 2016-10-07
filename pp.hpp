@@ -4,7 +4,7 @@
 
 class Preprocessor {
   private:
-
+    std::string default_include_path = "./include/";
   public:
-    int run(std::string);
+    std::string run(std::string);
 };
