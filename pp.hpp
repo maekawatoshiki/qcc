@@ -1,11 +1,10 @@
 #pragma once
 
 #include "common.hpp"
-#include "pp.hpp"
 
-class QCC {
+class Preprocessor {
   private:
-    Preprocessor PP;
+
   public:
     int run(std::string);
 };

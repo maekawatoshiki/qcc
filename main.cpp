@@ -5,5 +5,4 @@
 
 int main() {
   QCC qcc;
-  std::cout << "qcc" << std::endl;
 }
