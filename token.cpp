@@ -23,3 +23,8 @@ void Token::add_string_tok (std::string val, int line) {
 void Token::add_char_tok   (std::string val, int line) {
   token.push_back((token_t) { TOK_TYPE_CHAR, val, line });
 }
+
+void Token::show() {
+  for(auto tok : token) 
+    std::cout << tok.line << "L(" << tok.type << ") : " << tok.val << std::endl;
+}

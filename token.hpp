@@ -30,4 +30,6 @@ class Token {
 
     token_t get();
     token_t next();
+
+    void show();
 };
