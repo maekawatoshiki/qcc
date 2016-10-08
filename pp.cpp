@@ -9,7 +9,8 @@ std::string Preprocessor::run(std::string source) {
         while(source[i] != '"' && source[i] != '<') i++;
         int name_bgn_pos = ++i;
         while(source[i] != '"' && source[i] != '>') i++;
-        int name_count = i - name_bgn_pos; i++;
+        int name_count = i - name_bgn_pos; 
+        while(source[i] != '\n') i++; i++; // skip this line
         std::string file_name = source.substr(name_bgn_pos, name_count);
 
         source.erase(pp_bgn_pos, i - pp_bgn_pos);
