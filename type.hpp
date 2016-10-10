@@ -43,3 +43,8 @@ class Type {
 };
 
 typedef std::vector<Type *> Type_vec;
+
+namespace TypeTool {
+  Type *to_type(std::string);
+  std::string to_string(Type *);
+};

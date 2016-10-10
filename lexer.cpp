@@ -52,5 +52,7 @@ Token Lexer::run(std::string source) {
     }
   } 
 
+  token.add_end_tok();
+
   return token;
 }

@@ -23,6 +23,18 @@ void Token::add_string_tok (std::string val, int line) {
 void Token::add_char_tok   (std::string val, int line) {
   token.push_back((token_t) { TOK_TYPE_CHAR, val, line });
 }
+void Token::add_end_tok    () {
+  token.push_back((token_t) { TOK_TYPE_END });
+}
+
+void Token::skip() { pos++; }
+bool Token::skip(std::string str) { 
+  if(str == get().val) {
+    pos++; 
+    return true;
+  } else return false; 
+}
+void Token::prev() { pos--; }
 
 void Token::show() {
   for(auto tok : token) 

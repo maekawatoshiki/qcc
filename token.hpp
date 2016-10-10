@@ -20,16 +20,21 @@ struct token_t {
 class Token {
   public:
     std::vector<token_t> token;
-    int pos;
+    int pos = 0;
 
     void add_ident_tok  (std::string, int);
     void add_symbol_tok (std::string, int);
     void add_number_tok (std::string, int);
     void add_string_tok (std::string, int);
     void add_char_tok   (std::string, int);
+    void add_end_tok    ();
 
     token_t get();
     token_t next();
+
+    void skip();
+    bool skip(std::string);
+    void prev();
 
     void show();
 };

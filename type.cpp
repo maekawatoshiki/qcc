@@ -1,4 +1,5 @@
 #include "type.hpp"
+#include "lexer.hpp"
 
 type_t &Type::get() {
   return this->type;
@@ -47,4 +48,30 @@ bool Type::eql(Type *ty) {
   return false;
 }
 
-
+namespace TypeTool {
+  Type *to_type(std::string type_str) {
+    Lexer lexer;
+    Token tok = lexer.run(type_str);
+    std::string type_name = tok.get().val; tok.skip();
+    auto ptr = [&](Type *ty) -> Type * {
+      while(tok.get().val == "*") {
+        ty->next = new Type(ty->get().type);
+        ty->change(TY_PTR);
+      }
+      return ty;
+    };
+    // TODO: support unsigned|signed 
+    Type *ty = nullptr;
+    if(type_name == "int") {
+      ty = new Type(TY_INT);
+    } else if(type_name == "char") {
+      ty = new Type(TY_CHAR);
+    } else if(type_name == "double") {
+      ty = new Type(TY_DOUBLE);
+    } else {
+      ty = new Type(type_name);
+    }
+    return ptr(ty);
+  }
+  std::string to_string() { return ""; }
+}
