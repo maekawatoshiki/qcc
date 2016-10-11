@@ -28,6 +28,7 @@ bool Parser::is_function_proto() {
       return true;
     }
   }
+  token.pos = pos;
   return false;
 }
 
