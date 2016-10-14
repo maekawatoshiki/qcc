@@ -27,6 +27,7 @@ void Token::add_end_tok    () {
   token.push_back((token_t) { TOK_TYPE_END });
 }
 
+bool Token::is(std::string str) { return get().val == str; }
 void Token::skip() { pos++; }
 bool Token::skip(std::string str) { 
   if(str == get().val) {

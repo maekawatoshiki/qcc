@@ -48,6 +48,10 @@ bool Type::eql(Type *ty) {
   return false;
 }
 
+std::string Type::to_string() {
+  return TypeTool::to_string(this);
+}
+
 namespace TypeTool {
   Type *to_type(std::string type_str) {
     Lexer lexer;
@@ -57,6 +61,7 @@ namespace TypeTool {
       while(tok.get().val == "*") {
         ty->next = new Type(ty->get().type);
         ty->change(TY_PTR);
+        tok.skip();
       }
       return ty;
     };
@@ -73,5 +78,14 @@ namespace TypeTool {
     }
     return ptr(ty);
   }
-  std::string to_string() { return ""; }
+  std::string to_string(Type *type) {
+    if(type->eql(TY_PTR)) {
+      return to_string(type->next) + "*";
+    } else if(type->eql(TY_INT)) {
+      return "int";
+    } else if(type->eql(TY_CHAR)) {
+      return "char";
+    }
+    return "TYPE";
+  }
 }

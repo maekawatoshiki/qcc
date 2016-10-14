@@ -6,28 +6,69 @@
 enum {
   AST_FUNCTION_PROTO,
   AST_FUNCTION_DEF,
+  AST_FUNCTION_CALL,
+  AST_RETURN,
+  AST_NUMBER,
+  AST_STRING,
 };
 
 class AST {
   public:
-    virtual int get_type() = 0;
+    virtual int get_type() const = 0;
 };
 
 typedef std::vector<AST *> AST_vec;
 
 class FunctionProtoAST : public AST {
   public:
+    std::string name;
+    Type *ret_type;
+    Type_vec args;
     virtual int get_type() const { return AST_FUNCTION_PROTO; };
-    FunctionProtoAST(std::string func_name, Type_vec argments_type);
+    FunctionProtoAST(std::string func_name, Type *, Type_vec argments_type);
 };
 
-struct argment_t {
+struct argument_t {
+  argument_t(Type *ty, std::string nm):type(ty), name(nm) {};
   Type *type;
   std::string name;
 };
 
 class FunctionDefAST : public AST {
   public:
+    std::string name;
+    Type *ret_type;
+    std::vector<argument_t *> args;
+    AST_vec body;
     virtual int get_type() const { return AST_FUNCTION_DEF; };
-    FunctionDefAST(std::string func_name, std::vector<argment_t *> arguemts, AST_vec body);
+    FunctionDefAST(std::string, Type *, std::vector<argument_t *>, AST_vec);
+};
+
+class FunctionCallAST : public AST {
+  public:
+    std::string name;
+    AST_vec args;
+    virtual int get_type() const { return AST_FUNCTION_CALL; };
+    FunctionCallAST(std::string name, AST_vec args);
+};
+
+class ReturnAST : public AST {
+  public:
+    AST *expr;
+    virtual int get_type() const { return AST_RETURN; };
+    ReturnAST(AST *);
+};
+
+class NumberAST : public AST {
+  public:
+    int number;
+    virtual int get_type() const { return AST_NUMBER; };
+    NumberAST(int);
+};
+
+class StringAST : public AST {
+  public:
+    std::string str;
+    virtual int get_type() const { return AST_STRING; }
+    StringAST(std::string);
 };

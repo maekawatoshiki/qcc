@@ -40,6 +40,8 @@ class Type {
     bool eql(int);
     bool eql(std::string);
     bool eql(Type *);
+
+    std::string to_string();
 };
 
 typedef std::vector<Type *> Type_vec;

@@ -32,6 +32,7 @@ class Token {
     token_t get();
     token_t next();
 
+    bool is(std::string);
     void skip();
     bool skip(std::string);
     void prev();
