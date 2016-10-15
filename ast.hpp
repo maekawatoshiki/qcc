@@ -7,6 +7,7 @@ enum {
   AST_FUNCTION_PROTO,
   AST_FUNCTION_DEF,
   AST_FUNCTION_CALL,
+  AST_VAR_DECLARATION,
   AST_RETURN,
   AST_NUMBER,
   AST_STRING,
@@ -50,6 +51,14 @@ class FunctionCallAST : public AST {
     AST_vec args;
     virtual int get_type() const { return AST_FUNCTION_CALL; };
     FunctionCallAST(std::string name, AST_vec args);
+};
+
+typedef argument_t declarator_t;
+class VarDeclarationAST : public AST {
+  public: 
+    std::vector<declarator_t *> decls;
+    virtual int get_type() const { return AST_VAR_DECLARATION; };
+    VarDeclarationAST(std::vector<declarator_t *>);
 };
 
 class ReturnAST : public AST {

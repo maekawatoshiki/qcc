@@ -19,9 +19,12 @@ class Parser {
     AST *make_function();
     AST *make_function_proto();
     AST *make_return();
+    bool is_var_declaration();
+    AST *make_var_declaration();
 
-    Type *skip_type();
-    int skip_asterisk();
+    Type *skip_type_spec();
+    Type *skip_declarator();
+    int skip_pointer();
 
     std::map<std::string, int> op_prec;
     int get_op_prec(std::string);

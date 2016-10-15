@@ -24,6 +24,13 @@ void show_ast(AST *ast) {
       }
       std::cout << ") ";
     } break;
+    case AST_VAR_DECLARATION: {
+      VarDeclarationAST *a = (VarDeclarationAST *)ast;
+      std::cout << "(var-decl ";
+      for(auto decl : a->decls) 
+        std::cout << "(" << decl->type->to_string() << ", " << decl->name << ") ";
+      std::cout << ") ";
+    } break;
     case AST_RETURN: {
       ReturnAST *a = (ReturnAST *)ast;
       std::cout << "(return ";
@@ -62,6 +69,7 @@ AST_vec Parser::eval() {
 AST *Parser::statement() {
   if(is_function_def()) return make_function();
   else if(is_function_proto()) return make_function_proto();
+  else if(is_var_declaration()) return make_var_declaration();
   else if(token.is("return")) return make_return();
   else return expr_entry();
   return nullptr;
@@ -69,12 +77,12 @@ AST *Parser::statement() {
 
 AST *Parser::make_function() {
   // puts("FUNC");
-  Type *ret_type = skip_type();
+  Type *ret_type = skip_declarator();
   std::string name = token.next().val;
   if(token.skip("(")) {
     std::vector<argument_t *> args;
     while(!token.skip(")")) {
-      Type *type = skip_type();
+      Type *type = skip_declarator();
       std::string name = token.next().val;
       args.push_back(new argument_t(type, name));
       token.skip(",");
@@ -89,12 +97,12 @@ AST *Parser::make_function() {
 
 AST *Parser::make_function_proto() {
   // puts("PROTO");
-  Type *ret_type = skip_type();
+  Type *ret_type = skip_declarator();
   std::string name = token.next().val;
   if(token.skip("(")) {
     Type_vec args_type;
     while(!token.skip(")")) {
-      Type *type = skip_type();
+      Type *type = skip_declarator();
       if(token.get().type == TOK_TYPE_IDENT) token.skip();
       args_type.push_back(type);
     }
@@ -110,9 +118,23 @@ AST *Parser::make_return() {
   return nullptr;
 }
 
+AST *Parser::make_var_declaration() {
+  Type *base_type = skip_type_spec();
+  std::vector<declarator_t *> decls;
+  while(!token.skip(";")) {
+    Type *type = base_type;
+    for(int i = skip_pointer(); i > 0; i--)
+      type = new Type(TY_PTR, type);
+    std::string name = token.next().val;
+    decls.push_back(new declarator_t(type, name));
+    token.skip(",");
+  }
+  return new VarDeclarationAST(decls);
+}
+
 bool Parser::is_function_proto() {
   int pos = token.pos;
-  if(skip_type()) {
+  if(skip_declarator()) {
     token.skip(); // function name
     if(token.get().type == TOK_TYPE_SYMBOL && 
         token.get().val == "(") { // this is function!
@@ -126,7 +148,7 @@ bool Parser::is_function_proto() {
 
 bool Parser::is_function_def() {
   int pos = token.pos;
-  if(skip_type()) {
+  if(skip_declarator()) {
     token.skip(); // function name
     if(token.get().type == TOK_TYPE_SYMBOL && 
         token.get().val == "(") { 
@@ -142,29 +164,52 @@ bool Parser::is_function_def() {
   return false;
 }
 
-Type *Parser::skip_type() {
-  if(token.get().val == "struct") {
+bool Parser::is_var_declaration() {
+  int pos = token.pos;
+  if(skip_type_spec()) {
+    skip_pointer();
+    if(token.get().type == TOK_TYPE_IDENT) {
+      token.pos = pos;
+      return true;
+    }
+  }
+  return false;
+}
+
+Type *Parser::skip_declarator() {
+  Type *type = skip_type_spec();
+  for(int i=skip_pointer(); i > 0; i--)
+    type = new Type(TY_PTR, type);
+  return type;
+}
+
+Type *Parser::skip_type_spec() {
+  if(token.get().val == "struct" || token.get().val == "union") {
     token.skip();
-    std::string name;
-    if(token.get().type == TOK_TYPE_IDENT) name=token.next().val; else puts("err"); // TODO: add err check
-    while(token.get().type == TOK_TYPE_SYMBOL && token.get().val == "*")
-      name += "*";
-    return TypeTool::to_type(name);
+    if(token.skip("{")) {
+      while(!token.skip("}"));
+      // TODO: implement
+    } else {
+      std::string name;
+      if(token.get().type == TOK_TYPE_IDENT) name=token.next().val; else puts("err"); // TODO: add err check
+      if(token.skip("{")) {
+        while(!token.skip("}"));
+        // TODO: implement
+      } else 
+        return TypeTool::to_type(name);
+    }
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
-    while(token.get().type == TOK_TYPE_SYMBOL && token.get().val == "*") {
-      name += "*"; token.skip();
-    }
     // std::cout << "type name " << name << std::endl;
     return TypeTool::to_type(name);
   }
   return nullptr;
 }
 
-int Parser::skip_asterisk() {
+int Parser::skip_pointer() {
   int count = 0;
   while(token.get().type == TOK_TYPE_SYMBOL && token.get().val == "*")
-    count++;
+    count++, token.skip();
   return count;
 }
 

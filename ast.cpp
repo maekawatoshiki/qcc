@@ -12,6 +12,10 @@ FunctionCallAST::FunctionCallAST(std::string _name, AST_vec _args):
   name(_name), args(_args) {
 }
 
+VarDeclarationAST::VarDeclarationAST(std::vector<declarator_t *> _decls):
+  decls(_decls) {
+}
+
 ReturnAST::ReturnAST(AST *_expr):
   expr(_expr) {
 }
