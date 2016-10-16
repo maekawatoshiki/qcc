@@ -173,6 +173,7 @@ bool Parser::is_var_declaration() {
       return true;
     }
   }
+  token.pos = pos;
   return false;
 }
 
