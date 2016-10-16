@@ -12,8 +12,20 @@ FunctionCallAST::FunctionCallAST(std::string _name, AST_vec _args):
   name(_name), args(_args) {
 }
 
+BinaryAST::BinaryAST(std::string _op, AST *_lhs, AST *_rhs):
+  op(_op), lhs(_lhs), rhs(_rhs) {
+}
+
 VarDeclarationAST::VarDeclarationAST(std::vector<declarator_t *> _decls):
   decls(_decls) {
+}
+
+VariableAST::VariableAST(std::string _name):
+  name(_name) {
+}
+
+AsgmtAST::AsgmtAST(AST *_dst, AST *_src):
+  dst(_dst), src(_src) {
 }
 
 ReturnAST::ReturnAST(AST *_expr):

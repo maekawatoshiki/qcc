@@ -8,6 +8,9 @@ enum {
   AST_FUNCTION_DEF,
   AST_FUNCTION_CALL,
   AST_VAR_DECLARATION,
+  AST_BINARY,
+  AST_VARIABLE,
+  AST_ASGMT,
   AST_RETURN,
   AST_NUMBER,
   AST_STRING,
@@ -53,12 +56,34 @@ class FunctionCallAST : public AST {
     FunctionCallAST(std::string name, AST_vec args);
 };
 
+class BinaryAST : public AST {
+  public:
+    std::string op;
+    AST *lhs, *rhs;
+    virtual int get_type() const { return AST_BINARY; };
+    BinaryAST(std::string, AST *, AST *);
+};
+
 typedef argument_t declarator_t;
 class VarDeclarationAST : public AST {
   public: 
     std::vector<declarator_t *> decls;
     virtual int get_type() const { return AST_VAR_DECLARATION; };
     VarDeclarationAST(std::vector<declarator_t *>);
+};
+
+class VariableAST : public AST {
+  public:
+    std::string name;
+    virtual int get_type() const { return AST_VARIABLE; };
+    VariableAST(std::string);
+};
+
+class AsgmtAST : public AST {
+  public:
+    AST *dst, *src;
+    virtual int get_type() const { return AST_ASGMT; };
+    AsgmtAST(AST *, AST *);
 };
 
 class ReturnAST : public AST {

@@ -85,6 +85,10 @@ namespace TypeTool {
       return "int";
     } else if(type->eql(TY_CHAR)) {
       return "char";
+    } else if(type->eql(TY_DOUBLE)) {
+      return "double";
+    } else if(type->eql(TY_VARARG)) {
+      return "...";
     }
     return "TYPE";
   }

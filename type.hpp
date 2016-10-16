@@ -9,6 +9,7 @@ enum {
   TY_CHAR,
   TY_FLOAT,
   TY_DOUBLE,
+  TY_VARARG,
   TY_PTR,
   TY_USER,
 };

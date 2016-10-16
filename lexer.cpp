@@ -11,7 +11,7 @@ Token Lexer::run(std::string source) {
       for(; isdigit(source[i]) || source[i] == '.'; i++)
         number += source[i];
       --i; token.add_number_tok(number, cur_line);
-    } else if(source[i] == '-' || isalpha(source[i])) {
+    } else if(source[i] == '_' || isalpha(source[i])) {
       std::string ident;
       for(; isalpha(source[i]) || isdigit(source[i]) || 
           source[i] == '_'; i++)
@@ -46,8 +46,10 @@ Token Lexer::run(std::string source) {
           (source[i] == '+' && source[i+1] == '+') ||
           (source[i] == '-' && source[i+1] == '-') ||
           (source[i] == '&' && source[i+1] == '&') ||
-          (source[i] == '|' && source[i+1] == '|'))
+          (source[i] == '|' && source[i+1] == '|') ||
+          (source[i] == '.' && source[i+1] == '.') )
         op += source[++i];
+      if(source[i+1] == '.') op += source[++i];
       token.add_symbol_tok(op, cur_line);
     }
   } 

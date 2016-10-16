@@ -24,12 +24,32 @@ void show_ast(AST *ast) {
       }
       std::cout << ") ";
     } break;
+    case AST_BINARY: {
+      BinaryAST *a = (BinaryAST *)ast;
+      std::cout << "(" << a->op << " ";
+      show_ast(a->lhs);
+      std::cout << " ";
+      show_ast(a->rhs);
+      std::cout << ") ";
+    } break;
     case AST_VAR_DECLARATION: {
       VarDeclarationAST *a = (VarDeclarationAST *)ast;
       std::cout << "(var-decl ";
       for(auto decl : a->decls) 
         std::cout << "(" << decl->type->to_string() << ", " << decl->name << ") ";
       std::cout << ") ";
+    } break;
+    case AST_VARIABLE: {
+      VariableAST *a = (VariableAST *)ast;
+      std::cout << "(var " << a->name << ") ";
+    } break;
+    case AST_ASGMT: {
+      AsgmtAST *a = (AsgmtAST *)ast;
+      std::cout << "(= (";
+      show_ast(a->dst);
+      std::cout << ") (";
+      show_ast(a->src);
+      std::cout << ")) ";
     } break;
     case AST_RETURN: {
       ReturnAST *a = (ReturnAST *)ast;
@@ -50,6 +70,30 @@ void show_ast(AST *ast) {
 
 int Parser::run(Token tok) {
   token = tok;
+  op_prec["="] =  100;
+  op_prec["+="] = 100;
+  op_prec["-="] = 100;
+  op_prec["*="] = 100;
+  op_prec["/="] = 100;
+  op_prec["%="] = 100;
+  op_prec["^="] = 100;
+  op_prec["|="] = 100;
+  op_prec["&="] = 100;
+  op_prec["=="] = 200;
+  op_prec["!="] = 200;
+  op_prec["<="] = 200;
+  op_prec[">="] = 200;
+  op_prec["<"] =  200;
+  op_prec[">"] =  200;
+  op_prec["&"] =  150;
+  op_prec["|"] =  150;
+  op_prec["^"] =  150;
+  op_prec["+"] =  300;
+  op_prec["-"] =  300;
+  op_prec["?"] =  300;
+  op_prec["*"] =  400;
+  op_prec["/"] =  400;
+  op_prec["%"] = 400;
   auto a = eval();
   for(auto b : a)
     show_ast(b);
@@ -105,6 +149,7 @@ AST *Parser::make_function_proto() {
       Type *type = skip_declarator();
       if(token.get().type == TOK_TYPE_IDENT) token.skip();
       args_type.push_back(type);
+      token.skip(",");
     }
     return new FunctionProtoAST(name, ret_type, args_type);
   } else puts("err");
@@ -203,6 +248,8 @@ Type *Parser::skip_type_spec() {
     std::string name = token.next().val;
     // std::cout << "type name " << name << std::endl;
     return TypeTool::to_type(name);
+  } else if(token.skip("...")) {
+    return new Type(TY_VARARG);
   }
   return nullptr;
 }

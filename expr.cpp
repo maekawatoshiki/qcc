@@ -5,41 +5,41 @@ int Parser::get_op_prec(std::string op) {
 }
 
 AST *Parser::expr_rhs(int prec, AST *lhs) {
-  // while(true) {
-  //   int tok_prec, next_prec;
-  //   if(tok.get().type == TOK_SYMBOL) {
-  //     tok_prec = get_op_prec(tok.get().val);
-  //     if(tok_prec < prec) return lhs;
-  //   } else return lhs;
-  //   std::string op = tok.next().val;
-  //   AST *rhs = expr_dot();
-  //   if(tok.get().type == TOK_SYMBOL) {
-  //     next_prec = get_op_prec(tok.get().val);
-  //     if(tok_prec < next_prec) 
-  //       rhs = expr_rhs(tok_prec + 1, rhs);
-  //   } 
-  //   if(op == "+=" ||
-  //       op == "-=" ||
-  //       op == "*=" ||
-  //       op == "/=" ||
-  //       op == "&=" ||
-  //       op == "|=" ||
-  //       op == "^=" ||
-  //       op == "=") {
-  //     bool add = op == "+=", sub = op == "-=", mul = op == "*=", div = op == "/=", 
-  //          aand = op == "&=", aor = op == "|=", axor = op == "^=", normal = op == "=";
-  //     lhs = new VariableAsgmtAST(lhs, normal ? rhs :
-  //           new BinaryAST(
-  //             add ? "+" : 
-  //             sub ? "-" : 
-  //             mul ? "*" : 
-  //             div ? "/" : 
-  //             aand? "&" : 
-  //             aor ? "|" :
-  //             axor? "^" : "ERROR", lhs, rhs));  
-  //   } else 
-  //     lhs = new BinaryAST(op, lhs, rhs);    
-  // }
+  while(true) {
+    int tok_prec, next_prec;
+    if(token.get().type == TOK_TYPE_SYMBOL) {
+      tok_prec = get_op_prec(token.get().val);
+      if(tok_prec < prec) return lhs;
+    } else return lhs;
+    std::string op = token.next().val;
+    AST *rhs = expr_entry();
+    if(token.get().type == TOK_TYPE_SYMBOL) {
+      next_prec = get_op_prec(token.get().val);
+      if(tok_prec < next_prec) 
+        rhs = expr_rhs(tok_prec + 1, rhs);
+    } 
+    if(op == "+=" ||
+        op == "-=" ||
+        op == "*=" ||
+        op == "/=" ||
+        op == "&=" ||
+        op == "|=" ||
+        op == "^=" ||
+        op == "=") {
+      bool add = op == "+=", sub = op == "-=", mul = op == "*=", div = op == "/=", 
+           aand = op == "&=", aor = op == "|=", axor = op == "^=", normal = op == "=";
+      lhs = new AsgmtAST(lhs, normal ? rhs :
+            new BinaryAST(
+              add ? "+" : 
+              sub ? "-" : 
+              mul ? "*" : 
+              div ? "/" : 
+              aand? "&" : 
+              aor ? "|" :
+              axor? "^" : "ERROR", lhs, rhs));  
+    } else
+      lhs = new BinaryAST(op, lhs, rhs);    
+  }
   return lhs;
 }
 
@@ -74,6 +74,7 @@ AST *Parser::expr_primary() {
       }
       return new FunctionCallAST(name, args);
     } else { // variable
+      return new VariableAST(name);
     }
   }
   return nullptr;
