@@ -9,7 +9,7 @@ class Parser {
   private:
     Token token;
   public:
-    int run(Token);
+    AST_vec run(Token);
 
     AST_vec eval();
     AST *statement();

@@ -68,7 +68,7 @@ void show_ast(AST *ast) {
   }
 }
 
-int Parser::run(Token tok) {
+AST_vec Parser::run(Token tok) {
   token = tok;
   op_prec["="] =  100;
   op_prec["+="] = 100;
@@ -98,7 +98,7 @@ int Parser::run(Token tok) {
   for(auto b : a)
     show_ast(b);
   puts("");
-  return 0;
+  return a;
 }
 
 AST_vec Parser::eval() {
