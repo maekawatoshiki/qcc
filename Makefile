@@ -45,4 +45,4 @@ var.o: var.cpp var.hpp common.hpp
 	$(CXX) -c var.cpp $(LLVM)
 
 clean:
-	$(RM) qcc *.o
+	$(RM) qcc *.o a.*

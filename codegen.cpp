@@ -10,6 +10,10 @@ void Codegen::run(AST_vec ast) {
   for(auto st : ast) {
     statement(st, &ty);
   }
+  mod->dump();
+  std::string EC;
+  llvm::raw_fd_ostream out("a.bc", EC, llvm::sys::fs::OpenFlags::F_RW);
+  llvm::WriteBitcodeToFile(mod, out);
 }
 
 llvm::AllocaInst *Codegen::create_entry_alloca(llvm::Function *TheFunction, std::string &VarName, llvm::Type *type) {
@@ -36,9 +40,37 @@ llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
   switch(st->get_type()) {
     case AST_FUNCTION_DEF:
       return statement((FunctionDefAST *)st, ret_type);
-    case AST_FUNCTION_PROTO: ;
-      // statement((FunctionProtoAST *)st, ret_type);
+    case AST_FUNCTION_PROTO:
+      return statement((FunctionProtoAST *)st, ret_type);
   }
+  return nullptr;
+}
+
+llvm::Value *Codegen::statement(FunctionProtoAST *st, Type *ret_type) {
+  func_t func;
+  func.name = st->name;
+  func.ret_type = st->ret_type;
+  std::vector<llvm::Type *> llvm_args_type;
+  std::vector<Type *>       args_type;
+  std::vector<std::string>  args_name;
+  bool has_vararg = false;
+  for(auto arg : st->args) {
+    if(arg->eql(TY_VARARG)) {
+      has_vararg = true;
+    } else {
+      func.args_type.push_back(arg);
+      func.llvm_args_type.push_back(to_llvm_type(arg));
+    }
+  }
+  this->func_list.add(func);
+  func_t *function = this->func_list.get(func.name);
+  
+  llvm::FunctionType *llvm_func_type = 
+    llvm::FunctionType::get(to_llvm_type(func.ret_type), func.llvm_args_type, has_vararg);
+  llvm::Function *llvm_func = 
+    llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
+  function->llvm_function = llvm_func;
+
   return nullptr;
 }
 
@@ -81,8 +113,8 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
 
     Type return_type;
     for(auto it : st->body) statement(it, &return_type);
+    builder.CreateRet(llvm::ConstantInt::get(builder.getInt32Ty(), 0));
   }
-  mod->dump();
 
   return nullptr;
 }
