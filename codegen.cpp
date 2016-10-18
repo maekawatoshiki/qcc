@@ -42,6 +42,10 @@ llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
       return statement((FunctionDefAST *)st, ret_type);
     case AST_FUNCTION_PROTO:
       return statement((FunctionProtoAST *)st, ret_type);
+    case AST_FUNCTION_CALL:
+      return statement((FunctionCallAST *)st, ret_type);
+    case AST_STRING:
+      return statement((StringAST *)st, ret_type);
   }
   return nullptr;
 }
@@ -119,9 +123,20 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
   return nullptr;
 }
 
+llvm::Value *Codegen::statement(FunctionCallAST *st, Type *ret_type) {
+  func_t *func = this->func_list.get(st->name);
+  std::vector<llvm::Value *> caller_args;
+  for(auto a : st->args) 
+    caller_args.push_back(statement(a, ret_type));
+  auto callee = func->llvm_function;
+  ret_type->change(func->ret_type);
+  return builder.CreateCall(callee, caller_args, "call");
+}
 
-
-
+llvm::Value *Codegen::statement(StringAST *st, Type *ret_type) {
+  ret_type->change(new Type(TY_PTR, new Type(TY_CHAR)));
+  return builder.CreateGlobalStringPtr(st->str);
+}
 
 
 

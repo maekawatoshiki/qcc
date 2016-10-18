@@ -14,6 +14,8 @@ class Codegen {
     llvm::Value *statement(AST *, Type *);
     llvm::Value *statement(FunctionDefAST *, Type *);
     llvm::Value *statement(FunctionProtoAST *, Type *);
+    llvm::Value *statement(FunctionCallAST *, Type *);
+    llvm::Value *statement(StringAST *, Type *);
     llvm::Type  *to_llvm_type(Type *);
     llvm::AllocaInst *create_entry_alloca(llvm::Function *TheFunction, std::string &VarName, llvm::Type *type = nullptr);
   public:
