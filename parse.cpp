@@ -24,6 +24,17 @@ void show_ast(AST *ast) {
       }
       std::cout << ") ";
     } break;
+    case AST_IF: {
+      IfAST *a = (IfAST *)ast;
+      std::cout << "(if ";
+      show_ast(a->cond); std::cout << " (";
+      show_ast(a->b_then); std::cout << ")";
+      if(a->b_else) {
+        std::cout << " (";
+        show_ast(a->b_else); std::cout << ")";
+      }
+      std::cout << ")";
+    } break;
     case AST_BINARY: {
       BinaryAST *a = (BinaryAST *)ast;
       std::cout << "(" << a->op << " ";
@@ -112,15 +123,15 @@ AST_vec Parser::eval() {
 
 AST *Parser::statement() {
   if(is_function_def()) return make_function();
-  else if(is_function_proto()) return make_function_proto();
-  else if(is_var_declaration()) return make_var_declaration();
-  else if(token.is("return")) return make_return();
-  else return expr_entry();
-  return nullptr;
+  if(token.is("if")) return make_if();
+  if(token.is("return")) return make_return();
+  if(is_function_proto()) return make_function_proto();
+  if(is_var_declaration()) return make_var_declaration();
+  return expr_entry();
 }
 
 AST *Parser::make_function() {
-  // puts("FUNC");
+  // puts("MAKE_FUNCTION");
   Type *ret_type = skip_declarator();
   std::string name = token.next().val;
   if(token.skip("(")) {
@@ -140,7 +151,7 @@ AST *Parser::make_function() {
 }
 
 AST *Parser::make_function_proto() {
-  // puts("PROTO");
+  // puts("MAKE_PROTO");
   Type *ret_type = skip_declarator();
   std::string name = token.next().val;
   if(token.skip("(")) {
@@ -156,10 +167,27 @@ AST *Parser::make_function_proto() {
   return nullptr;
 }
 
+AST *Parser::make_if() {
+  if(token.skip("if")) {
+    token.skip("(");
+    AST *cond = expr_entry();
+    token.skip(")");
+    AST *b_then = statement();
+    if(token.skip("else")) {
+      puts("else");
+      AST *b_else = statement();
+      return new IfAST(cond, b_then, b_else);
+    } else return new IfAST(cond, b_then);
+  }
+  return nullptr;
+}
+
 AST *Parser::make_return() {
-  // puts("RETURN");
-  if(token.skip("return")) 
-    return new ReturnAST(expr_entry()); 
+  if(token.skip("return")) {
+    ReturnAST *ret = new ReturnAST(expr_entry());
+    token.skip(";");
+    return ret;
+  }
   return nullptr;
 }
 
@@ -181,10 +209,12 @@ bool Parser::is_function_proto() {
   int pos = token.pos;
   if(skip_declarator()) {
     token.skip(); // function name
-    if(token.get().type == TOK_TYPE_SYMBOL && 
-        token.get().val == "(") { // this is function!
-      token.pos = pos;
-      return true;
+    if(token.skip("(")) {
+      while(!token.skip(")")) token.skip();
+      if(token.skip(";")) {
+        token.pos = pos;
+        return true;
+      }
     }
   }
   token.pos = pos;

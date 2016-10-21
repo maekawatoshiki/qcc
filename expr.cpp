@@ -72,6 +72,7 @@ AST *Parser::expr_primary() {
         args.push_back(expr_entry());
         token.skip(",");
       }
+      // token.skip(";");
       return new FunctionCallAST(name, args);
     } else { // variable
       return new VariableAST(name);

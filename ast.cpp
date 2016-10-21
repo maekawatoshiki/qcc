@@ -24,6 +24,10 @@ VariableAST::VariableAST(std::string _name):
   name(_name) {
 }
 
+IfAST::IfAST(AST *_cond, AST *_then, AST *_else):
+  cond(_cond), b_then(_then), b_else(_else) {
+}
+
 AsgmtAST::AsgmtAST(AST *_dst, AST *_src):
   dst(_dst), src(_src) {
 }

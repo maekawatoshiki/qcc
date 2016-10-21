@@ -10,6 +10,7 @@ enum {
   AST_VAR_DECLARATION,
   AST_BINARY,
   AST_VARIABLE,
+  AST_IF,
   AST_ASGMT,
   AST_RETURN,
   AST_NUMBER,
@@ -77,6 +78,13 @@ class VariableAST : public AST {
     std::string name;
     virtual int get_type() const { return AST_VARIABLE; };
     VariableAST(std::string);
+};
+
+class IfAST : public AST {
+  public:
+    AST *cond, *b_then, *b_else;
+    virtual int get_type() const { return AST_IF; };
+    IfAST(AST *, AST *, AST * = nullptr);
 };
 
 class AsgmtAST : public AST {

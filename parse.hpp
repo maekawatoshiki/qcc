@@ -19,6 +19,7 @@ class Parser {
     AST *make_function();
     AST *make_function_proto();
     AST *make_return();
+    AST *make_if();
     bool is_var_declaration();
     AST *make_var_declaration();
 

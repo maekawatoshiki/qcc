@@ -10,6 +10,7 @@ struct func_t {
   std::vector<Type *> args_type;
   std::vector<llvm::Type *> llvm_args_type;
   std::vector<std::string> args_name;
+  std::stack<bool> br_list;
   llvm::Function *llvm_function;
   VariableList var_list;
 };
