@@ -34,16 +34,24 @@ llvm::Type *Codegen::to_llvm_type(Type *type) {
   return nullptr;
 }
 
+llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
+  return builder.CreateBitCast(val, to);
+}
+
 llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
   switch(st->get_type()) {
     case AST_FUNCTION_DEF:
       return statement((FunctionDefAST *)st, ret_type);
     case AST_FUNCTION_PROTO:
       return statement((FunctionProtoAST *)st, ret_type);
+    case AST_BLOCK:
+      return statement((BlockAST *)st, ret_type);
     case AST_FUNCTION_CALL:
       return statement((FunctionCallAST *)st, ret_type);
     case AST_IF:
       return statement((IfAST *)st, ret_type);
+    case AST_WHILE:
+      return statement((WhileAST *)st, ret_type);
     case AST_RETURN:
       return statement((ReturnAST *)st, ret_type);
     case AST_VAR_DECLARATION:
@@ -129,9 +137,15 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
 
     Type return_type;
     cur_func = function;
-    for(auto it : st->body) statement(it, &return_type);
+    statement(st->body, &return_type);
   }
 
+  return nullptr;
+}
+
+llvm::Value *Codegen::statement(BlockAST *st, Type *ret_type) {
+  for(auto a : st->body) 
+    statement(a, ret_type);
   return nullptr;
 }
 
@@ -157,6 +171,7 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st, Type *ret_type) {
 }
 
 llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
+  puts("IFAST");
   llvm::Value *cond_val = statement(st->cond, ret_type);
   cond_val = builder.CreateICmpNE(cond_val, llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
 
@@ -181,7 +196,7 @@ llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
   builder.SetInsertPoint(bb_else);
 
   cur_func->br_list.push(false);
-  statement(st->b_else, ret_type);
+  if(st->b_else) statement(st->b_else, ret_type);
   if(cur_func->br_list.top())
     cur_func->br_list.pop();
   else builder.CreateBr(bb_merge), necessary_merge = true;
@@ -192,6 +207,28 @@ llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
     builder.SetInsertPoint(bb_merge);
   }
   
+  puts("IFAST");
+  return nullptr;
+}
+
+llvm::Value *Codegen::statement(WhileAST *st, Type *ret_type) {
+  llvm::BasicBlock *bb_loop = llvm::BasicBlock::Create(context, "loop", cur_func->llvm_function);
+  llvm::BasicBlock *bb_after_loop = llvm::BasicBlock::Create(context, "after_loop", cur_func->llvm_function);
+
+  llvm::Value *first_cond_val = builder.CreateICmpNE(
+      statement(st->cond, ret_type), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+  builder.CreateCondBr(first_cond_val, bb_loop, bb_after_loop);
+
+  builder.SetInsertPoint(bb_loop);
+
+  statement(st->body, ret_type);
+
+  llvm::Value *second_cond_val = builder.CreateICmpNE(
+      statement(st->cond, ret_type), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+  builder.CreateCondBr(second_cond_val, bb_loop, bb_after_loop);
+
+  builder.SetInsertPoint(bb_after_loop);
+
   return nullptr;
 }
 

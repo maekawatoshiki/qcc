@@ -10,7 +10,7 @@ void Type::change(int ty) {
 }
 
 void Type::change(std::string ty) {
-  type.type = TY_USER;
+  type.type = TY_TYPEDEF;
 }
 
 void Type::change(Type *ty) {
@@ -33,7 +33,7 @@ bool Type::eql(int ty) {
 }
 
 bool Type::eql(std::string userty) {
-  return type.type == TY_USER && type.user_type == userty;
+  return type.type == TY_TYPEDEF && type.user_type == userty;
 }
 
 bool Type::eql(Type *ty) {
@@ -81,6 +81,11 @@ namespace TypeTool {
   std::string to_string(Type *type) {
     if(type->eql(TY_PTR)) {
       return to_string(type->next) + "*";
+    } else if(type->eql(TY_ARRAY)) {
+      std::stringstream ss;
+      ss << type->next->to_string();
+      ss << "[" << type->get().ary_size << "]";
+      return ss.str();
     } else if(type->eql(TY_INT)) {
       return "int";
     } else if(type->eql(TY_CHAR)) {

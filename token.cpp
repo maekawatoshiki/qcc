@@ -30,7 +30,7 @@ void Token::add_end_tok    () {
 bool Token::is(std::string str) { return get().val == str; }
 void Token::skip() { pos++; }
 bool Token::skip(std::string str) { 
-  if(str == get().val) {
+  if(str == get().val && get().type != TOK_TYPE_STRING && get().type != TOK_TYPE_CHAR) {
     pos++; 
     return true;
   } else return false; 

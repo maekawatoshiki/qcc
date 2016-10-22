@@ -7,10 +7,13 @@ enum {
   AST_FUNCTION_PROTO,
   AST_FUNCTION_DEF,
   AST_FUNCTION_CALL,
+  AST_BLOCK,
   AST_VAR_DECLARATION,
   AST_BINARY,
+  AST_INDEX,
   AST_VARIABLE,
   AST_IF,
+  AST_WHILE,
   AST_ASGMT,
   AST_RETURN,
   AST_NUMBER,
@@ -44,9 +47,9 @@ class FunctionDefAST : public AST {
     std::string name;
     Type *ret_type;
     std::vector<argument_t *> args;
-    AST_vec body;
+    AST *body;
     virtual int get_type() const { return AST_FUNCTION_DEF; };
-    FunctionDefAST(std::string, Type *, std::vector<argument_t *>, AST_vec);
+    FunctionDefAST(std::string, Type *, std::vector<argument_t *>, AST *);
 };
 
 class FunctionCallAST : public AST {
@@ -55,6 +58,13 @@ class FunctionCallAST : public AST {
     AST_vec args;
     virtual int get_type() const { return AST_FUNCTION_CALL; };
     FunctionCallAST(std::string name, AST_vec args);
+};
+
+class BlockAST : public AST {
+  public:
+    AST_vec body;
+    virtual int get_type() const { return AST_BLOCK; };
+    BlockAST(AST_vec);
 };
 
 class BinaryAST : public AST {
@@ -80,11 +90,25 @@ class VariableAST : public AST {
     VariableAST(std::string);
 };
 
+class IndexAST : public AST {
+  public:
+   AST *ary, *idx;
+   virtual int get_type() const { return AST_INDEX; };
+   IndexAST(AST *, AST *);
+};
+
 class IfAST : public AST {
   public:
     AST *cond, *b_then, *b_else;
     virtual int get_type() const { return AST_IF; };
     IfAST(AST *, AST *, AST * = nullptr);
+};
+
+class WhileAST : public AST {
+  public:
+    AST *cond, *body;
+    virtual int get_type() const { return AST_WHILE; };
+    WhileAST(AST *, AST *);
 };
 
 class AsgmtAST : public AST {

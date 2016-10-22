@@ -5,8 +5,7 @@ void show_ast(AST *ast) {
     case AST_FUNCTION_DEF: {
       FunctionDefAST *a = (FunctionDefAST *)ast;
       std::cout << "(def (" << a->ret_type->to_string() << ") " << a->name << " ";
-      for(auto st : a->body) 
-        show_ast(st);
+      show_ast(a->body);
       std::cout << ")";
     } break;
     case AST_FUNCTION_PROTO: {
@@ -15,6 +14,11 @@ void show_ast(AST *ast) {
       for(auto t : a->args)
         std::cout << t->to_string() << " ";
       std::cout << ") ";
+    } break;
+    case AST_BLOCK: {
+      BlockAST *a = (BlockAST *)ast;
+      for(auto st : a->body)
+        show_ast(st);
     } break;
     case AST_FUNCTION_CALL: {
       FunctionCallAST *a = (FunctionCallAST *)ast;
@@ -54,6 +58,14 @@ void show_ast(AST *ast) {
       VariableAST *a = (VariableAST *)ast;
       std::cout << "(var " << a->name << ") ";
     } break;
+    case AST_INDEX: {
+      IndexAST *a = (IndexAST *)ast;
+      std::cout << "([] ";
+      show_ast(a->ary);
+      std::cout << " ";
+      show_ast(a->idx);
+      std::cout << ") ";
+    } break;
     case AST_ASGMT: {
       AsgmtAST *a = (AsgmtAST *)ast;
       std::cout << "(= (";
@@ -81,15 +93,6 @@ void show_ast(AST *ast) {
 
 AST_vec Parser::run(Token tok) {
   token = tok;
-  op_prec["="] =  100;
-  op_prec["+="] = 100;
-  op_prec["-="] = 100;
-  op_prec["*="] = 100;
-  op_prec["/="] = 100;
-  op_prec["%="] = 100;
-  op_prec["^="] = 100;
-  op_prec["|="] = 100;
-  op_prec["&="] = 100;
   op_prec["=="] = 200;
   op_prec["!="] = 200;
   op_prec["<="] = 200;
@@ -104,7 +107,7 @@ AST_vec Parser::run(Token tok) {
   op_prec["?"] =  300;
   op_prec["*"] =  400;
   op_prec["/"] =  400;
-  op_prec["%"] = 400;
+  op_prec["%"] =  400;  
   auto a = eval();
   for(auto b : a)
     show_ast(b);
@@ -114,7 +117,7 @@ AST_vec Parser::run(Token tok) {
 
 AST_vec Parser::eval() {
   AST_vec program;
-  while(token.get().type != TOK_TYPE_END && !token.skip("}")) {
+  while(token.get().type != TOK_TYPE_END) {
     program.push_back(statement());
     while(token.skip(";"));
   }
@@ -124,7 +127,9 @@ AST_vec Parser::eval() {
 AST *Parser::statement() {
   if(is_function_def()) return make_function();
   if(token.is("if")) return make_if();
+  if(token.is("while")) return make_while();
   if(token.is("return")) return make_return();
+  if(token.is("{")) return make_block();
   if(is_function_proto()) return make_function_proto();
   if(is_var_declaration()) return make_var_declaration();
   return expr_entry();
@@ -142,9 +147,8 @@ AST *Parser::make_function() {
       args.push_back(new argument_t(type, name));
       token.skip(",");
     }
-    token.skip("{");
-    AST_vec body;
-    body = eval();
+    AST *body;
+    body = statement();
     return new FunctionDefAST(name, ret_type, args, body);
   } else puts("err");
   return nullptr;
@@ -167,6 +171,19 @@ AST *Parser::make_function_proto() {
   return nullptr;
 }
 
+AST *Parser::make_block() { 
+  AST_vec body;
+  if(token.skip("{")) {
+    while(!token.skip("}")) {
+      auto st = statement();
+      while(token.skip(";"));
+      if(st) body.push_back(st);
+    }
+    return new BlockAST(body);
+  }
+  return nullptr;
+}
+
 AST *Parser::make_if() {
   if(token.skip("if")) {
     token.skip("(");
@@ -178,6 +195,17 @@ AST *Parser::make_if() {
       AST *b_else = statement();
       return new IfAST(cond, b_then, b_else);
     } else return new IfAST(cond, b_then);
+  }
+  return nullptr;
+}
+
+AST *Parser::make_while() {
+  if(token.skip("while")) {
+    token.skip("(");
+    AST *cond = expr_entry();
+    token.skip(")");
+    AST *body = statement();
+    return new WhileAST(cond, body);
   }
   return nullptr;
 }
@@ -199,6 +227,10 @@ AST *Parser::make_var_declaration() {
     for(int i = skip_pointer(); i > 0; i--)
       type = new Type(TY_PTR, type);
     std::string name = token.next().val;
+    std::vector<int> ary = skip_array();
+    for(auto e : ary)
+      type = new Type(TY_ARRAY, e, type);
+    std::cout << type->to_string() << std::endl;
     decls.push_back(new declarator_t(type, name));
     token.skip(",");
   }
@@ -291,4 +323,14 @@ int Parser::skip_pointer() {
   return count;
 }
 
-
+std::vector<int> Parser::skip_array() {
+  std::vector<int> ary;
+  while(token.skip("[")) {
+    int ary_size = -1;
+    if(token.get().type == TOK_TYPE_NUMBER) 
+      ary_size = atoi(token.next().val.c_str());
+    token.skip("]");
+    ary.push_back(ary_size);
+  }
+  return ary;
+}
