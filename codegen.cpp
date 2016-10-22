@@ -30,6 +30,8 @@ llvm::Type *Codegen::to_llvm_type(Type *type) {
       return builder.getInt8Ty();
     case TY_PTR:
       return to_llvm_type(type->next)->getPointerTo();
+    case TY_ARRAY:
+      return llvm::ArrayType::get(to_llvm_type(type->next), type->get().ary_size);
   }
   return nullptr;
 }
@@ -60,6 +62,8 @@ llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
       return statement((VariableAST *)st, ret_type);
     case AST_ASGMT:
       return statement((AsgmtAST *)st, ret_type);
+    case AST_INDEX:
+      return statement((IndexAST *)st, ret_type);
     case AST_BINARY:
       return statement((BinaryAST *)st, ret_type);
     case AST_STRING:
@@ -251,9 +255,34 @@ llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
     VariableAST *va = (VariableAST *)st->dst;
     auto cur_var = cur_func->var_list.get(va->name);
     dst = cur_var->val;
+  } else if(st->dst->get_type() == AST_INDEX) {
+    IndexAST *vidx = (IndexAST *)st->dst;
+    llvm::Value *a = nullptr;
+    if(vidx->ary->get_type() == AST_VARIABLE) { 
+      VariableAST *va = (VariableAST *)vidx->ary;
+      auto v = this->cur_func->var_list.get(va->name);
+      a = v->val;
+    } else a = statement(vidx->ary, ret_type);
+    llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
+      a, 
+      llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), statement(vidx->idx, ret_type)}, "elem", builder.GetInsertBlock());
+    dst = elem;
   }
   builder.CreateStore(src, dst);
   return builder.CreateLoad(dst);
+}
+
+llvm::Value *Codegen::statement(IndexAST *st, Type *ret_type) {
+  llvm::Value *a = nullptr;
+  if(st->ary->get_type() == AST_VARIABLE) { 
+    VariableAST *va = (VariableAST *)st->ary;
+    auto v = this->cur_func->var_list.get(va->name);
+    a = v->val;
+  } else a = statement(st->ary, ret_type);
+  llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
+      a, 
+      llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), statement(st->idx, ret_type)}, "elem", builder.GetInsertBlock());
+  return builder.CreateLoad(elem);
 }
 
 llvm::Value *Codegen::statement(BinaryAST *st, Type *ret_type) {

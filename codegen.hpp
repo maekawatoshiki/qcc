@@ -19,6 +19,7 @@ class Codegen {
     llvm::Value *statement(FunctionCallAST *   , Type *);
     llvm::Value *statement(VarDeclarationAST * , Type *);
     llvm::Value *statement(VariableAST *       , Type *);
+    llvm::Value *statement(IndexAST *          , Type *);
     llvm::Value *statement(IfAST *             , Type *);
     llvm::Value *statement(WhileAST *          , Type *);
     llvm::Value *statement(ReturnAST *         , Type *);
