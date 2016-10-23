@@ -37,7 +37,7 @@ llvm::Type *Codegen::to_llvm_type(Type *type) {
 }
 
 llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
-  return builder.CreateBitCast(val, to);
+  return builder.CreateZExtOrBitCast(val, to);
 }
 
 llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
@@ -243,7 +243,19 @@ llvm::Value *Codegen::statement(ReturnAST *st, Type *ret_type) {
 
 llvm::Value *Codegen::statement(VariableAST *st, Type *ret_type) {
   auto var = this->cur_func->var_list.get(st->name);
-  if(var) return builder.CreateLoad(var->val);
+  if(var) {
+    ret_type->change(var->type);
+    if(var->type->eql(TY_ARRAY)) {
+      llvm::Value *a = var->val;
+      llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
+          a, 
+          llvm::ArrayRef<llvm::Value *>{
+            llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
+            llvm::ConstantInt::get(builder.getInt32Ty(), 0)}, "elem", builder.GetInsertBlock());
+      return elem;
+    } else 
+      return builder.CreateLoad(var->val);
+  }
   error("error: not found variable '%s'", var->name.c_str());
   return nullptr;
 }
@@ -265,9 +277,16 @@ llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
     } else a = statement(vidx->ary, ret_type);
     llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
       a, 
-      llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), statement(vidx->idx, ret_type)}, "elem", builder.GetInsertBlock());
+      llvm::ArrayRef<llvm::Value *>{
+        llvm::ConstantInt::get(builder.getInt32Ty(), 0), statement(vidx->idx, ret_type)}, 
+        "elem", builder.GetInsertBlock());
     dst = elem;
   }
+  int src_bits = src->getType()->getScalarSizeInBits(),
+      dst_bits = dst->getType()->getPointerElementType()->getScalarSizeInBits();
+  // std::cout << "src_bits: " << src_bits << ", dst_bits: " << dst_bits << std::endl;
+  if(dst_bits < src_bits) 
+    src = this->type_cast(src, dst->getType()->getPointerElementType());
   builder.CreateStore(src, dst);
   return builder.CreateLoad(dst);
 }
@@ -281,7 +300,8 @@ llvm::Value *Codegen::statement(IndexAST *st, Type *ret_type) {
   } else a = statement(st->ary, ret_type);
   llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
       a, 
-      llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), statement(st->idx, ret_type)}, "elem", builder.GetInsertBlock());
+      llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
+      statement(st->idx, ret_type)}, "elem", builder.GetInsertBlock());
   return builder.CreateLoad(elem);
 }
 
