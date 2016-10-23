@@ -67,7 +67,9 @@ namespace TypeTool {
     };
     // TODO: support unsigned|signed 
     Type *ty = nullptr;
-    if(type_name == "int") {
+    if(type_name == "void") {
+      ty = new Type(TY_VOID);
+    } else if(type_name == "int") {
       ty = new Type(TY_INT);
     } else if(type_name == "char") {
       ty = new Type(TY_CHAR);
@@ -86,6 +88,8 @@ namespace TypeTool {
       ss << type->next->to_string();
       ss << "[" << type->get().ary_size << "]";
       return ss.str();
+    } else if(type->eql(TY_VOID)) {
+      return "void";
     } else if(type->eql(TY_INT)) {
       return "int";
     } else if(type->eql(TY_CHAR)) {
