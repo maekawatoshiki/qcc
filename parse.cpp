@@ -39,6 +39,13 @@ void show_ast(AST *ast) {
       }
       std::cout << ")";
     } break;
+    case AST_WHILE: {
+      WhileAST *a = (WhileAST *)ast;
+      std::cout << "(while ";
+      show_ast(a->cond); std::cout << " ";
+      show_ast(a->body);
+      std::cout << ")";
+    } break;
     case AST_BINARY: {
       BinaryAST *a = (BinaryAST *)ast;
       std::cout << "(" << a->op << " ";
@@ -77,7 +84,7 @@ void show_ast(AST *ast) {
     case AST_RETURN: {
       ReturnAST *a = (ReturnAST *)ast;
       std::cout << "(return ";
-      show_ast(a->expr);
+      if(a->expr) show_ast(a->expr);
       std::cout << ") ";
     } break;
     case AST_NUMBER: {
@@ -144,6 +151,10 @@ AST *Parser::make_function() {
     while(!token.skip(")")) {
       Type *type = skip_declarator();
       std::string name = token.next().val;
+      std::vector<int> ary = skip_array();
+      std::reverse(ary.begin(), ary.end());
+      for(auto e : ary)
+        type = new Type(TY_ARRAY, e, type);
       args.push_back(new argument_t(type, name));
       token.skip(",");
     }
@@ -163,6 +174,10 @@ AST *Parser::make_function_proto() {
     while(!token.skip(")")) {
       Type *type = skip_declarator();
       if(token.get().type == TOK_TYPE_IDENT) token.skip();
+      std::vector<int> ary = skip_array();
+      std::reverse(ary.begin(), ary.end());
+      for(auto e : ary)
+        type = new Type(TY_ARRAY, e, type);
       args_type.push_back(type);
       token.skip(",");
     }
@@ -212,6 +227,8 @@ AST *Parser::make_while() {
 
 AST *Parser::make_return() {
   if(token.skip("return")) {
+    if(token.skip(";"))
+      return new ReturnAST(nullptr);
     ReturnAST *ret = new ReturnAST(expr_entry());
     token.skip(";");
     return ret;
@@ -228,9 +245,9 @@ AST *Parser::make_var_declaration() {
       type = new Type(TY_PTR, type);
     std::string name = token.next().val;
     std::vector<int> ary = skip_array();
+    std::reverse(ary.begin(), ary.end());
     for(auto e : ary)
       type = new Type(TY_ARRAY, e, type);
-    std::cout << type->to_string() << std::endl;
     decls.push_back(new declarator_t(type, name));
     token.skip(",");
   }

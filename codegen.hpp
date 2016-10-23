@@ -27,6 +27,7 @@ class Codegen {
     llvm::Value *statement(BinaryAST *         , Type *);
     llvm::Value *statement(StringAST *         , Type *);
     llvm::Value *statement(NumberAST *         , Type *);
+    llvm::Value *get_element_ptr(IndexAST *    , Type *);
     llvm::Type  *to_llvm_type(Type *);
     llvm::Value *type_cast(llvm::Value *, llvm::Type *);
     llvm::AllocaInst *create_entry_alloca(llvm::Function *TheFunction, std::string &VarName, llvm::Type *type = nullptr);

@@ -93,6 +93,10 @@ AST *Parser::expr_primary() {
     } else { // variable
       return new VariableAST(name);
     }
+  } else if(token.skip("(")) {
+    auto e = expr_entry();
+    token.skip(")");
+    return e;
   }
   return nullptr;
 }

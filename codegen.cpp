@@ -30,8 +30,12 @@ llvm::Type *Codegen::to_llvm_type(Type *type) {
       return builder.getInt8Ty();
     case TY_PTR:
       return to_llvm_type(type->next)->getPointerTo();
-    case TY_ARRAY:
-      return llvm::ArrayType::get(to_llvm_type(type->next), type->get().ary_size);
+    case TY_ARRAY: {
+      if(type->get().ary_size == -1) {
+        return to_llvm_type(type->next)->getPointerTo();
+      } else 
+        return llvm::ArrayType::get(to_llvm_type(type->next), type->get().ary_size);
+    }
   }
   return nullptr;
 }
@@ -110,9 +114,16 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
   std::vector<Type *>       args_type;
   std::vector<std::string>  args_name;
   for(auto arg : st->args) {
-    func.var_list.add(var_t(arg->name, arg->type));
-    func.args_type.push_back(arg->type);
+    std::function<Type *(Type *)> ary_to_ptr = [&](Type *ty) -> Type * {
+      if(ty->eql(TY_ARRAY) && ty->get().ary_size == -1) {
+        ty = new Type(TY_PTR, ary_to_ptr(ty->next));
+      }
+      return ty;
+    };
+    auto ty = ary_to_ptr(arg->type);
+    func.args_type.push_back(ty);
     func.args_name.push_back(arg->name);
+    func.var_list.add(var_t(arg->name, ty));
     func.llvm_args_type.push_back(to_llvm_type(arg->type));
   }
   this->func_list.add(func);
@@ -161,7 +172,10 @@ llvm::Value *Codegen::statement(FunctionCallAST *st, Type *ret_type) {
     caller_args.push_back(statement(a, ret_type));
   auto callee = func->llvm_function;
   ret_type->change(func->ret_type);
-  return builder.CreateCall(callee, caller_args, "call");
+  auto ret = builder.CreateCall(callee, caller_args);
+  if(!callee->getReturnType()->isVoidTy())
+    return ret;
+  return nullptr;
 }
 
 llvm::Value *Codegen::statement(VarDeclarationAST *st, Type *ret_type) {
@@ -175,7 +189,6 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st, Type *ret_type) {
 }
 
 llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
-  puts("IFAST");
   llvm::Value *cond_val = statement(st->cond, ret_type);
   cond_val = builder.CreateICmpNE(cond_val, llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
 
@@ -211,7 +224,6 @@ llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
     builder.SetInsertPoint(bb_merge);
   }
   
-  puts("IFAST");
   return nullptr;
 }
 
@@ -238,7 +250,10 @@ llvm::Value *Codegen::statement(WhileAST *st, Type *ret_type) {
 
 llvm::Value *Codegen::statement(ReturnAST *st, Type *ret_type) {
   if(!cur_func->br_list.empty()) cur_func->br_list.top() = true;
-  return builder.CreateRet(statement(st->expr, ret_type));
+  if(st->expr) 
+    return builder.CreateRet(statement(st->expr, ret_type));
+  else
+    return builder.CreateRetVoid();
 }
 
 llvm::Value *Codegen::statement(VariableAST *st, Type *ret_type) {
@@ -260,6 +275,38 @@ llvm::Value *Codegen::statement(VariableAST *st, Type *ret_type) {
   return nullptr;
 }
 
+llvm::Value *Codegen::get_element_ptr(IndexAST *st, Type *ret_type) {
+  llvm::Value *a = nullptr;
+  bool ptr = false;
+  if(st->ary->get_type() == AST_VARIABLE) { 
+    VariableAST *va = (VariableAST *)st->ary;
+    auto v = this->cur_func->var_list.get(va->name);
+    a = v->type->eql(TY_PTR) ? ptr = true, builder.CreateLoad(v->val) : v->val;
+    ret_type->change(v->type->next);
+  } else if(st->ary->get_type() == AST_INDEX) {
+    a = get_element_ptr((IndexAST *)st->ary, ret_type);
+    if(!a->getType()->getArrayElementType()->isArrayTy()) {
+      ptr = true;
+      a->dump();
+      a = builder.CreateLoad(a);
+    }
+  }
+  llvm::Value *elem;
+  Type dummy;
+  if(ptr) {
+    elem = llvm::GetElementPtrInst::CreateInBounds(
+        a, 
+        llvm::ArrayRef<llvm::Value *>(
+        statement(st->idx, &dummy)), "elem", builder.GetInsertBlock());
+  } else {
+    elem = llvm::GetElementPtrInst::CreateInBounds(
+        a, 
+        llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
+        statement(st->idx, &dummy)}, "elem", builder.GetInsertBlock());
+  }
+  return elem;
+}
+
 llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
   auto src = statement(st->src, ret_type);
   llvm::Value *dst = nullptr;
@@ -269,17 +316,7 @@ llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
     dst = cur_var->val;
   } else if(st->dst->get_type() == AST_INDEX) {
     IndexAST *vidx = (IndexAST *)st->dst;
-    llvm::Value *a = nullptr;
-    if(vidx->ary->get_type() == AST_VARIABLE) { 
-      VariableAST *va = (VariableAST *)vidx->ary;
-      auto v = this->cur_func->var_list.get(va->name);
-      a = v->val;
-    } else a = statement(vidx->ary, ret_type);
-    llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
-      a, 
-      llvm::ArrayRef<llvm::Value *>{
-        llvm::ConstantInt::get(builder.getInt32Ty(), 0), statement(vidx->idx, ret_type)}, 
-        "elem", builder.GetInsertBlock());
+    llvm::Value *elem = get_element_ptr(vidx, ret_type);
     dst = elem;
   }
   int src_bits = src->getType()->getScalarSizeInBits(),
@@ -292,16 +329,7 @@ llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
 }
 
 llvm::Value *Codegen::statement(IndexAST *st, Type *ret_type) {
-  llvm::Value *a = nullptr;
-  if(st->ary->get_type() == AST_VARIABLE) { 
-    VariableAST *va = (VariableAST *)st->ary;
-    auto v = this->cur_func->var_list.get(va->name);
-    a = v->val;
-  } else a = statement(st->ary, ret_type);
-  llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
-      a, 
-      llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
-      statement(st->idx, ret_type)}, "elem", builder.GetInsertBlock());
+  auto elem = get_element_ptr(st, ret_type);
   return builder.CreateLoad(elem);
 }
 
