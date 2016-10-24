@@ -13,6 +13,8 @@ class QCC {
     Lexer LEX;
     Parser PARSE;
     Codegen CODEGEN;
+    std::string out_file_name = "a.bc";
   public:
+    void set_out_file_name(std::string);
     int run(std::string);
 };

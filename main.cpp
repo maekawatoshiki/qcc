@@ -16,5 +16,10 @@ int main(int argc, char *argv[]) {
     std::string src_all(it, last);
     return src_all;
   }();
+  std::string ofile; // TODO: FIXME!!
+  for(int i = 0; i < argc; i++)
+    if(!strcmp(argv[i], "-o"))
+      ofile = argv[i+1];
+  if(!ofile.empty()) qcc.set_out_file_name(ofile);
   qcc.run(source);
 }

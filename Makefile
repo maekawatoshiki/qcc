@@ -8,6 +8,15 @@ qcc: main.o qcc.o pp.o token.o lexer.o parse.o ast.o type.o expr.o codegen.o fun
 	$(CXX) -o qcc -rdynamic main.o qcc.o pp.o token.o lexer.o parse.o ast.o \
 		type.o expr.o codegen.o func.o var.o $(LIBFLAGS) $(LLVM_LIB)
 
+test: qcc
+	@for t in op var ary fcall ctrl ptr; do \
+		./test/test.sh $$t; \
+	done
+	@clear
+	@for t in op var ary fcall ctrl ptr; do \
+		./test/$$t.bin || exit; \
+	done
+
 main.o: main.cpp common.hpp
 	$(CXX) -c main.cpp $(LLVM)
 
@@ -45,4 +54,4 @@ var.o: var.cpp var.hpp common.hpp
 	$(CXX) -c var.cpp $(LLVM)
 
 clean:
-	$(RM) qcc *.o a.*
+	$(RM) qcc *.o a.* test/*.bc test/*.s test/*.bin

@@ -4,13 +4,13 @@ llvm::LLVMContext &context(llvm::getGlobalContext());
 llvm::IRBuilder<> builder(context);
 llvm::Module *mod;
 
-void Codegen::run(AST_vec ast) {
+void Codegen::run(AST_vec ast, std::string out_file_name) {
   Type ty;
   mod = new llvm::Module("QCC", context);
   for(auto st : ast) statement(st, &ty);
   mod->dump();
   std::string EC;
-  llvm::raw_fd_ostream out("a.bc", EC, llvm::sys::fs::OpenFlags::F_RW);
+  llvm::raw_fd_ostream out(out_file_name.c_str(), EC, llvm::sys::fs::OpenFlags::F_RW);
   llvm::WriteBitcodeToFile(mod, out);
 }
 
@@ -41,7 +41,7 @@ llvm::Type *Codegen::to_llvm_type(Type *type) {
 }
 
 llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
-  return builder.CreateZExtOrBitCast(val, to);
+  return builder.CreateTruncOrBitCast(val, to);
 }
 
 llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
