@@ -46,6 +46,12 @@ void show_ast(AST *ast) {
       show_ast(a->body);
       std::cout << ")";
     } break;
+    case AST_UNARY: {
+      UnaryAST *a = (UnaryAST *)ast;
+      std::cout << "(" << a->op << " ";
+      show_ast(a->expr);
+      std::cout << ") ";
+    } break;
     case AST_BINARY: {
       BinaryAST *a = (BinaryAST *)ast;
       std::cout << "(" << a->op << " ";

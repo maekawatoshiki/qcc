@@ -34,9 +34,9 @@ class Parser {
     int get_op_prec(std::string);
     AST *expr_entry();
     AST *expr_asgmt();
+    AST *expr_unary();
     AST *expr_dot();
     AST *expr_index();
-    AST *expr_unary();
     AST *expr_primary();
     AST *expr_array();
     AST *expr_rhs(int, AST *);

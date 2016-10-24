@@ -12,7 +12,7 @@ class Codegen {
     FunctionList func_list;
     func_t *cur_func;
 
-    llvm::Value *statement(AST *, Type *);
+    llvm::Value *statement(AST *               , Type *);
     llvm::Value *statement(FunctionDefAST *    , Type *);
     llvm::Value *statement(FunctionProtoAST *  , Type *);
     llvm::Value *statement(BlockAST *          , Type *);
@@ -24,10 +24,12 @@ class Codegen {
     llvm::Value *statement(WhileAST *          , Type *);
     llvm::Value *statement(ReturnAST *         , Type *);
     llvm::Value *statement(AsgmtAST *          , Type *);
+    llvm::Value *statement(UnaryAST *          , Type *);
     llvm::Value *statement(BinaryAST *         , Type *);
     llvm::Value *statement(StringAST *         , Type *);
     llvm::Value *statement(NumberAST *         , Type *);
     llvm::Value *get_element_ptr(IndexAST *    , Type *);
+    llvm::Value *get_value(AST *               , Type *);
     llvm::Type  *to_llvm_type(Type *);
     llvm::Value *type_cast(llvm::Value *, llvm::Type *);
     llvm::AllocaInst *create_entry_alloca(llvm::Function *TheFunction, std::string &VarName, llvm::Type *type = nullptr);

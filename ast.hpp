@@ -9,6 +9,7 @@ enum {
   AST_FUNCTION_CALL,
   AST_BLOCK,
   AST_VAR_DECLARATION,
+  AST_UNARY,
   AST_BINARY,
   AST_INDEX,
   AST_VARIABLE,
@@ -65,6 +66,14 @@ class BlockAST : public AST {
     AST_vec body;
     virtual int get_type() const { return AST_BLOCK; };
     BlockAST(AST_vec);
+};
+
+class UnaryAST : public AST {
+  public:
+    AST *expr;
+    std::string op;
+    virtual int get_type() const { return AST_UNARY; };
+    UnaryAST(std::string, AST *);
 };
 
 class BinaryAST : public AST {

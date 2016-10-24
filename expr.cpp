@@ -28,7 +28,7 @@ AST *Parser::expr_entry() {
 
 AST *Parser::expr_asgmt() {
   AST *lhs, *rhs;
-  lhs = expr_dot();
+  lhs = expr_unary();
   std::string op = token.get().val;
   while(op == "+=" ||
       op == "-=" ||
@@ -56,13 +56,28 @@ AST *Parser::expr_asgmt() {
   return lhs;
 }
 
+AST *Parser::expr_unary() {
+  bool op_addr = false, op_aste = false;
+  op_addr = token.is("&");
+  op_aste = token.is("*");
+  if(op_addr||op_aste) token.skip();
+  AST *expr;
+  if(op_addr || op_aste) {
+    expr = expr_unary();
+    return new UnaryAST(op_addr ? "&" : 
+                        op_aste ? "*" : "", expr);
+  } else 
+    expr = expr_dot();
+  return expr;
+}
+
 AST *Parser::expr_dot() {
   return expr_index();
 }
 
 AST *Parser::expr_index() {
   AST *lhs, *rhs;
-  lhs = expr_unary();
+  lhs = expr_primary();
   while(token.skip("[")) {
     rhs = expr_entry();
     token.skip("]");
@@ -71,9 +86,6 @@ AST *Parser::expr_index() {
   return lhs;
 }
 
-AST *Parser::expr_unary() {
-  return expr_primary();
-}
 
 AST *Parser::expr_primary() {
   if(token.get().type == TOK_TYPE_NUMBER) {

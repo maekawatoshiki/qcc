@@ -68,12 +68,16 @@ llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
       return statement((AsgmtAST *)st, ret_type);
     case AST_INDEX:
       return statement((IndexAST *)st, ret_type);
+    case AST_UNARY:
+      return statement((UnaryAST *)st, ret_type);
     case AST_BINARY:
       return statement((BinaryAST *)st, ret_type);
     case AST_STRING:
       return statement((StringAST *)st, ret_type);
     case AST_NUMBER:
       return statement((NumberAST *)st, ret_type);
+    default:
+      error("error: unknown AST");
   }
   return nullptr;
 }
@@ -119,7 +123,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
         ty = new Type(TY_PTR, ary_to_ptr(ty->next));
       }
       return ty;
-    };
+    }; // zero-sized array(e.g. int a[]) will be casted to pointer.
     auto ty = ary_to_ptr(arg->type);
     func.args_type.push_back(ty);
     func.args_name.push_back(arg->name);
@@ -275,6 +279,24 @@ llvm::Value *Codegen::statement(VariableAST *st, Type *ret_type) {
   return nullptr;
 }
 
+llvm::Value *Codegen::get_value(AST *st, Type *ret_type) {
+  if(st->get_type() == AST_VARIABLE) {
+    VariableAST *va = (VariableAST *)st;
+    auto cur_var = cur_func->var_list.get(va->name);
+    return cur_var->val;
+  } else if(st->get_type() == AST_INDEX) {
+    IndexAST *vidx = (IndexAST *)st;
+    llvm::Value *elem = get_element_ptr(vidx, ret_type);
+    return elem;
+  } else if(st->get_type() == AST_UNARY) {
+    UnaryAST *ua = (UnaryAST *)st;
+    return statement(ua->expr, ret_type);
+  } else if(st->get_type() == AST_INDEX) {
+    return get_element_ptr((IndexAST *)st, ret_type);
+  }
+  return nullptr;
+}
+
 llvm::Value *Codegen::get_element_ptr(IndexAST *st, Type *ret_type) {
   llvm::Value *a = nullptr;
   bool ptr = false;
@@ -287,7 +309,6 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st, Type *ret_type) {
     a = get_element_ptr((IndexAST *)st->ary, ret_type);
     if(!a->getType()->getArrayElementType()->isArrayTy()) {
       ptr = true;
-      a->dump();
       a = builder.CreateLoad(a);
     }
   }
@@ -310,15 +331,7 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st, Type *ret_type) {
 llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
   auto src = statement(st->src, ret_type);
   llvm::Value *dst = nullptr;
-  if(st->dst->get_type() == AST_VARIABLE) {
-    VariableAST *va = (VariableAST *)st->dst;
-    auto cur_var = cur_func->var_list.get(va->name);
-    dst = cur_var->val;
-  } else if(st->dst->get_type() == AST_INDEX) {
-    IndexAST *vidx = (IndexAST *)st->dst;
-    llvm::Value *elem = get_element_ptr(vidx, ret_type);
-    dst = elem;
-  }
+  dst = get_value(st->dst, ret_type);
   int src_bits = src->getType()->getScalarSizeInBits(),
       dst_bits = dst->getType()->getPointerElementType()->getScalarSizeInBits();
   // std::cout << "src_bits: " << src_bits << ", dst_bits: " << dst_bits << std::endl;
@@ -331,6 +344,16 @@ llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
 llvm::Value *Codegen::statement(IndexAST *st, Type *ret_type) {
   auto elem = get_element_ptr(st, ret_type);
   return builder.CreateLoad(elem);
+}
+
+llvm::Value *Codegen::statement(UnaryAST *st, Type *ret_type) {
+  if(st->op == "&") { // address
+    return get_value(st->expr, ret_type);
+  } else if(st->op == "*") {
+    auto e = statement(st->expr, ret_type);
+    return builder.CreateLoad(e);
+  }
+  return nullptr;
 }
 
 llvm::Value *Codegen::statement(BinaryAST *st, Type *ret_type) {
