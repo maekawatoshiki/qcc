@@ -17,9 +17,14 @@ int main(int argc, char *argv[]) {
     return src_all;
   }();
   std::string ofile; // TODO: FIXME!!
+  bool emit_llvm_ir = false;
   for(int i = 0; i < argc; i++)
-    if(!strcmp(argv[i], "-o"))
-      ofile = argv[i+1];
+    if(!strcmp(argv[i], "-o")) {
+      ofile = argv[i+1]; 
+    } else if(!strcmp(argv[i], "-emit-ir")) {
+      emit_llvm_ir = true;
+    }
   if(!ofile.empty()) qcc.set_out_file_name(ofile);
+  qcc.set_emit_llvm_ir(emit_llvm_ir);
   qcc.run(source);
 }

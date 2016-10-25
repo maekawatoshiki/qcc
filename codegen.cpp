@@ -4,11 +4,11 @@ llvm::LLVMContext &context(llvm::getGlobalContext());
 llvm::IRBuilder<> builder(context);
 llvm::Module *mod;
 
-void Codegen::run(AST_vec ast, std::string out_file_name) {
+void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
   Type ty;
   mod = new llvm::Module("QCC", context);
   for(auto st : ast) statement(st, &ty);
-  mod->dump();
+  if(emit_llvm_ir) mod->dump();
   std::string EC;
   llvm::raw_fd_ostream out(out_file_name.c_str(), EC, llvm::sys::fs::OpenFlags::F_RW);
   llvm::WriteBitcodeToFile(mod, out);

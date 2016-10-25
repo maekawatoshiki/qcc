@@ -36,5 +36,5 @@ class Codegen {
 
     void error(const char *errs, ...);
   public:
-    void run(AST_vec, std::string = "a.bc");    
+    void run(AST_vec, std::string = "a.bc", bool emit_llvm_ir = false);    
 };

@@ -3,17 +3,16 @@ LIBFLAGS = -lm
 CXX = clang++ $(CXXFLAGS)
 LLVM = `llvm-config-3.5 --cppflags `
 LLVM_LIB = `llvm-config-3.5 --system-libs --cppflags --ldflags --libs all`
-
+TESTS = op var ary fcall ctrl ptr
 qcc: main.o qcc.o pp.o token.o lexer.o parse.o ast.o type.o expr.o codegen.o func.o var.o
 	$(CXX) -o qcc -rdynamic main.o qcc.o pp.o token.o lexer.o parse.o ast.o \
 		type.o expr.o codegen.o func.o var.o $(LIBFLAGS) $(LLVM_LIB)
 
 test: qcc
-	@for t in op var ary fcall ctrl ptr; do \
+	@for t in $(TESTS); do \
 		./test/test.sh $$t; \
 	done
-	@clear
-	@for t in op var ary fcall ctrl ptr; do \
+	@for t in $(TESTS); do \
 		./test/$$t.bin || exit; \
 	done
 
