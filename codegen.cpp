@@ -174,8 +174,9 @@ llvm::Value *Codegen::statement(FunctionCallAST *st, Type *ret_type) {
   func_t *func = this->func_list.get(st->name);
   if(func == nullptr) error("error: not found the function \'%s\'", st->name.c_str());
   std::vector<llvm::Value *> caller_args;
+  int i = 0;
   for(auto a : st->args) 
-    caller_args.push_back(statement(a, ret_type));
+    caller_args.push_back(type_cast(statement(a, ret_type), func->llvm_args_type[i++]));
   auto callee = func->llvm_function;
   ret_type->change(func->ret_type);
   auto ret = builder.CreateCall(callee, caller_args);
@@ -358,11 +359,7 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st, Type *ret_type) {
 }
 
 llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
-  int src_bits = src->getType()->getScalarSizeInBits(),
-      dst_bits = dst->getType()->getPointerElementType()->getScalarSizeInBits();
-  // std::cout << "src_bits: " << src_bits << ", dst_bits: " << dst_bits << std::endl;
-  if(dst_bits < src_bits) 
-    src = this->type_cast(src, dst->getType()->getPointerElementType());
+  src = this->type_cast(src, dst->getType()->getPointerElementType());
   return builder.CreateStore(src, dst);
 }
 
