@@ -141,6 +141,7 @@ AST *Parser::statement() {
   if(is_function_def()) return make_function();
   if(token.is("if")) return make_if();
   if(token.is("while")) return make_while();
+  if(token.is("for")) return make_for();
   if(token.is("return")) return make_return();
   if(token.is("{")) return make_block();
   if(is_function_proto()) return make_function_proto();
@@ -231,6 +232,23 @@ AST *Parser::make_while() {
   return nullptr;
 }
 
+AST *Parser::make_for() {
+  if(token.skip("for")) {
+    token.skip("(");
+    AST *init;
+    if(is_var_declaration()) init = make_var_declaration();
+    else init = expr_entry();
+    token.skip(";");
+    AST *cond = expr_entry();
+    token.skip(";");
+    AST *reinit = expr_entry();
+    token.skip(")");
+    AST *body = statement();
+    return new ForAST(init, cond, reinit, body);
+  }
+  return nullptr;
+}
+
 AST *Parser::make_return() {
   if(token.skip("return")) {
     if(token.skip(";"))
@@ -254,7 +272,10 @@ AST *Parser::make_var_declaration() {
     std::reverse(ary.begin(), ary.end());
     for(auto e : ary)
       type = new Type(TY_ARRAY, e, type);
-    decls.push_back(new declarator_t(type, name));
+    AST *init_expr = nullptr;
+    if(token.skip("="))  // has initialization expression?
+      init_expr = expr_entry();
+    decls.push_back(new declarator_t(type, name, init_expr));
     token.skip(",");
   }
   return new VarDeclarationAST(decls);

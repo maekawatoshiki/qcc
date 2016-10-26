@@ -44,6 +44,10 @@ WhileAST::WhileAST(AST *_cond, AST *_body):
   cond(_cond), body(_body) {
 }
 
+ForAST::ForAST(AST *_init, AST *_cond, AST *_reinit, AST *_body):
+  init(_init), cond(_cond), reinit(_reinit), body(_body) {
+}
+
 AsgmtAST::AsgmtAST(AST *_dst, AST *_src):
   dst(_dst), src(_src) {
 }

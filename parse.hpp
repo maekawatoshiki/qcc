@@ -23,6 +23,7 @@ class Parser {
     AST *make_block();
     AST *make_if();
     AST *make_while();
+    AST *make_for();
     AST *make_return();
 
     Type *skip_type_spec();

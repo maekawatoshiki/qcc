@@ -15,6 +15,7 @@ enum {
   AST_VARIABLE,
   AST_IF,
   AST_WHILE,
+  AST_FOR,
   AST_ASGMT,
   AST_RETURN,
   AST_NUMBER,
@@ -84,7 +85,12 @@ class BinaryAST : public AST {
     BinaryAST(std::string, AST *, AST *);
 };
 
-typedef argument_t declarator_t;
+struct declarator_t {
+  declarator_t(Type *ty, std::string nm, AST *init_exp = nullptr):type(ty), name(nm), init_expr(init_exp) {};
+  Type *type;
+  std::string name;
+  AST *init_expr = nullptr;
+};
 class VarDeclarationAST : public AST {
   public: 
     std::vector<declarator_t *> decls;
@@ -118,6 +124,13 @@ class WhileAST : public AST {
     AST *cond, *body;
     virtual int get_type() const { return AST_WHILE; };
     WhileAST(AST *, AST *);
+};
+
+class ForAST : public AST {
+  public:
+    AST *init, *cond, *reinit, *body;
+    virtual int get_type() const { return AST_FOR; };
+    ForAST(AST *, AST *, AST *, AST *);
 };
 
 class AsgmtAST : public AST {

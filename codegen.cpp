@@ -58,6 +58,8 @@ llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
       return statement((IfAST *)st, ret_type);
     case AST_WHILE:
       return statement((WhileAST *)st, ret_type);
+    case AST_FOR:
+      return statement((ForAST *)st, ret_type);
     case AST_RETURN:
       return statement((ReturnAST *)st, ret_type);
     case AST_VAR_DECLARATION:
@@ -188,6 +190,8 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st, Type *ret_type) {
     auto cur_var = cur_func->var_list.get(v->name);
     llvm::Type *decl_type = to_llvm_type(cur_var->type);
     cur_var->val = builder.CreateAlloca(decl_type);
+    if(v->init_expr) 
+      asgmt_value(cur_var->val, statement(v->init_expr, ret_type));
   }
   return nullptr;
 }
@@ -242,6 +246,31 @@ llvm::Value *Codegen::statement(WhileAST *st, Type *ret_type) {
   builder.SetInsertPoint(bb_loop);
 
   statement(st->body, ret_type);
+
+  llvm::Value *second_cond_val = builder.CreateICmpNE(
+      statement(st->cond, ret_type), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+  builder.CreateCondBr(second_cond_val, bb_loop, bb_after_loop);
+
+  builder.SetInsertPoint(bb_after_loop);
+
+  return nullptr;
+}
+
+llvm::Value *Codegen::statement(ForAST *st, Type *ret_type) {
+  llvm::BasicBlock *bb_loop = llvm::BasicBlock::Create(context, "loop", cur_func->llvm_function);
+  llvm::BasicBlock *bb_after_loop = llvm::BasicBlock::Create(context, "after_loop", cur_func->llvm_function);
+
+  statement(st->init, ret_type);
+
+  llvm::Value *first_cond_val = builder.CreateICmpNE(
+      statement(st->cond, ret_type), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+  builder.CreateCondBr(first_cond_val, bb_loop, bb_after_loop);
+
+  builder.SetInsertPoint(bb_loop);
+
+  statement(st->body, ret_type);
+
+  statement(st->reinit, ret_type);
 
   llvm::Value *second_cond_val = builder.CreateICmpNE(
       statement(st->cond, ret_type), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
@@ -328,16 +357,20 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st, Type *ret_type) {
   return elem;
 }
 
-llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
-  auto src = statement(st->src, ret_type);
-  llvm::Value *dst = nullptr;
-  dst = get_value(st->dst, ret_type);
+llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
   int src_bits = src->getType()->getScalarSizeInBits(),
       dst_bits = dst->getType()->getPointerElementType()->getScalarSizeInBits();
   // std::cout << "src_bits: " << src_bits << ", dst_bits: " << dst_bits << std::endl;
   if(dst_bits < src_bits) 
     src = this->type_cast(src, dst->getType()->getPointerElementType());
-  builder.CreateStore(src, dst);
+  return builder.CreateStore(src, dst);
+}
+
+llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
+  auto src = statement(st->src, ret_type);
+  llvm::Value *dst = nullptr;
+  dst = get_value(st->dst, ret_type);
+  asgmt_value(dst, src);
   return builder.CreateLoad(dst);
 }
 
