@@ -10,10 +10,6 @@ int QCC::run(std::string source) {
   return 0;
 }
 
-void QCC::set_out_file_name(std::string name) {
-  out_file_name = name;
-}
+void QCC::set_out_file_name(std::string name) { out_file_name = name; }
 
-void QCC::set_emit_llvm_ir(bool e) {
-  emit_llvm_ir = e;
-}
+void QCC::set_emit_llvm_ir(bool e) { emit_llvm_ir = e; }

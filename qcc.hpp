@@ -8,8 +8,8 @@
 
 class QCC {
   private:
-    Preprocessor PP;
     Token token;
+    Preprocessor PP;
     Lexer LEX;
     Parser PARSE;
     Codegen CODEGEN;
@@ -18,5 +18,6 @@ class QCC {
   public:
     void set_out_file_name(std::string);
     void set_emit_llvm_ir(bool);
+
     int run(std::string);
 };

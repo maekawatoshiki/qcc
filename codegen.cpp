@@ -177,7 +177,7 @@ llvm::Value *Codegen::statement(FunctionCallAST *st, Type *ret_type) {
   int i = 0;
   for(auto a : st->args) {
     caller_args.push_back(
-        func->llvm_args_type.size() > i ? statement(a, ret_type) : // varaible argument                                    
+        func->llvm_args_type.size() < i ? statement(a, ret_type) : // varaible argument                                    
         type_cast(statement(a, ret_type), func->llvm_args_type[i++])
         );
   } 
