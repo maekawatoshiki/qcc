@@ -175,8 +175,12 @@ llvm::Value *Codegen::statement(FunctionCallAST *st, Type *ret_type) {
   if(func == nullptr) error("error: not found the function \'%s\'", st->name.c_str());
   std::vector<llvm::Value *> caller_args;
   int i = 0;
-  for(auto a : st->args) 
-    caller_args.push_back(type_cast(statement(a, ret_type), func->llvm_args_type[i++]));
+  for(auto a : st->args) {
+    caller_args.push_back(
+        func->llvm_args_type.size() > i ? statement(a, ret_type) : // varaible argument                                    
+        type_cast(statement(a, ret_type), func->llvm_args_type[i++])
+        );
+  } 
   auto callee = func->llvm_function;
   ret_type->change(func->ret_type);
   auto ret = builder.CreateCall(callee, caller_args);
