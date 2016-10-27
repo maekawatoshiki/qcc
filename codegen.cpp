@@ -137,8 +137,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
 
   llvm::FunctionType *llvm_func_type = 
     llvm::FunctionType::get(to_llvm_type(func.ret_type), func.llvm_args_type, false);
-  llvm::Function *llvm_func = 
-    llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
+  llvm::Function *llvm_func = llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
   function->llvm_function = llvm_func;
 
   { // create function body
@@ -159,6 +158,13 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
     Type return_type;
     cur_func = function;
     statement(st->body, &return_type);
+    auto term = entry->getTerminator();
+    if(!term || !term->isTerminator()) {
+      printf("warning: in function '%s': expected termination instruction such as 'return'\n", function->name.c_str());
+      if(function->llvm_function->getReturnType()->isVoidTy())
+        builder.CreateRetVoid();
+      else builder.CreateRet(llvm::ConstantInt::get(function->llvm_function->getReturnType(), 0));
+    }
   }
 
   return nullptr;
