@@ -12,7 +12,7 @@ class Codegen {
     FunctionList func_list;
     func_t *cur_func;
 
-    llvm::Value *statement(AST *               , Type *);
+    llvm::Value *statement(AST *               , Type * = nullptr);
     llvm::Value *statement(FunctionDefAST *    , Type *);
     llvm::Value *statement(FunctionProtoAST *  , Type *);
     llvm::Value *statement(BlockAST *          , Type *);

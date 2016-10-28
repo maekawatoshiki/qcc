@@ -45,6 +45,9 @@ llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
 }
 
 llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
+  Type dummy;
+  if(ret_type == nullptr)
+    ret_type = &dummy;
   switch(st->get_type()) {
     case AST_FUNCTION_DEF:
       return statement((FunctionDefAST *)st, ret_type);
@@ -155,9 +158,8 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
       llvm_args_type_it++; args_name_it++;
     }
 
-    Type return_type;
     cur_func = function;
-    statement(st->body, &return_type);
+    statement(st->body);
     auto term = entry->getTerminator();
     if(!term || !term->isTerminator()) {
       printf("warning: in function '%s': expected termination instruction such as 'return'\n", function->name.c_str());
@@ -172,7 +174,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
 
 llvm::Value *Codegen::statement(BlockAST *st, Type *ret_type) {
   for(auto a : st->body) 
-    statement(a, ret_type);
+    statement(a);
   return nullptr;
 }
 
@@ -183,8 +185,8 @@ llvm::Value *Codegen::statement(FunctionCallAST *st, Type *ret_type) {
   int i = 0;
   for(auto a : st->args) {
     caller_args.push_back(
-        func->llvm_args_type.size() < i ? statement(a, ret_type) : // varaible argument                                    
-        type_cast(statement(a, ret_type), func->llvm_args_type[i++])
+        func->llvm_args_type.size() <= i? statement(a) : // varaible argument                                    
+        type_cast(statement(a), func->llvm_args_type[i++])
         );
   } 
   auto callee = func->llvm_function;
@@ -202,13 +204,13 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st, Type *ret_type) {
     llvm::Type *decl_type = to_llvm_type(cur_var->type);
     cur_var->val = builder.CreateAlloca(decl_type);
     if(v->init_expr) 
-      asgmt_value(cur_var->val, statement(v->init_expr, ret_type));
+      asgmt_value(cur_var->val, statement(v->init_expr));
   }
   return nullptr;
 }
 
 llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
-  llvm::Value *cond_val = statement(st->cond, ret_type);
+  llvm::Value *cond_val = statement(st->cond);
   cond_val = builder.CreateICmpNE(cond_val, llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
 
   auto *func = builder.GetInsertBlock()->getParent();
@@ -222,7 +224,7 @@ llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
 
   bool necessary_merge = false;
   cur_func->br_list.push(false);
-  statement(st->b_then, ret_type);
+  statement(st->b_then);
   if(cur_func->br_list.top())
     cur_func->br_list.pop();
   else builder.CreateBr(bb_merge), necessary_merge = true;
@@ -232,7 +234,7 @@ llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
   builder.SetInsertPoint(bb_else);
 
   cur_func->br_list.push(false);
-  if(st->b_else) statement(st->b_else, ret_type);
+  if(st->b_else) statement(st->b_else);
   if(cur_func->br_list.top())
     cur_func->br_list.pop();
   else builder.CreateBr(bb_merge), necessary_merge = true;
@@ -251,15 +253,15 @@ llvm::Value *Codegen::statement(WhileAST *st, Type *ret_type) {
   llvm::BasicBlock *bb_after_loop = llvm::BasicBlock::Create(context, "after_loop", cur_func->llvm_function);
 
   llvm::Value *first_cond_val = builder.CreateICmpNE(
-      statement(st->cond, ret_type), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+      statement(st->cond), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
   builder.CreateCondBr(first_cond_val, bb_loop, bb_after_loop);
 
   builder.SetInsertPoint(bb_loop);
 
-  statement(st->body, ret_type);
+  statement(st->body);
 
   llvm::Value *second_cond_val = builder.CreateICmpNE(
-      statement(st->cond, ret_type), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+      statement(st->cond), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
   builder.CreateCondBr(second_cond_val, bb_loop, bb_after_loop);
 
   builder.SetInsertPoint(bb_after_loop);
@@ -271,20 +273,20 @@ llvm::Value *Codegen::statement(ForAST *st, Type *ret_type) {
   llvm::BasicBlock *bb_loop = llvm::BasicBlock::Create(context, "loop", cur_func->llvm_function);
   llvm::BasicBlock *bb_after_loop = llvm::BasicBlock::Create(context, "after_loop", cur_func->llvm_function);
 
-  statement(st->init, ret_type);
+  statement(st->init);
 
   llvm::Value *first_cond_val = builder.CreateICmpNE(
-      statement(st->cond, ret_type), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+      statement(st->cond), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
   builder.CreateCondBr(first_cond_val, bb_loop, bb_after_loop);
 
   builder.SetInsertPoint(bb_loop);
 
-  statement(st->body, ret_type);
+  statement(st->body);
 
-  statement(st->reinit, ret_type);
+  statement(st->reinit);
 
   llvm::Value *second_cond_val = builder.CreateICmpNE(
-      statement(st->cond, ret_type), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+      statement(st->cond), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
   builder.CreateCondBr(second_cond_val, bb_loop, bb_after_loop);
 
   builder.SetInsertPoint(bb_after_loop);
@@ -295,7 +297,7 @@ llvm::Value *Codegen::statement(ForAST *st, Type *ret_type) {
 llvm::Value *Codegen::statement(ReturnAST *st, Type *ret_type) {
   if(!cur_func->br_list.empty()) cur_func->br_list.top() = true;
   if(st->expr) 
-    return builder.CreateRet(statement(st->expr, ret_type));
+    return builder.CreateRet(statement(st->expr));
   else
     return builder.CreateRetVoid();
 }
@@ -330,7 +332,7 @@ llvm::Value *Codegen::get_value(AST *st, Type *ret_type) {
     return elem;
   } else if(st->get_type() == AST_UNARY) {
     UnaryAST *ua = (UnaryAST *)st;
-    return statement(ua->expr, ret_type);
+    return statement(ua->expr);
   } else if(st->get_type() == AST_INDEX) {
     return get_element_ptr((IndexAST *)st, ret_type);
   }
@@ -353,17 +355,16 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st, Type *ret_type) {
     }
   }
   llvm::Value *elem;
-  Type dummy;
   if(ptr) {
     elem = llvm::GetElementPtrInst::CreateInBounds(
         a, 
         llvm::ArrayRef<llvm::Value *>(
-        statement(st->idx, &dummy)), "elem", builder.GetInsertBlock());
+        statement(st->idx)), "elem", builder.GetInsertBlock());
   } else {
     elem = llvm::GetElementPtrInst::CreateInBounds(
         a, 
         llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
-        statement(st->idx, &dummy)}, "elem", builder.GetInsertBlock());
+        statement(st->idx)}, "elem", builder.GetInsertBlock());
   }
   return elem;
 }
@@ -374,7 +375,7 @@ llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
 }
 
 llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
-  auto src = statement(st->src, ret_type);
+  auto src = statement(st->src);
   llvm::Value *dst = nullptr;
   dst = get_value(st->dst, ret_type);
   asgmt_value(dst, src);
@@ -390,15 +391,15 @@ llvm::Value *Codegen::statement(UnaryAST *st, Type *ret_type) {
   if(st->op == "&") { // address
     return get_value(st->expr, ret_type);
   } else if(st->op == "*") {
-    auto e = statement(st->expr, ret_type);
+    auto e = statement(st->expr);
     return builder.CreateLoad(e);
   }
   return nullptr;
 }
 
 llvm::Value *Codegen::statement(BinaryAST *st, Type *ret_type) {
-  auto lhs = statement(st->lhs, ret_type),
-       rhs = statement(st->rhs, ret_type);
+  auto lhs = statement(st->lhs),
+       rhs = statement(st->rhs);
   llvm::Value *ret = nullptr;
   if(st->op == "+") {
     ret = builder.CreateAdd(lhs, rhs);
