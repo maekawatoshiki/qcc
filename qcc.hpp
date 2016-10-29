@@ -6,6 +6,8 @@
 #include "parse.hpp"
 #include "codegen.hpp"
 
+#define QCC_VERSION "0.1"
+
 class QCC {
   private:
     Token token;
