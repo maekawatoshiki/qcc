@@ -210,16 +210,22 @@ llvm::Value *Codegen::statement(StructDeclarationAST *st, Type *ret_type) {
   std::vector<std::string> members_name;
   llvm::StructType *new_struct = llvm::StructType::create(context, "struct." + st->name);
   BlockAST *decl_block = (BlockAST *)st->decls;
+  // TODO: here's code is not beautiful :(
   for(auto a : decl_block->body) {
     if(a->get_type() == AST_VAR_DECLARATION) {
       VarDeclarationAST *decl = (VarDeclarationAST *)a;
-      for(auto v : decl->decls) {
+      for(auto v : decl->decls)
         members_name.push_back(v->name);
-        field.push_back(to_llvm_type(v->type));
-      }
     }
   }
   this->struct_list.add("struct." + st->name, members_name, new_struct);
+  for(auto a : decl_block->body) {
+    if(a->get_type() == AST_VAR_DECLARATION) {
+      VarDeclarationAST *decl = (VarDeclarationAST *)a;
+      for(auto v : decl->decls)
+        field.push_back(to_llvm_type(v->type));
+    }
+  }
   if(new_struct->isOpaque())
     new_struct->setBody(field, false);
   return nullptr;
