@@ -9,8 +9,10 @@ enum {
   AST_FUNCTION_CALL,
   AST_BLOCK,
   AST_VAR_DECLARATION,
+  AST_STRUCT_DECLARATION,
   AST_UNARY,
   AST_BINARY,
+  AST_DOT,
   AST_INDEX,
   AST_VARIABLE,
   AST_IF,
@@ -85,6 +87,14 @@ class BinaryAST : public AST {
     BinaryAST(std::string, AST *, AST *);
 };
 
+class DotOpAST : public AST {
+  public:
+    AST *lhs, *rhs;
+    bool is_arrow = false;
+    virtual int get_type() const { return AST_DOT; };
+    DotOpAST(AST *, AST *, bool = false);
+};
+
 struct declarator_t {
   declarator_t(Type *ty, std::string nm, AST *init_exp = nullptr):type(ty), name(nm), init_expr(init_exp) {};
   Type *type;
@@ -96,6 +106,14 @@ class VarDeclarationAST : public AST {
     std::vector<declarator_t *> decls;
     virtual int get_type() const { return AST_VAR_DECLARATION; };
     VarDeclarationAST(std::vector<declarator_t *>);
+};
+
+class StructDeclarationAST : public AST {
+  public:
+    std::string name;
+    AST *decls;
+    virtual int get_type() const { return AST_STRUCT_DECLARATION; };
+    StructDeclarationAST(std::string name, AST *);
 };
 
 class VariableAST : public AST {

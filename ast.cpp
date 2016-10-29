@@ -24,8 +24,16 @@ BinaryAST::BinaryAST(std::string _op, AST *_lhs, AST *_rhs):
   op(_op), lhs(_lhs), rhs(_rhs) {
 }
 
+DotOpAST::DotOpAST(AST *_lhs, AST *_rhs, bool _arrow):
+  lhs(_lhs), rhs(_rhs), is_arrow(_arrow) {
+}
+
 VarDeclarationAST::VarDeclarationAST(std::vector<declarator_t *> _decls):
   decls(_decls) {
+}
+
+StructDeclarationAST::StructDeclarationAST(std::string _name, AST *_decls):
+  name(_name), decls(_decls) {
 }
 
 VariableAST::VariableAST(std::string _name):

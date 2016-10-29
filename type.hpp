@@ -36,6 +36,7 @@ class Type {
     Type() {};
     Type(int ty): type(ty) {};
     Type(std::string ty): type(ty) {};
+    Type(int ty, std::string name): type(ty, name) {};
     Type(Type *ty): type(ty->type), next(ty->next) {};
     Type(int ty, Type *type): type(ty), next(type) {};
     Type(int ty, int sz, Type *type): type(ty, sz), next(type) {};

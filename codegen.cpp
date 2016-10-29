@@ -28,6 +28,12 @@ llvm::Type *Codegen::to_llvm_type(Type *type) {
       return builder.getInt32Ty();
     case TY_CHAR:
       return builder.getInt8Ty();
+    case TY_STRUCT: {
+      auto strct = this->struct_list.get("struct." + type->get().user_type);
+      if(strct)
+        return strct->llvm_struct;
+      else error("error: not found struct type '%s'", strct->name.c_str());
+    }
     case TY_PTR:
       return to_llvm_type(type->next)->getPointerTo();
     case TY_ARRAY: {
@@ -67,6 +73,8 @@ llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
       return statement((ReturnAST *)st, ret_type);
     case AST_VAR_DECLARATION:
       return statement((VarDeclarationAST *)st, ret_type);
+    case AST_STRUCT_DECLARATION:
+      return statement((StructDeclarationAST *)st, ret_type);
     case AST_VARIABLE:
       return statement((VariableAST *)st, ret_type);
     case AST_ASGMT:
@@ -77,12 +85,12 @@ llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
       return statement((UnaryAST *)st, ret_type);
     case AST_BINARY:
       return statement((BinaryAST *)st, ret_type);
+    case AST_DOT:
+      return statement((DotOpAST *)st, ret_type);
     case AST_STRING:
       return statement((StringAST *)st, ret_type);
     case AST_NUMBER:
       return statement((NumberAST *)st, ret_type);
-    default:
-      error("error: unknown AST");
   }
   return nullptr;
 }
@@ -194,6 +202,26 @@ llvm::Value *Codegen::statement(FunctionCallAST *st, Type *ret_type) {
   auto ret = builder.CreateCall(callee, caller_args);
   if(!callee->getReturnType()->isVoidTy())
     return ret;
+  return nullptr;
+}
+
+llvm::Value *Codegen::statement(StructDeclarationAST *st, Type *ret_type) {
+  std::vector<llvm::Type *> field;
+  std::vector<std::string> members_name;
+  llvm::StructType *new_struct = llvm::StructType::create(context, "struct." + st->name);
+  BlockAST *decl_block = (BlockAST *)st->decls;
+  for(auto a : decl_block->body) {
+    if(a->get_type() == AST_VAR_DECLARATION) {
+      VarDeclarationAST *decl = (VarDeclarationAST *)a;
+      for(auto v : decl->decls) {
+        members_name.push_back(v->name);
+        field.push_back(to_llvm_type(v->type));
+      }
+    }
+  }
+  this->struct_list.add("struct." + st->name, members_name, new_struct);
+  if(new_struct->isOpaque())
+    new_struct->setBody(field, false);
   return nullptr;
 }
 
@@ -335,6 +363,23 @@ llvm::Value *Codegen::get_value(AST *st, Type *ret_type) {
     return statement(ua->expr);
   } else if(st->get_type() == AST_INDEX) {
     return get_element_ptr((IndexAST *)st, ret_type);
+  } else if(st->get_type() == AST_DOT) {
+    DotOpAST *da = (DotOpAST *)st;
+    auto parent = get_value(da->lhs, ret_type);
+    if(da->is_arrow) parent = builder.CreateLoad(parent);
+    if(!parent) error("error");
+    struct_t *sinfo = this->struct_list.get(
+        ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str()
+        );
+    if(!sinfo) error("error: not found");
+    auto strct = sinfo->llvm_struct;
+    int member_count = 0;
+    std::string expected_name = ((VariableAST *)da->rhs)->name;
+    for(auto m : sinfo->members_name) {
+      if(m == expected_name) break;
+      member_count++;
+    }
+    return builder.CreateStructGEP(parent, member_count);
   }
   return nullptr;
 }
@@ -431,6 +476,10 @@ llvm::Value *Codegen::statement(BinaryAST *st, Type *ret_type) {
     ret = builder.CreateXor(lhs, rhs);
   }
   return ret;
+}
+
+llvm::Value *Codegen::statement(DotOpAST *st, Type *ret_type) {
+  return builder.CreateLoad(get_value(st, ret_type));
 }
 
 llvm::Value *Codegen::statement(StringAST *st, Type *ret_type) {

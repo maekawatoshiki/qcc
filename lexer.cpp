@@ -47,6 +47,7 @@ Token Lexer::run(std::string source) {
           (source[i] == '-' && source[i+1] == '-') ||
           (source[i] == '&' && source[i+1] == '&') ||
           (source[i] == '|' && source[i+1] == '|') ||
+          (source[i] == '-' && source[i+1] == '>') ||
           (source[i] == '.' && source[i+1] == '.') )
         op += source[++i];
       if(source[i+1] == '.') op += source[++i];

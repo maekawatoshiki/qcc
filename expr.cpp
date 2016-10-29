@@ -72,7 +72,20 @@ AST *Parser::expr_unary() {
 }
 
 AST *Parser::expr_dot() {
-  return expr_index();
+  AST *lhs, *rhs;
+  bool arrow = false;
+  lhs = expr_index();
+  while((arrow=token.skip("->")) || token.skip(".")) {
+    rhs = expr_primary();
+    lhs = new DotOpAST(lhs, rhs, arrow);
+    while(token.skip("[")) {
+      rhs = expr_entry();
+      token.skip("]");
+      lhs = new IndexAST(lhs, rhs);
+    }
+    arrow = false;
+  }
+  return lhs;
 }
 
 AST *Parser::expr_index() {

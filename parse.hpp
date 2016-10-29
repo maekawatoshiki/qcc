@@ -20,6 +20,7 @@ class Parser {
     AST *make_function();
     AST *make_function_proto();
     AST *make_var_declaration();
+    AST *make_struct_declaration();
     AST *make_block();
     AST *make_if();
     AST *make_while();

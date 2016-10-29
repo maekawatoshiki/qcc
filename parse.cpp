@@ -60,6 +60,20 @@ void show_ast(AST *ast) {
       show_ast(a->rhs);
       std::cout << ") ";
     } break;
+    case AST_DOT: {
+      DotOpAST *a = (DotOpAST *)ast;
+      std::cout << "(. ";
+      show_ast(a->lhs);
+      std::cout << " ";
+      show_ast(a->rhs);
+      std::cout << ") ";
+    } break;
+    case AST_STRUCT_DECLARATION: {
+      StructDeclarationAST *a = (StructDeclarationAST *)ast;
+      std::cout << "(struct-decl " << a->name << " ";
+      show_ast(a->decls);
+      std::cout << ") ";
+    } break;
     case AST_VAR_DECLARATION: {
       VarDeclarationAST *a = (VarDeclarationAST *)ast;
       std::cout << "(var-decl ";
@@ -121,6 +135,7 @@ AST_vec Parser::run(Token tok) {
   op_prec["*"] =  400;
   op_prec["/"] =  400;
   op_prec["%"] =  400;  
+  op_prec["."] =  500;  
   auto a = eval();
   for(auto b : a)
     show_ast(b);
@@ -146,6 +161,7 @@ AST *Parser::statement() {
   if(token.is("{")) return make_block();
   if(is_function_proto()) return make_function_proto();
   if(is_var_declaration()) return make_var_declaration();
+  if(token.is("struct")) return make_struct_declaration();
   return expr_entry();
 }
 
@@ -260,6 +276,18 @@ AST *Parser::make_return() {
   return nullptr;
 }
 
+AST *Parser::make_struct_declaration() {
+  if(token.skip("struct")) {
+    std::string name;
+    if(token.get().type == TOK_TYPE_IDENT) 
+      name = token.next().val;
+    AST *decls = statement();
+    return new StructDeclarationAST(name, decls);
+  }
+  return nullptr;
+}
+
+
 AST *Parser::make_var_declaration() {
   Type *base_type = skip_type_spec();
   std::vector<declarator_t *> decls;
@@ -301,16 +329,16 @@ bool Parser::is_function_def() {
   int pos = token.pos;
   if(skip_declarator()) {
     token.skip(); // function name
-    if(token.get().type == TOK_TYPE_SYMBOL && 
-        token.get().val == "(") { 
-      while(token.get().val != ")") token.skip();
-      token.skip(")");
+    if(token.skip("(")) { 
+      while(token.get().val != ")" && token.get().type != TOK_TYPE_END) token.skip();
+      if(!token.skip(")")) goto exit;
       if(token.skip("{")) {
         token.pos = pos;
         return true;
       }
     }
   }
+exit:
   token.pos = pos;
   return false;
 }
@@ -320,8 +348,12 @@ bool Parser::is_var_declaration() {
   if(skip_type_spec()) {
     skip_pointer();
     if(token.get().type == TOK_TYPE_IDENT) {
-      token.pos = pos;
-      return true;
+      token.skip();
+      skip_array();
+      if(token.skip(";") || token.skip(",") || token.skip("=")) {
+        token.pos = pos;
+        return true;
+      }
     }
   }
   token.pos = pos;
@@ -344,15 +376,10 @@ Type *Parser::skip_type_spec() {
     } else {
       std::string name;
       if(token.get().type == TOK_TYPE_IDENT) name=token.next().val; else puts("err"); // TODO: add err check
-      if(token.skip("{")) {
-        while(!token.skip("}"));
-        // TODO: implement
-      } else 
-        return TypeTool::to_type(name);
+      return new Type(TY_STRUCT, name);
     }
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
-    // std::cout << "type name " << name << std::endl;
     return TypeTool::to_type(name);
   } else if(token.skip("...")) {
     return new Type(TY_VARARG);
