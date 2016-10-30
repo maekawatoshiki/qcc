@@ -132,11 +132,11 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
   std::vector<std::string>  args_name;
   for(auto arg : st->args) {
     std::function<Type *(Type *)> ary_to_ptr = [&](Type *ty) -> Type * {
-      if(ty->eql(TY_ARRAY) && ty->get().ary_size == -1) {
+      if(ty->eql(TY_ARRAY)) {
         ty = new Type(TY_PTR, ary_to_ptr(ty->next));
       }
       return ty;
-    }; // zero-sized array(e.g. int a[]) will be casted to pointer.
+    }; // array(e.g. int a[3]) will be casted to pointer.
     auto ty = ary_to_ptr(arg->type);
     func.args_type.push_back(ty);
     func.args_name.push_back(arg->name);
@@ -168,12 +168,15 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
 
     cur_func = function;
     statement(st->body);
-    auto term = entry->getTerminator();
-    if(!term || !term->isTerminator()) {
-      printf("warning: in function '%s': expected termination instruction such as 'return'\n", function->name.c_str());
-      if(function->llvm_function->getReturnType()->isVoidTy())
-        builder.CreateRetVoid();
-      else builder.CreateRet(llvm::ConstantInt::get(function->llvm_function->getReturnType(), 0));
+    for(auto it = cur_func->llvm_function->getBasicBlockList().begin(); 
+        it != cur_func->llvm_function->getBasicBlockList().end(); ++it) {
+      auto term = it->back().isTerminator();
+      if(!term) {
+        printf("warning: in function '%s': expected termination instruction such as 'return'\n", function->name.c_str());
+        if(function->llvm_function->getReturnType()->isVoidTy())
+          builder.CreateRetVoid();
+        else builder.CreateRet(llvm::ConstantInt::get(function->llvm_function->getReturnType(), 0));
+      }
     }
   }
 
@@ -245,7 +248,7 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st, Type *ret_type) {
 
 llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
   llvm::Value *cond_val = statement(st->cond);
-  cond_val = builder.CreateICmpNE(cond_val, llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+  cond_val = builder.CreateICmpNE(cond_val, llvm::ConstantInt::get(cond_val->getType(), 0, true));
 
   auto *func = builder.GetInsertBlock()->getParent();
 
@@ -474,9 +477,9 @@ llvm::Value *Codegen::statement(BinaryAST *st, Type *ret_type) {
     ret = builder.CreateICmpSLT(lhs, rhs);
   } else if(st->op == (">")) {
     ret = builder.CreateICmpSGT(lhs, rhs);
-  } else if(st->op == "&" && st->op == "&&") {
+  } else if(st->op == "&" || st->op == "&&") {
     ret = builder.CreateAnd(lhs, rhs);
-  } else if(st->op == "|" && st->op == "||") {
+  } else if(st->op == "|" || st->op == "||") {
     ret = builder.CreateOr(lhs, rhs);
   } else if(st->op == "^") {
     ret = builder.CreateXor(lhs, rhs);

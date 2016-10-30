@@ -96,6 +96,8 @@ namespace TypeTool {
       return "char";
     } else if(type->eql(TY_DOUBLE)) {
       return "double";
+    } else if(type->eql(TY_STRUCT)) {
+      return type->get().user_type;
     } else if(type->eql(TY_VARARG)) {
       return "...";
     }

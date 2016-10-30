@@ -126,6 +126,8 @@ AST_vec Parser::run(Token tok) {
   op_prec[">="] = 200;
   op_prec["<"] =  200;
   op_prec[">"] =  200;
+  op_prec["&&"] =  150;
+  op_prec["||"] =  150;
   op_prec["&"] =  150;
   op_prec["|"] =  150;
   op_prec["^"] =  150;
@@ -146,7 +148,8 @@ AST_vec Parser::run(Token tok) {
 AST_vec Parser::eval() {
   AST_vec program;
   while(token.get().type != TOK_TYPE_END) {
-    program.push_back(statement());
+    auto st = statement();
+    if(st) program.push_back(st);
     while(token.skip(";"));
   }
   return program;
@@ -162,6 +165,7 @@ AST *Parser::statement() {
   if(is_function_proto()) return make_function_proto();
   if(is_var_declaration()) return make_var_declaration();
   if(token.is("struct")) return make_struct_declaration();
+  if(token.is("typedef")) return make_typedef();
   return expr_entry();
 }
 
@@ -287,6 +291,16 @@ AST *Parser::make_struct_declaration() {
   return nullptr;
 }
 
+AST *Parser::make_typedef() {
+  if(token.skip("typedef")) {
+    Type *from = skip_type_spec();
+    std::cout << "TYPEDEF = " << from->to_string() << std::endl;
+    std::string name = token.next().val;
+    typedef_map[name] = from;
+  }
+  return nullptr;
+}
+
 
 AST *Parser::make_var_declaration() {
   Type *base_type = skip_type_spec();
@@ -362,6 +376,7 @@ bool Parser::is_var_declaration() {
 
 Type *Parser::skip_declarator() {
   Type *type = skip_type_spec();
+  if(type == nullptr) return nullptr;
   for(int i=skip_pointer(); i > 0; i--)
     type = new Type(TY_PTR, type);
   return type;
@@ -380,7 +395,9 @@ Type *Parser::skip_type_spec() {
     }
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
-    return TypeTool::to_type(name);
+    if(typedef_map.count(name) > 0) {
+      return typedef_map[name];
+    } else return TypeTool::to_type(name);
   } else if(token.skip("...")) {
     return new Type(TY_VARARG);
   }
