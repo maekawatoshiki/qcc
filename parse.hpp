@@ -14,6 +14,7 @@ class Parser {
     AST_vec eval();
     AST *statement();
 
+    std::map<std::string, Type *> typedef_map;
     bool is_function_def();
     bool is_function_proto();
     bool is_var_declaration();
@@ -21,6 +22,7 @@ class Parser {
     AST *make_function_proto();
     AST *make_var_declaration();
     AST *make_struct_declaration();
+    AST *make_typedef();
     AST *make_block();
     AST *make_if();
     AST *make_while();
