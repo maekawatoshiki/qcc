@@ -248,7 +248,7 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st, Type *ret_type) {
 
 llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
   llvm::Value *cond_val = statement(st->cond);
-  cond_val = builder.CreateICmpNE(cond_val, llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+  cond_val = builder.CreateICmpNE(cond_val, llvm::ConstantInt::get(cond_val->getType(), 0, true));
 
   auto *func = builder.GetInsertBlock()->getParent();
 
