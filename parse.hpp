@@ -12,15 +12,22 @@ class Parser {
     AST_vec run(Token);
 
     AST_vec eval();
+    AST *statement_top();
     AST *statement();
 
     std::map<std::string, Type *> typedef_map;
     bool is_function_def();
     bool is_function_proto();
-    bool is_var_declaration();
+    bool is_type();
     AST *make_function();
     AST *make_function_proto();
     AST *make_var_declaration();
+    AST *read_declaration();
+    Type *read_declarator(std::string &, Type *);
+    Type *read_declarator(std::string &, Type *, std::vector<argument_t *>);
+    Type *read_declarator_func(Type *, std::vector<argument_t *>);
+    Type *read_declarator_tail(Type *);
+    Type *read_declarator_array(Type *);
     AST *make_struct_declaration();
     AST *make_typedef();
     AST *make_block();
@@ -30,7 +37,7 @@ class Parser {
     AST *make_return();
 
     Type *skip_type_spec();
-    Type *skip_declarator();
+    Type *read_type_declarator();
     int skip_pointer();
     std::vector<int> skip_array(); // .size() = number of [], elem = ary size
 
