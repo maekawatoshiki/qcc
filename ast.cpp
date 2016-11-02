@@ -16,8 +16,8 @@ BlockAST::BlockAST(AST_vec _body):
   body(_body) {
 }
 
-UnaryAST::UnaryAST(std::string _op, AST *_expr):
-  op(_op), expr(_expr) {
+UnaryAST::UnaryAST(std::string _op, AST *_expr, bool _postfix):
+  op(_op), expr(_expr), postfix(_postfix) {
 }
 
 BinaryAST::BinaryAST(std::string _op, AST *_lhs, AST *_rhs):

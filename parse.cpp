@@ -378,17 +378,14 @@ exit:
 
 bool Parser::is_function_def() {
   int pos = token.pos;
-  if(read_type_declarator()) {
-    token.skip(); // function name
-    if(token.skip("(")) { 
-      while(token.get().val != ")" && token.get().type != TOK_TYPE_END) token.skip();
-      if(!token.skip(")")) goto exit;
-      if(token.skip("{")) {
-        token.pos = pos;
-        return true;
-      }
-    }
-  }
+  if(!read_type_declarator()) goto exit;
+  token.skip(); // function name
+  if(!token.skip("(")) goto exit;
+  while(token.get().val != ")" && token.get().type != TOK_TYPE_END) token.skip();
+  if(!token.skip(")")) goto exit;
+  if(!token.skip("{")) goto exit;
+  token.pos = pos;
+  return true;
 exit:
   token.pos = pos;
   return false;

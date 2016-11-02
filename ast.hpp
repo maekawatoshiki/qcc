@@ -75,8 +75,9 @@ class UnaryAST : public AST {
   public:
     AST *expr;
     std::string op;
+    bool postfix = false;
     virtual int get_type() const { return AST_UNARY; };
-    UnaryAST(std::string, AST *);
+    UnaryAST(std::string, AST *, bool = false);
 };
 
 class BinaryAST : public AST {

@@ -50,6 +50,12 @@ llvm::Type *Codegen::to_llvm_type(Type *type) {
 }
 
 llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
+  if(val->getType()->isIntegerTy() && to->isIntegerTy()) {
+    llvm::IntegerType *ival = (llvm::IntegerType *)val->getType();
+    llvm::IntegerType *ito  = (llvm::IntegerType *)to;
+    if(ival->getBitWidth() < ito->getBitWidth()) 
+      return builder.CreateSExtOrBitCast(val, to);
+  } 
   return builder.CreateTruncOrBitCast(val, to);
 }
 
@@ -290,16 +296,18 @@ llvm::Value *Codegen::statement(WhileAST *st) {
   llvm::BasicBlock *bb_loop = llvm::BasicBlock::Create(context, "loop", cur_func->llvm_function);
   llvm::BasicBlock *bb_after_loop = llvm::BasicBlock::Create(context, "after_loop", cur_func->llvm_function);
 
+  llvm::Value *cond_val_1 = statement(st->cond);
   llvm::Value *first_cond_val = builder.CreateICmpNE(
-      statement(st->cond), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+      cond_val_1, llvm::ConstantInt::get(cond_val_1->getType(), 0, true));
   builder.CreateCondBr(first_cond_val, bb_loop, bb_after_loop);
 
   builder.SetInsertPoint(bb_loop);
 
   statement(st->body);
 
+  llvm::Value *cond_val_2 = statement(st->cond);
   llvm::Value *second_cond_val = builder.CreateICmpNE(
-      statement(st->cond), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+      cond_val_2, llvm::ConstantInt::get(cond_val_2->getType(), 0, true));
   builder.CreateCondBr(second_cond_val, bb_loop, bb_after_loop);
 
   builder.SetInsertPoint(bb_after_loop);
@@ -448,6 +456,24 @@ llvm::Value *Codegen::statement(UnaryAST *st) {
   } else if(st->op == "*") {
     auto e = statement(st->expr);
     return builder.CreateLoad(e);
+  } else if(st->op == "++") {
+    auto v1 = get_value(st->expr);
+    auto v  = builder.CreateLoad(v1);
+    llvm::Value *vv;
+    if(v1->getType()->isPointerTy()) {
+      vv = llvm::GetElementPtrInst::CreateInBounds(
+          v, 
+          llvm::ArrayRef<llvm::Value *>(
+            llvm::ConstantInt::get(builder.getInt32Ty(), 1)), "elem", builder.GetInsertBlock());
+    } else vv = builder.CreateAdd(v, llvm::ConstantInt::get(v->getType(), 1));
+    asgmt_value(v1, vv);
+    return st->postfix ? v : vv;
+  } else if(st->op == "--") {
+    auto v1 = get_value(st->expr);
+    auto v  = builder.CreateLoad(v1);
+    auto vv= builder.CreateSub(v, llvm::ConstantInt::get(v->getType(), 1));
+    asgmt_value(v1, vv);
+    return st->postfix ? v : vv;
   }
   return nullptr;
 }

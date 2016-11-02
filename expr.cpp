@@ -57,17 +57,31 @@ AST *Parser::expr_asgmt() {
 }
 
 AST *Parser::expr_unary() {
-  bool op_addr = false, op_aste = false;
+  bool op_addr = false, op_aste = false, op_inc = false, op_dec = false;
   op_addr = token.is("&");
   op_aste = token.is("*");
-  if(op_addr||op_aste) token.skip();
-  AST *expr;
-  if(op_addr || op_aste) {
+  op_inc = token.is("++");
+  op_dec = token.is("--");
+  AST *expr = nullptr;
+  if(op_addr || op_aste || op_inc || op_dec) {
+    token.skip();
     expr = expr_unary();
     return new UnaryAST(op_addr ? "&" : 
-                        op_aste ? "*" : "", expr);
+                        op_aste ? "*" :
+                        op_inc  ? "++":
+                        op_dec  ? "--" : "", expr);
   } else 
     expr = expr_dot();
+  return expr_unary_postfix(expr);
+}
+
+AST *Parser::expr_unary_postfix(AST *expr) {
+  bool op_inc = token.is("++"), op_dec = token.is("--");
+  if(op_inc || op_dec) {
+    token.skip();
+    return new UnaryAST(op_inc ? "++" : 
+                        op_dec ? "--" : "", expr, /*postfix=*/true);
+  }
   return expr;
 }
 
