@@ -7,7 +7,7 @@ llvm::Module *mod;
 void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
   Type ty;
   mod = new llvm::Module("QCC", context);
-  for(auto st : ast) statement(st, &ty);
+  for(auto st : ast) statement(st);
   if(emit_llvm_ir) mod->dump();
   std::string EC;
   llvm::raw_fd_ostream out(out_file_name.c_str(), EC, llvm::sys::fs::OpenFlags::F_RW);
@@ -28,6 +28,9 @@ llvm::Type *Codegen::to_llvm_type(Type *type) {
       return builder.getInt32Ty();
     case TY_CHAR:
       return builder.getInt8Ty();
+    case TY_STRUCT_DEF: {
+      return statement((StructDeclarationAST *)type->get().su);
+    }
     case TY_STRUCT: {
       auto strct = this->struct_list.get("struct." + type->get().user_type);
       if(strct)
@@ -50,52 +53,49 @@ llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
   return builder.CreateTruncOrBitCast(val, to);
 }
 
-llvm::Value *Codegen::statement(AST *st, Type *ret_type) {
-  Type dummy;
-  if(ret_type == nullptr)
-    ret_type = &dummy;
+llvm::Value *Codegen::statement(AST *st) {
   switch(st->get_type()) {
     case AST_FUNCTION_DEF:
-      return statement((FunctionDefAST *)st, ret_type);
+      return statement((FunctionDefAST *)st);
     case AST_FUNCTION_PROTO:
-      return statement((FunctionProtoAST *)st, ret_type);
+      return statement((FunctionProtoAST *)st);
     case AST_BLOCK:
-      return statement((BlockAST *)st, ret_type);
+      return statement((BlockAST *)st);
     case AST_FUNCTION_CALL:
-      return statement((FunctionCallAST *)st, ret_type);
+      return statement((FunctionCallAST *)st);
     case AST_IF:
-      return statement((IfAST *)st, ret_type);
+      return statement((IfAST *)st);
     case AST_WHILE:
-      return statement((WhileAST *)st, ret_type);
+      return statement((WhileAST *)st);
     case AST_FOR:
-      return statement((ForAST *)st, ret_type);
+      return statement((ForAST *)st);
     case AST_RETURN:
-      return statement((ReturnAST *)st, ret_type);
+      return statement((ReturnAST *)st);
     case AST_VAR_DECLARATION:
-      return statement((VarDeclarationAST *)st, ret_type);
+      return statement((VarDeclarationAST *)st);
     case AST_STRUCT_DECLARATION:
-      return statement((StructDeclarationAST *)st, ret_type);
+      statement((StructDeclarationAST *)st); break;
     case AST_VARIABLE:
-      return statement((VariableAST *)st, ret_type);
+      return statement((VariableAST *)st);
     case AST_ASGMT:
-      return statement((AsgmtAST *)st, ret_type);
+      return statement((AsgmtAST *)st);
     case AST_INDEX:
-      return statement((IndexAST *)st, ret_type);
+      return statement((IndexAST *)st);
     case AST_UNARY:
-      return statement((UnaryAST *)st, ret_type);
+      return statement((UnaryAST *)st);
     case AST_BINARY:
-      return statement((BinaryAST *)st, ret_type);
+      return statement((BinaryAST *)st);
     case AST_DOT:
-      return statement((DotOpAST *)st, ret_type);
+      return statement((DotOpAST *)st);
     case AST_STRING:
-      return statement((StringAST *)st, ret_type);
+      return statement((StringAST *)st);
     case AST_NUMBER:
-      return statement((NumberAST *)st, ret_type);
+      return statement((NumberAST *)st);
   }
   return nullptr;
 }
 
-llvm::Value *Codegen::statement(FunctionProtoAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(FunctionProtoAST *st) {
   func_t func;
   func.name = st->name;
   func.ret_type = st->ret_type;
@@ -123,7 +123,7 @@ llvm::Value *Codegen::statement(FunctionProtoAST *st, Type *ret_type) {
   return nullptr;
 }
 
-llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(FunctionDefAST *st) {
   func_t func;
   func.name = st->name;
   func.ret_type = st->ret_type;
@@ -183,13 +183,13 @@ llvm::Value *Codegen::statement(FunctionDefAST *st, Type *ret_type) {
   return nullptr;
 }
 
-llvm::Value *Codegen::statement(BlockAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(BlockAST *st) {
   for(auto a : st->body) 
     statement(a);
   return nullptr;
 }
 
-llvm::Value *Codegen::statement(FunctionCallAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(FunctionCallAST *st) {
   func_t *func = this->func_list.get(st->name);
   if(func == nullptr) error("error: not found the function \'%s\'", st->name.c_str());
   std::vector<llvm::Value *> caller_args;
@@ -201,14 +201,15 @@ llvm::Value *Codegen::statement(FunctionCallAST *st, Type *ret_type) {
         );
   } 
   auto callee = func->llvm_function;
-  ret_type->change(func->ret_type);
   auto ret = builder.CreateCall(callee, caller_args);
   if(!callee->getReturnType()->isVoidTy())
     return ret;
   return nullptr;
 }
 
-llvm::Value *Codegen::statement(StructDeclarationAST *st, Type *ret_type) {
+llvm::Type *Codegen::statement(StructDeclarationAST *st) {
+  if(st->def) return this->struct_list.get("struct." + st->name)->llvm_struct;
+  st->def = true;
   std::vector<llvm::Type *> field;
   std::vector<std::string> members_name;
   llvm::StructType *new_struct = llvm::StructType::create(context, "struct." + st->name);
@@ -231,10 +232,10 @@ llvm::Value *Codegen::statement(StructDeclarationAST *st, Type *ret_type) {
   }
   if(new_struct->isOpaque())
     new_struct->setBody(field, false);
-  return nullptr;
+  return new_struct;
 }
 
-llvm::Value *Codegen::statement(VarDeclarationAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(VarDeclarationAST *st) {
   for(auto v : st->decls) {
     cur_func->var_list.add(var_t(v->name, v->type));
     auto cur_var = cur_func->var_list.get(v->name);
@@ -246,7 +247,7 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st, Type *ret_type) {
   return nullptr;
 }
 
-llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(IfAST *st) {
   llvm::Value *cond_val = statement(st->cond);
   cond_val = builder.CreateICmpNE(cond_val, llvm::ConstantInt::get(cond_val->getType(), 0, true));
 
@@ -285,7 +286,7 @@ llvm::Value *Codegen::statement(IfAST *st, Type *ret_type) {
   return nullptr;
 }
 
-llvm::Value *Codegen::statement(WhileAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(WhileAST *st) {
   llvm::BasicBlock *bb_loop = llvm::BasicBlock::Create(context, "loop", cur_func->llvm_function);
   llvm::BasicBlock *bb_after_loop = llvm::BasicBlock::Create(context, "after_loop", cur_func->llvm_function);
 
@@ -306,7 +307,7 @@ llvm::Value *Codegen::statement(WhileAST *st, Type *ret_type) {
   return nullptr;
 }
 
-llvm::Value *Codegen::statement(ForAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(ForAST *st) {
   llvm::BasicBlock *bb_loop = llvm::BasicBlock::Create(context, "loop", cur_func->llvm_function);
   llvm::BasicBlock *bb_after_loop = llvm::BasicBlock::Create(context, "after_loop", cur_func->llvm_function);
 
@@ -331,7 +332,7 @@ llvm::Value *Codegen::statement(ForAST *st, Type *ret_type) {
   return nullptr;
 }
 
-llvm::Value *Codegen::statement(ReturnAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(ReturnAST *st) {
   if(!cur_func->br_list.empty()) cur_func->br_list.top() = true;
   if(st->expr) 
     return builder.CreateRet(statement(st->expr));
@@ -339,10 +340,9 @@ llvm::Value *Codegen::statement(ReturnAST *st, Type *ret_type) {
     return builder.CreateRetVoid();
 }
 
-llvm::Value *Codegen::statement(VariableAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(VariableAST *st) {
   auto var = this->cur_func->var_list.get(st->name);
   if(var) {
-    ret_type->change(var->type);
     if(var->type->eql(TY_ARRAY)) {
       llvm::Value *a = var->val;
       llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
@@ -358,28 +358,30 @@ llvm::Value *Codegen::statement(VariableAST *st, Type *ret_type) {
   return nullptr;
 }
 
-llvm::Value *Codegen::get_value(AST *st, Type *ret_type) {
+llvm::Value *Codegen::get_value(AST *st) {
   if(st->get_type() == AST_VARIABLE) {
     VariableAST *va = (VariableAST *)st;
     auto cur_var = cur_func->var_list.get(va->name);
     return cur_var->val;
   } else if(st->get_type() == AST_INDEX) {
     IndexAST *vidx = (IndexAST *)st;
-    llvm::Value *elem = get_element_ptr(vidx, ret_type);
+    llvm::Value *elem = get_element_ptr(vidx);
     return elem;
   } else if(st->get_type() == AST_UNARY) {
     UnaryAST *ua = (UnaryAST *)st;
     return statement(ua->expr);
   } else if(st->get_type() == AST_INDEX) {
-    return get_element_ptr((IndexAST *)st, ret_type);
+    return get_element_ptr((IndexAST *)st);
   } else if(st->get_type() == AST_DOT) {
     DotOpAST *da = (DotOpAST *)st;
-    auto parent = get_value(da->lhs, ret_type);
+    auto parent = get_value(da->lhs);
     if(da->is_arrow) parent = builder.CreateLoad(parent);
     if(!parent) error("error");
     struct_t *sinfo = this->struct_list.get(
         ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str()
         );
+    std::cout << 
+        ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str() << std::endl;
     if(!sinfo) error("error: not found");
     auto strct = sinfo->llvm_struct;
     int member_count = 0;
@@ -393,16 +395,15 @@ llvm::Value *Codegen::get_value(AST *st, Type *ret_type) {
   return nullptr;
 }
 
-llvm::Value *Codegen::get_element_ptr(IndexAST *st, Type *ret_type) {
+llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
   llvm::Value *a = nullptr;
   bool ptr = false;
   if(st->ary->get_type() == AST_VARIABLE) { 
     VariableAST *va = (VariableAST *)st->ary;
     auto v = this->cur_func->var_list.get(va->name);
     a = v->type->eql(TY_PTR) ? ptr = true, builder.CreateLoad(v->val) : v->val;
-    ret_type->change(v->type->next);
   } else if(st->ary->get_type() == AST_INDEX) {
-    a = get_element_ptr((IndexAST *)st->ary, ret_type);
+    a = get_element_ptr((IndexAST *)st->ary);
     if(!a->getType()->getArrayElementType()->isArrayTy()) {
       ptr = true;
       a = builder.CreateLoad(a);
@@ -428,22 +429,22 @@ llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
   return builder.CreateStore(src, dst);
 }
 
-llvm::Value *Codegen::statement(AsgmtAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(AsgmtAST *st) {
   auto src = statement(st->src);
   llvm::Value *dst = nullptr;
-  dst = get_value(st->dst, ret_type);
+  dst = get_value(st->dst);
   asgmt_value(dst, src);
   return builder.CreateLoad(dst);
 }
 
-llvm::Value *Codegen::statement(IndexAST *st, Type *ret_type) {
-  auto elem = get_element_ptr(st, ret_type);
+llvm::Value *Codegen::statement(IndexAST *st) {
+  auto elem = get_element_ptr(st);
   return builder.CreateLoad(elem);
 }
 
-llvm::Value *Codegen::statement(UnaryAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(UnaryAST *st) {
   if(st->op == "&") { // address
-    return get_value(st->expr, ret_type);
+    return get_value(st->expr);
   } else if(st->op == "*") {
     auto e = statement(st->expr);
     return builder.CreateLoad(e);
@@ -451,7 +452,7 @@ llvm::Value *Codegen::statement(UnaryAST *st, Type *ret_type) {
   return nullptr;
 }
 
-llvm::Value *Codegen::statement(BinaryAST *st, Type *ret_type) {
+llvm::Value *Codegen::statement(BinaryAST *st) {
   auto lhs = statement(st->lhs),
        rhs = statement(st->rhs);
   llvm::Value *ret = nullptr;
@@ -487,17 +488,15 @@ llvm::Value *Codegen::statement(BinaryAST *st, Type *ret_type) {
   return ret;
 }
 
-llvm::Value *Codegen::statement(DotOpAST *st, Type *ret_type) {
-  return builder.CreateLoad(get_value(st, ret_type));
+llvm::Value *Codegen::statement(DotOpAST *st) {
+  return builder.CreateLoad(get_value(st));
 }
 
-llvm::Value *Codegen::statement(StringAST *st, Type *ret_type) {
-  ret_type->change(new Type(TY_PTR, new Type(TY_CHAR)));
+llvm::Value *Codegen::statement(StringAST *st) {
   return builder.CreateGlobalStringPtr(st->str);
 }
 
-llvm::Value *Codegen::statement(NumberAST *st, Type *ret_type) {
-  ret_type->change(new Type(TY_PTR, new Type(TY_INT)));
+llvm::Value *Codegen::statement(NumberAST *st) {
   return llvm::ConstantInt::get(builder.getInt32Ty(), st->number, true);
 }
 

@@ -110,6 +110,7 @@ class VarDeclarationAST : public AST {
 
 class StructDeclarationAST : public AST {
   public:
+    bool def = false; // if already define, true
     std::string name;
     AST *decls;
     virtual int get_type() const { return AST_STRUCT_DECLARATION; };
