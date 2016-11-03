@@ -7,7 +7,7 @@ void show_usage() {
   puts("qcc - a small toy compiler for C langauge (v" QCC_VERSION ", BUILD " __DATE__ " " __TIME__ ")");
   puts("./qcc [options] file...");
   puts("options:");
-  puts("  -o <name>  : place the output into <name>");
+  puts("  -o <name>  : place the output into <name> (default is 'a.bc')");
   puts("  -emit-ir   : output LLVM-IR to stdout");
   exit(0);
 }

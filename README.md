@@ -4,10 +4,10 @@
 - waiting for pull-req!
 
 # FEATURES
-- qcc makes bitcode from C source code with LLVM. so we have to convert bitcode to native.
+- qcc generates bitcode from C source code with LLVM. so we have to convert bitcode to native.
 - the shell script './qcc.sh' does it. or do yourself such as below:
 ```
-$ ./qcc c.c -o c.bc # qcc makes c.bc
+$ ./qcc c.c -o c.bc # qcc generates c.bc
 $ llc-3.5 c.bc # c.bc -> c.s
 $ clang c.s # c.s -> a.out
 ```
