@@ -158,7 +158,6 @@ AST_vec Parser::eval() {
 AST *Parser::statement_top() {
   if(is_function_def()) return make_function();
   if(is_function_proto()) return make_function_proto();
-  if(token.is("struct")) return make_struct_declaration();
   if(token.is("typedef")) return make_typedef();
   if(is_type()) return read_declaration();
   return nullptr;
@@ -171,13 +170,15 @@ AST *Parser::statement() {
   if(token.is("for")) return make_for();
   if(token.is("return")) return make_return();
   if(token.is("{")) return make_block();
-  if(token.is("struct")) return make_struct_declaration();
   return expr_entry();
 }
 
 AST *Parser::read_declaration() {
   Type *basety = skip_type_spec();
-  if(token.skip(";")) return nullptr;
+  if(token.skip(";")) {
+    if(basety->eql(TY_STRUCT_DEF) || basety->eql(TY_UNION_DEF))
+      return basety->get().su;
+  }
   std::vector<declarator_t *> decls;
   while(1) {
     std::string name;
@@ -186,7 +187,6 @@ AST *Parser::read_declaration() {
     if(token.skip("=")) 
       init_expr = expr_entry();
     decls.push_back(new declarator_t(type, name, init_expr));
-    std::cout << token.get().val << std::endl;
     if(token.skip(";")) break;
     if(!token.skip(",")) puts("ERR");
   }
@@ -348,17 +348,11 @@ AST *Parser::make_struct_declaration() {
 }
 
 AST *Parser::make_typedef() {
-  if(token.skip("typedef")) {
-    Type *from = skip_type_spec();
-    std::string name = token.next().val;
-    if(from->eql(TY_STRUCT_DEF)) {
-      ((StructDeclarationAST *)from->get().su)->name = name;
-    } else if(from->eql(TY_UNION_DEF)) {
-      ((StructDeclarationAST *)from->get().su)->name = name;
-    }
-    typedef_map[name] = from;
-  }
-  return nullptr;
+  if(!token.skip("typedef")) return nullptr;
+  Type *from = skip_type_spec();
+  std::string name = token.next().val;
+  typedef_map[name] = true;
+  return new TypedefAST(from, name);
 }
 
 
@@ -417,29 +411,17 @@ Type *Parser::read_type_declarator() {
 Type *Parser::skip_type_spec() {
   bool is_struct = false;
   if((is_struct=token.is("struct")) || token.is("union")) {
+    if(token.get(1).val == "{" || token.get(2).val == "{") // define struct or union
+      return new Type(TY_STRUCT_DEF, make_struct_declaration());
     token.skip();
-    if(token.skip("{")) {
-      token.prev();
-      token.prev();
-      AST *strct = make_struct_declaration();
-      return new Type(TY_STRUCT_DEF, strct);
-    } else {
-      std::string name;
-      if(token.get().type == TOK_TYPE_IDENT) name=token.next().val; else puts("err"); // TODO: add err check
-      if(token.skip("{")) {
-        token.prev();
-        token.prev();
-        token.prev();
-        AST *strct = make_struct_declaration();
-        return new Type(TY_STRUCT_DEF, strct);
-      } else 
-        return new Type(TY_STRUCT, name);
-    }
+    std::string name;
+    if(token.get().type == TOK_TYPE_IDENT) 
+      name = token.next().val; 
+    else puts("err"); // TODO: add err check
+    return new Type(TY_STRUCT, name);
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
-    if(typedef_map.count(name) > 0) {
-      return typedef_map[name];
-    } else return TypeTool::to_type(name);
+    return TypeTool::to_type(name);
   } else if(token.skip("...")) {
     return new Type(TY_VARARG);
   }

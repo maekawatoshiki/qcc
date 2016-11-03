@@ -9,6 +9,7 @@ enum {
   AST_FUNCTION_CALL,
   AST_BLOCK,
   AST_VAR_DECLARATION,
+  AST_TYPEDEF,
   AST_STRUCT_DECLARATION,
   AST_UNARY,
   AST_BINARY,
@@ -107,6 +108,14 @@ class VarDeclarationAST : public AST {
     std::vector<declarator_t *> decls;
     virtual int get_type() const { return AST_VAR_DECLARATION; };
     VarDeclarationAST(std::vector<declarator_t *>);
+};
+
+class TypedefAST : public AST {
+  public:
+    Type *from;
+    std::string to;
+    virtual int get_type() const { return AST_TYPEDEF; };
+    TypedefAST(Type *, std::string);
 };
 
 class StructDeclarationAST : public AST {

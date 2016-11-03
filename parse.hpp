@@ -15,7 +15,7 @@ class Parser {
     AST *statement_top();
     AST *statement();
 
-    std::map<std::string, Type *> typedef_map;
+    std::map<std::string, bool> typedef_map;
     bool is_function_def();
     bool is_function_proto();
     bool is_type();

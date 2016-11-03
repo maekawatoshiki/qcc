@@ -32,6 +32,10 @@ VarDeclarationAST::VarDeclarationAST(std::vector<declarator_t *> _decls):
   decls(_decls) {
 }
 
+TypedefAST::TypedefAST(Type *_from, std::string _to):
+  from(_from), to(_to) {
+}
+
 StructDeclarationAST::StructDeclarationAST(std::string _name, AST *_decls):
   name(_name), decls(_decls) {
 }

@@ -28,6 +28,10 @@ llvm::Type *Codegen::to_llvm_type(Type *type) {
       return builder.getInt32Ty();
     case TY_CHAR:
       return builder.getInt8Ty();
+    case TY_TYPEDEF: {
+      return typedef_map.count(type->get().user_type) ?
+        typedef_map[type->get().user_type] : nullptr;
+    }
     case TY_STRUCT_DEF: {
       return statement((StructDeclarationAST *)type->get().su);
     }
@@ -79,6 +83,8 @@ llvm::Value *Codegen::statement(AST *st) {
       return statement((ReturnAST *)st);
     case AST_VAR_DECLARATION:
       return statement((VarDeclarationAST *)st);
+    case AST_TYPEDEF:
+      statement((TypedefAST *)st); break;
     case AST_STRUCT_DECLARATION:
       statement((StructDeclarationAST *)st); break;
     case AST_VARIABLE:
@@ -210,6 +216,21 @@ llvm::Value *Codegen::statement(FunctionCallAST *st) {
   auto ret = builder.CreateCall(callee, caller_args);
   if(!callee->getReturnType()->isVoidTy())
     return ret;
+  return nullptr;
+}
+
+llvm::Type *Codegen::statement(TypedefAST *st) {
+  if(st->from->eql(TY_STRUCT)) {
+    auto strct = this->struct_list.get("struct." + st->from->get().user_type);
+    typedef_map.insert(std::make_pair(st->to, strct->llvm_struct));
+    return strct->llvm_struct;
+  } else if(st->from->eql(TY_STRUCT_DEF)) {
+    auto strct = statement((StructDeclarationAST *)st->from->get().su);
+    typedef_map[st->to] = strct;
+    return strct;
+  } else { // primitive type
+    typedef_map[st->to] = to_llvm_type(st->from);
+  }
   return nullptr;
 }
 
@@ -392,8 +413,6 @@ llvm::Value *Codegen::get_value(AST *st) {
     struct_t *sinfo = this->struct_list.get(
         ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str()
         );
-    std::cout << 
-        ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str() << std::endl;
     if(!sinfo) error("error: not found");
     auto strct = sinfo->llvm_struct;
     int member_count = 0;

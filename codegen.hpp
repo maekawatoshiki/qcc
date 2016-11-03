@@ -12,6 +12,7 @@ class Codegen {
   private:
     StructList struct_list;
     FunctionList func_list;
+    std::map<std::string, llvm::Type *> typedef_map;
     func_t *cur_func;
 
     llvm::Value *statement(AST *                 ); 
@@ -20,6 +21,7 @@ class Codegen {
     llvm::Value *statement(BlockAST *            ); 
     llvm::Value *statement(FunctionCallAST *     ); 
     llvm::Value *statement(VarDeclarationAST *   ); 
+    llvm::Type  *statement(TypedefAST *          ); 
     llvm::Type  *statement(StructDeclarationAST *); 
     llvm::Value *statement(VariableAST *         ); 
     llvm::Value *statement(IndexAST *            ); 

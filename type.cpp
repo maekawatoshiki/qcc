@@ -58,6 +58,7 @@ namespace TypeTool {
     Token tok = lexer.run(type_str);
     std::string type_name = tok.get().val; tok.skip();
     auto ptr = [&](Type *ty) -> Type * {
+      if(ty == nullptr) return ty;
       while(tok.get().val == "*") {
         ty->next = new Type(ty->get().type);
         ty->change(TY_PTR);

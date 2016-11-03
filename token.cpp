@@ -4,6 +4,10 @@ token_t Token::get() {
   return token[pos];
 }
 
+token_t Token::get(int skip) {
+  return token[pos + skip];
+}
+
 token_t Token::next() {
   return token[pos++];
 }

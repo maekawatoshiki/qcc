@@ -30,6 +30,7 @@ class Token {
     void add_end_tok    ();
 
     token_t get();
+    token_t get(int skip); // pos + skip
     token_t next();
 
     bool is(std::string);
