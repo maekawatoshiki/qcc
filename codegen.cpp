@@ -218,6 +218,10 @@ llvm::Type *Codegen::statement(StructDeclarationAST *st) {
   st->def = true;
   std::vector<llvm::Type *> field;
   std::vector<std::string> members_name;
+	if(st->name.empty()) [](std::string &str) {
+		int len = 8; while(len--)
+      str += (rand() % 26) + 65;
+	}(st->name);
   llvm::StructType *new_struct = llvm::StructType::create(context, "struct." + st->name);
   BlockAST *decl_block = (BlockAST *)st->decls;
   // TODO: here's code is not beautiful :(
