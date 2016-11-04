@@ -280,7 +280,11 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
 
 llvm::Value *Codegen::statement(IfAST *st) {
   llvm::Value *cond_val = statement(st->cond);
-  cond_val = builder.CreateICmpNE(cond_val, llvm::ConstantInt::get(cond_val->getType(), 0, true));
+  cond_val = builder.CreateICmpNE(
+      cond_val, 
+      cond_val->getType()->isPointerTy() ?
+      llvm::ConstantPointerNull::getNullValue(cond_val->getType()) :
+      llvm::ConstantInt::get(cond_val->getType(), 0, true));
 
   auto *func = builder.GetInsertBlock()->getParent();
 
@@ -354,8 +358,12 @@ llvm::Value *Codegen::statement(ForAST *st) {
 
   builder.CreateBr(bb_before_loop);
   builder.SetInsertPoint(bb_before_loop);
+  auto cond_val = statement(st->cond);
   llvm::Value *first_cond_val = builder.CreateICmpNE(
-      statement(st->cond), llvm::ConstantInt::get(builder.getInt1Ty(), 0, true));
+      cond_val, 
+      cond_val->getType()->isPointerTy() ?
+      llvm::ConstantPointerNull::getNullValue(cond_val->getType()) :
+      llvm::ConstantInt::get(cond_val->getType(), 0, true));
   builder.CreateCondBr(first_cond_val, bb_loop, bb_after_loop);
   builder.SetInsertPoint(bb_loop);
 
