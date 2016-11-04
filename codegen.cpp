@@ -562,10 +562,3 @@ llvm::Value *Codegen::statement(NumberAST *st) {
   return llvm::ConstantInt::get(builder.getInt32Ty(), st->number, true);
 }
 
-void Codegen::error(const char *errs, ...) {
-  va_list args;
-  va_start(args, errs);
-    vprintf(errs, args); puts("");
-  va_end(args);
-  exit(0);
-}

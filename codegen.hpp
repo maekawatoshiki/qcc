@@ -42,7 +42,6 @@ class Codegen {
     llvm::Value *type_cast(llvm::Value *, llvm::Type *);
     llvm::AllocaInst *create_entry_alloca(llvm::Function *TheFunction, std::string &VarName, llvm::Type *type = nullptr);
 
-    void error(const char *errs, ...);
   public:
     void run(AST_vec, std::string = "a.bc", bool emit_llvm_ir = false);    
 };

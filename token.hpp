@@ -36,6 +36,7 @@ class Token {
     bool is(std::string);
     void skip();
     bool skip(std::string);
+    bool expect_skip(std::string);
     void prev();
 
     void show();

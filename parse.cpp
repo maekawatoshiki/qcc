@@ -188,7 +188,7 @@ AST *Parser::read_declaration() {
       init_expr = expr_entry();
     decls.push_back(new declarator_t(type, name, init_expr));
     if(token.skip(";")) break;
-    if(!token.skip(",")) puts("ERR");
+    token.expect_skip(",");
   }
   return new VarDeclarationAST(decls);
 }
@@ -217,9 +217,9 @@ Type *Parser::read_declarator_array(Type *basety) {
     len = -1;
   } else {
     if(token.get().type != TOK_TYPE_NUMBER)
-      puts("err");
+      error("error(%d): expected number literal", token.get().line);
     len = atoi(token.next().val.c_str());
-    token.skip("]");
+    token.expect_skip("]");
   }
   Type *t = read_declarator_tail(basety);
   return new Type(TY_ARRAY, len, t);
@@ -239,7 +239,8 @@ AST *Parser::make_function() {
       for(auto e : ary)
         type = new Type(TY_ARRAY, e, type);
       args.push_back(new argument_t(type, name));
-      token.skip(",");
+      if(token.skip(")")) break;
+      token.expect_skip(",");
     }
     AST *body;
     body = statement();
@@ -262,7 +263,8 @@ AST *Parser::make_function_proto() {
       for(auto e : ary)
         type = new Type(TY_ARRAY, e, type);
       args_type.push_back(type);
-      token.skip(",");
+      if(token.skip(")")) break;
+      token.expect_skip(",");
     }
     return new FunctionProtoAST(name, ret_type, args_type);
   } else puts("err");
@@ -284,12 +286,11 @@ AST *Parser::make_block() {
 
 AST *Parser::make_if() {
   if(token.skip("if")) {
-    token.skip("(");
+    token.expect_skip("(");
     AST *cond = expr_entry();
-    token.skip(")");
+    token.expect_skip(")");
     AST *b_then = statement();
     if(token.skip("else")) {
-      puts("else");
       AST *b_else = statement();
       return new IfAST(cond, b_then, b_else);
     } else return new IfAST(cond, b_then);
@@ -299,9 +300,9 @@ AST *Parser::make_if() {
 
 AST *Parser::make_while() {
   if(token.skip("while")) {
-    token.skip("(");
+    token.expect_skip("(");
     AST *cond = expr_entry();
-    token.skip(")");
+    token.expect_skip(")");
     AST *body = statement();
     return new WhileAST(cond, body);
   }
@@ -310,15 +311,15 @@ AST *Parser::make_while() {
 
 AST *Parser::make_for() {
   if(token.skip("for")) {
-    token.skip("(");
+    token.expect_skip("(");
     AST *init;
     if(is_type()) init = read_declaration();
     else init = expr_entry();
     token.skip(";");
     AST *cond = expr_entry();
-    token.skip(";");
+    token.expect_skip(";");
     AST *reinit = expr_entry();
-    token.skip(")");
+    token.expect_skip(")");
     AST *body = statement();
     return new ForAST(init, cond, reinit, body);
   }
@@ -350,8 +351,11 @@ AST *Parser::make_struct_declaration() {
 AST *Parser::make_typedef() {
   if(!token.skip("typedef")) return nullptr;
   Type *from = skip_type_spec();
+  if(token.get().type != TOK_TYPE_IDENT)
+    error("error(%d): expected identifier", token.get().line);
   std::string name = token.next().val;
   typedef_map[name] = true;
+  token.expect_skip(";");
   return new TypedefAST(from, name);
 }
 
@@ -441,7 +445,7 @@ std::vector<int> Parser::skip_array() {
     int ary_size = -1;
     if(token.get().type == TOK_TYPE_NUMBER) 
       ary_size = atoi(token.next().val.c_str());
-    token.skip("]");
+    token.expect_skip("]");
     ary.push_back(ary_size);
   }
   return ary;

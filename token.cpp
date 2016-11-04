@@ -36,8 +36,17 @@ void Token::skip() { pos++; }
 bool Token::skip(std::string str) { 
   if(str == get().val && get().type != TOK_TYPE_STRING && get().type != TOK_TYPE_CHAR) {
     pos++; 
+    if(pos > token.size()) error("error: program is reached EOF");
     return true;
   } else return false; 
+}
+bool Token::expect_skip(std::string str) { 
+  if(str == get().val && get().type != TOK_TYPE_STRING && get().type != TOK_TYPE_CHAR) {
+    pos++; 
+    if(pos > token.size()) error("error: program is reached EOF");
+    return true;
+  } else error("error(%d): expected '%s'", get().line, str.c_str());
+  return false;
 }
 void Token::prev() { pos--; }
 

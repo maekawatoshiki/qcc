@@ -78,3 +78,12 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <dlfcn.h>
+
+// void error(const char *errs, ...);
+static void error(const char *errs, ...) {
+  va_list args;
+  va_start(args, errs);
+    vprintf(errs, args); puts("");
+  va_end(args);
+  exit(0);
+}
