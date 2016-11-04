@@ -318,22 +318,26 @@ llvm::Value *Codegen::statement(IfAST *st) {
 }
 
 llvm::Value *Codegen::statement(WhileAST *st) {
+  llvm::BasicBlock *bb_before_loop = llvm::BasicBlock::Create(context, "before_loop", cur_func->llvm_function);
   llvm::BasicBlock *bb_loop = llvm::BasicBlock::Create(context, "loop", cur_func->llvm_function);
   llvm::BasicBlock *bb_after_loop = llvm::BasicBlock::Create(context, "after_loop", cur_func->llvm_function);
 
+  builder.CreateBr(bb_before_loop);
+
+  builder.SetInsertPoint(bb_before_loop);
   llvm::Value *cond_val_1 = statement(st->cond);
   llvm::Value *first_cond_val = builder.CreateICmpNE(
-      cond_val_1, llvm::ConstantInt::get(cond_val_1->getType(), 0, true));
+      cond_val_1, 
+      cond_val_1->getType()->isPointerTy() ?
+      llvm::ConstantPointerNull::getNullValue(cond_val_1->getType()) :
+      llvm::ConstantInt::get(cond_val_1->getType(), 0, true));
   builder.CreateCondBr(first_cond_val, bb_loop, bb_after_loop);
 
   builder.SetInsertPoint(bb_loop);
 
   statement(st->body);
 
-  llvm::Value *cond_val_2 = statement(st->cond);
-  llvm::Value *second_cond_val = builder.CreateICmpNE(
-      cond_val_2, llvm::ConstantInt::get(cond_val_2->getType(), 0, true));
-  builder.CreateCondBr(second_cond_val, bb_loop, bb_after_loop);
+  builder.CreateBr(bb_before_loop);
 
   builder.SetInsertPoint(bb_after_loop);
 
