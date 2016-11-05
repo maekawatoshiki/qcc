@@ -494,6 +494,27 @@ llvm::Value *Codegen::statement(IndexAST *st) {
   return builder.CreateLoad(elem);
 }
 
+llvm::Value *Codegen::op_add(llvm::Value *lhs, llvm::Value *rhs) {
+  if(lhs->getType()->isPointerTy() && rhs->getType()->isIntegerTy()) {
+    return llvm::GetElementPtrInst::CreateInBounds(
+        lhs, 
+        llvm::ArrayRef<llvm::Value *>(rhs), "elem", builder.GetInsertBlock());
+  } else if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateAdd(lhs, rhs);
+  } else error("error: unknown operation");
+  return nullptr;
+}
+llvm::Value *Codegen::op_sub(llvm::Value *lhs, llvm::Value *rhs) {
+  if(lhs->getType()->isPointerTy() && rhs->getType()->isIntegerTy()) {
+    return llvm::GetElementPtrInst::CreateInBounds(lhs,
+        llvm::ArrayRef<llvm::Value *>(
+          builder.CreateSub(llvm::ConstantInt::get(rhs->getType(), 0), rhs)), "elem", builder.GetInsertBlock());
+  } else if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateSub(lhs, rhs);
+  } else error("error: unknown operation");
+  return nullptr;
+}
+
 llvm::Value *Codegen::statement(UnaryAST *st) {
   if(st->op == "&") { // address
     return get_value(st->expr);
@@ -503,19 +524,13 @@ llvm::Value *Codegen::statement(UnaryAST *st) {
   } else if(st->op == "++") {
     auto v1 = get_value(st->expr);
     auto v  = builder.CreateLoad(v1);
-    llvm::Value *vv;
-    if(v->getType()->isPointerTy()) {
-      vv = llvm::GetElementPtrInst::CreateInBounds(
-          v, 
-          llvm::ArrayRef<llvm::Value *>(
-            llvm::ConstantInt::get(builder.getInt32Ty(), 1)), "elem", builder.GetInsertBlock());
-    } else vv = builder.CreateAdd(v, llvm::ConstantInt::get(v->getType(), 1));
+    auto vv = op_add(v, llvm::ConstantInt::get(builder.getInt32Ty(), 1));
     asgmt_value(v1, vv);
     return st->postfix ? v : vv;
   } else if(st->op == "--") {
     auto v1 = get_value(st->expr);
     auto v  = builder.CreateLoad(v1);
-    auto vv= builder.CreateSub(v, llvm::ConstantInt::get(v->getType(), 1));
+    auto vv = op_sub(v, llvm::ConstantInt::get(builder.getInt32Ty(), 1));
     asgmt_value(v1, vv);
     return st->postfix ? v : vv;
   }
@@ -527,9 +542,9 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
        rhs = statement(st->rhs);
   llvm::Value *ret = nullptr;
   if(st->op == "+") {
-    ret = builder.CreateAdd(lhs, rhs);
+    ret = op_add(lhs, rhs);
   } else if(st->op == "-") {
-    ret = builder.CreateSub(lhs, rhs);
+    ret = op_sub(lhs, rhs);
   } else if(st->op == "*") {
     ret = builder.CreateMul(lhs, rhs);
   } else if(st->op == "/") {

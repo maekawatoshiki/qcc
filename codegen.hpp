@@ -15,6 +15,10 @@ class Codegen {
     std::map<std::string, llvm::Type *> typedef_map;
     func_t *cur_func;
 
+    llvm::Value *op_add(llvm::Value *, llvm::Value *);
+    llvm::Value *op_sub(llvm::Value *, llvm::Value *);
+    // llvm::Value *op_eq (llvm::Value *, llvm::Value *);
+
     llvm::Value *statement(AST *                 ); 
     llvm::Value *statement(FunctionDefAST *      ); 
     llvm::Value *statement(FunctionProtoAST *    ); 
