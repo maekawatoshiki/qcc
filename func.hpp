@@ -4,6 +4,23 @@
 #include "type.hpp"
 #include "var.hpp"
 
+struct block_t {
+  VariableList var_list;
+  block_t *parent = nullptr;
+  std::vector<block_t *> children;
+};
+
+class BlockList {
+  public:
+    // block_t block;
+    block_t *current = nullptr;
+    block_t *create_new_block(); // create new block and set it 'current'
+    block_t *escape_block();
+    block_t *get_current(); 
+    VariableList *get_varlist();
+    var_t   *lookup_var(std::string);
+};
+
 struct func_t {
   std::string name;
   Type *ret_type;
@@ -12,7 +29,7 @@ struct func_t {
   std::vector<std::string> args_name;
   std::stack<bool> br_list;
   llvm::Function *llvm_function;
-  VariableList var_list;
+  BlockList block_list;
 };
 
 class FunctionList {

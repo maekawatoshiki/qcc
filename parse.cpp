@@ -5,7 +5,8 @@ void show_ast(AST *ast) {
     case AST_FUNCTION_DEF: {
       FunctionDefAST *a = (FunctionDefAST *)ast;
       std::cout << "(def (" << a->ret_type->to_string() << ") " << a->name << " ";
-      show_ast(a->body);
+      for(auto st : a->body)
+        show_ast(st);
       std::cout << ")";
     } break;
     case AST_FUNCTION_PROTO: {
@@ -242,8 +243,13 @@ AST *Parser::make_function() {
       if(token.skip(")")) break;
       token.expect_skip(",");
     }
-    AST *body;
-    body = statement();
+    AST_vec body;
+    token.expect_skip("{");
+    while(!token.skip("}")) {
+      auto st = statement();
+      if(st) body.push_back(st);
+      while(token.skip(";"));
+    }
     return new FunctionDefAST(name, ret_type, args, body);
   } else puts("err");
   return nullptr;

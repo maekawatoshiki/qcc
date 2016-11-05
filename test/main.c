@@ -3,7 +3,7 @@
 int test();
 
 int main() {
-  test();
+  int ret_code = test();
   printf(TEST_NAME " ... \x1b[32mOK\x1b[39m\n");
-  return 0;
+  return ret_code;
 }

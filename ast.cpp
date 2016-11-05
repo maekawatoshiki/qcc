@@ -4,7 +4,7 @@ FunctionProtoAST::FunctionProtoAST(std::string _name, Type *ret, Type_vec _args)
   name(_name), ret_type(ret), args(_args) {
 }
 
-FunctionDefAST::FunctionDefAST(std::string _name, Type *ret, std::vector<argument_t *> _args, AST *_body):
+FunctionDefAST::FunctionDefAST(std::string _name, Type *ret, std::vector<argument_t *> _args, AST_vec _body):
   name(_name), ret_type(ret), args(_args), body(_body) {
 }
 

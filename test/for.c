@@ -12,5 +12,5 @@ int test() {
   loop();
   for(i = 1; i <= 10; i += 1) 
     sum += i;
-  return sum;
+  return 0;
 }

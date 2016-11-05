@@ -142,6 +142,8 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
   std::vector<llvm::Type *> llvm_args_type;
   std::vector<Type *>       args_type;
   std::vector<std::string>  args_name;
+
+  func.block_list.create_new_block();
   for(auto arg : st->args) {
     std::function<Type *(Type *)> ary_to_ptr = [&](Type *ty) -> Type * {
       if(ty->eql(TY_ARRAY)) {
@@ -152,7 +154,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
     auto ty = ary_to_ptr(arg->type);
     func.args_type.push_back(ty);
     func.args_name.push_back(arg->name);
-    func.var_list.add(var_t(arg->name, ty));
+    func.block_list.get_varlist()->add(var_t(arg->name, ty));
     func.llvm_args_type.push_back(to_llvm_type(arg->type));
   }
   this->func_list.add(func);
@@ -173,13 +175,14 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
       arg_it->setName(*args_name_it);
       llvm::AllocaInst *ainst = create_entry_alloca(function->llvm_function, *args_name_it, *llvm_args_type_it);
       builder.CreateStore(arg_it, ainst);
-      var_t *v = function->var_list.get(*args_name_it);
+      var_t *v = function->block_list.lookup_var(*args_name_it);
       if(v) v->val = ainst;
       llvm_args_type_it++; args_name_it++;
     }
 
     cur_func = function;
-    statement(st->body);
+    for(auto stmt : st->body)
+      statement(stmt);
     for(auto it = cur_func->llvm_function->getBasicBlockList().begin(); 
         it != cur_func->llvm_function->getBasicBlockList().end(); ++it) {
       auto term = it->back().isTerminator();
@@ -196,8 +199,10 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
 }
 
 llvm::Value *Codegen::statement(BlockAST *st) {
+  this->cur_func->block_list.create_new_block();
   for(auto a : st->body) 
     statement(a);
+  this->cur_func->block_list.escape_block();
   return nullptr;
 }
 
@@ -268,8 +273,9 @@ llvm::Type *Codegen::statement(StructDeclarationAST *st) {
 
 llvm::Value *Codegen::statement(VarDeclarationAST *st) {
   for(auto v : st->decls) {
-    cur_func->var_list.add(var_t(v->name, v->type));
-    auto cur_var = cur_func->var_list.get(v->name);
+    cur_func->block_list.get_varlist()->add(var_t(v->name, v->type));
+    auto cur_var = cur_func->block_list.lookup_var(v->name);
+    if(!cur_var) error("error: not found variable '%s'", v->name.c_str());
     llvm::Type *decl_type = to_llvm_type(cur_var->type);
     cur_var->val = builder.CreateAlloca(decl_type);
     if(v->init_expr) 
@@ -387,7 +393,7 @@ llvm::Value *Codegen::statement(ReturnAST *st) {
 }
 
 llvm::Value *Codegen::statement(VariableAST *st) {
-  auto var = this->cur_func->var_list.get(st->name);
+  auto var = this->cur_func->block_list.lookup_var(st->name);
   if(var) {
     if(var->type->eql(TY_ARRAY)) {
       llvm::Value *a = var->val;
@@ -400,14 +406,15 @@ llvm::Value *Codegen::statement(VariableAST *st) {
     } else 
       return builder.CreateLoad(var->val);
   }
-  error("error: not found variable '%s'", var->name.c_str());
+  error("error: not found variable '%s'", st->name.c_str());
   return nullptr;
 }
 
 llvm::Value *Codegen::get_value(AST *st) {
   if(st->get_type() == AST_VARIABLE) {
     VariableAST *va = (VariableAST *)st;
-    auto cur_var = cur_func->var_list.get(va->name);
+    auto cur_var = cur_func->block_list.lookup_var(va->name);
+    if(!cur_var) error("error: not found variable '%s'", va->name.c_str());
     return cur_var->val;
   } else if(st->get_type() == AST_INDEX) {
     IndexAST *vidx = (IndexAST *)st;
@@ -444,7 +451,8 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
   bool ptr = false;
   if(st->ary->get_type() == AST_VARIABLE) { 
     VariableAST *va = (VariableAST *)st->ary;
-    auto v = this->cur_func->var_list.get(va->name);
+    auto v = this->cur_func->block_list.lookup_var(va->name);
+    if(!v) error("error: not found variable '%s'", va->name.c_str());
     a = v->type->eql(TY_PTR) ? ptr = true, builder.CreateLoad(v->val) : v->val;
   } else if(st->ary->get_type() == AST_INDEX) {
     a = get_element_ptr((IndexAST *)st->ary);

@@ -52,9 +52,9 @@ class FunctionDefAST : public AST {
     std::string name;
     Type *ret_type;
     std::vector<argument_t *> args;
-    AST *body;
+    AST_vec body;
     virtual int get_type() const { return AST_FUNCTION_DEF; };
-    FunctionDefAST(std::string, Type *, std::vector<argument_t *>, AST *);
+    FunctionDefAST(std::string, Type *, std::vector<argument_t *>, AST_vec);
 };
 
 class FunctionCallAST : public AST {
