@@ -500,7 +500,7 @@ llvm::Value *Codegen::op_add(llvm::Value *lhs, llvm::Value *rhs) {
         lhs, 
         llvm::ArrayRef<llvm::Value *>(rhs), "elem", builder.GetInsertBlock());
   } else if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
-    return builder.CreateAdd(lhs, rhs);
+    return builder.CreateAdd(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
 }
@@ -510,7 +510,7 @@ llvm::Value *Codegen::op_sub(llvm::Value *lhs, llvm::Value *rhs) {
         llvm::ArrayRef<llvm::Value *>(
           builder.CreateSub(llvm::ConstantInt::get(rhs->getType(), 0), rhs)), "elem", builder.GetInsertBlock());
   } else if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
-    return builder.CreateSub(lhs, rhs);
+    return builder.CreateSub(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
 }
@@ -552,8 +552,10 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
   } else if(st->op == "%") {
     ret = builder.CreateSRem(lhs, rhs);
   } else if(st->op == "==") {
+    rhs = type_cast(rhs, lhs->getType());
     ret = builder.CreateICmpEQ(lhs, rhs);
   } else if(st->op == "!=") {
+    rhs = type_cast(rhs, lhs->getType());
     ret = builder.CreateICmpNE(lhs, rhs);
   } else if(st->op == "<=") {
     ret = builder.CreateICmpSLE(lhs, rhs);

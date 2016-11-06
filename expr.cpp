@@ -119,6 +119,8 @@ AST *Parser::expr_primary() {
     return new NumberAST(atoi(token.next().val.c_str()));
   } else if(token.get().type == TOK_TYPE_STRING) {
     return new StringAST(token.next().val);
+  } else if(token.get().type == TOK_TYPE_CHAR) {
+    return new NumberAST(token.next().val[0]);
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
     if(token.skip("(")) { // function?

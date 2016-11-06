@@ -35,7 +35,7 @@ void show(list *lst) {
 
 int main() {
   list lst;
-  lst.next = 0;
+  lst.next = NULL;
   lst.val = 12;
   append(&lst, 2);
   append(&lst, 5);
