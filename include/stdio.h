@@ -1,5 +1,7 @@
 // *** stdio.h ***
 
+#define NULL 0
+
 int puts(char *s);
 int printf(char *, ...);
 int sprintf(char *, char *, ...);
