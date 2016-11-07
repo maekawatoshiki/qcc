@@ -13,7 +13,7 @@ class Codegen {
     StructList struct_list;
     FunctionList func_list;
     std::map<std::string, llvm::Type *> typedef_map;
-    func_t *cur_func;
+    func_t *cur_func = nullptr;
 
     llvm::Value *op_add(llvm::Value *, llvm::Value *);
     llvm::Value *op_sub(llvm::Value *, llvm::Value *);

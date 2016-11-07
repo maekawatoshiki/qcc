@@ -193,6 +193,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
         else builder.CreateRet(llvm::ConstantInt::get(function->llvm_function->getReturnType(), 0));
       }
     }
+    cur_func = nullptr;
   }
 
   return nullptr;
