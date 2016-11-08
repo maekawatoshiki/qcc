@@ -169,18 +169,18 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
     llvm::BasicBlock *entry = llvm::BasicBlock::Create(context, "entry", function->llvm_function);
     builder.SetInsertPoint(entry);
     
+    cur_func = function;
     auto llvm_args_type_it = function->llvm_args_type.begin();
     auto      args_name_it = function->args_name.begin();
     for(auto arg_it = function->llvm_function->arg_begin(); arg_it != function->llvm_function->arg_end(); ++arg_it) {
       arg_it->setName(*args_name_it);
       llvm::AllocaInst *ainst = create_entry_alloca(function->llvm_function, *args_name_it, *llvm_args_type_it);
       builder.CreateStore(arg_it, ainst);
-      var_t *v = function->block_list.lookup_var(*args_name_it);
+      var_t *v = lookup_var(*args_name_it);
       if(v) v->val = ainst;
       llvm_args_type_it++; args_name_it++;
     }
 
-    cur_func = function;
     for(auto stmt : st->body)
       statement(stmt);
     for(auto it = cur_func->llvm_function->getBasicBlockList().begin(); 
@@ -274,13 +274,24 @@ llvm::Type *Codegen::statement(StructDeclarationAST *st) {
 
 llvm::Value *Codegen::statement(VarDeclarationAST *st) {
   for(auto v : st->decls) {
-    cur_func->block_list.get_varlist()->add(var_t(v->name, v->type));
-    auto cur_var = cur_func->block_list.lookup_var(v->name);
-    if(!cur_var) error("error: not found variable '%s'", v->name.c_str());
-    llvm::Type *decl_type = to_llvm_type(cur_var->type);
-    cur_var->val = builder.CreateAlloca(decl_type);
-    if(v->init_expr) 
-      asgmt_value(cur_var->val, statement(v->init_expr));
+    if(cur_func == nullptr) { // global 
+      global_var.add(var_t(v->name, v->type));
+      auto cur_var = lookup_var(v->name);
+      mod->getOrInsertGlobal(v->name, to_llvm_type(v->type));
+      llvm::GlobalVariable *gv = mod->getNamedGlobal(v->name);
+      gv->setLinkage(llvm::GlobalVariable::CommonLinkage);
+      llvm::ConstantAggregateZero *zeroinit = llvm::ConstantAggregateZero::get(gv->getType()->getElementType());
+      gv->setInitializer(zeroinit);
+      cur_var->val = gv;
+    } else {
+      cur_func->block_list.get_varlist()->add(var_t(v->name, v->type));
+      auto cur_var = lookup_var(v->name);
+      if(!cur_var) error("error: not found variable '%s'", v->name.c_str());
+      llvm::Type *decl_type = to_llvm_type(cur_var->type);
+      cur_var->val = builder.CreateAlloca(decl_type);
+      if(v->init_expr) 
+        asgmt_value(cur_var->val, statement(v->init_expr));
+    }
   }
   return nullptr;
 }
@@ -394,7 +405,7 @@ llvm::Value *Codegen::statement(ReturnAST *st) {
 }
 
 llvm::Value *Codegen::statement(VariableAST *st) {
-  auto var = this->cur_func->block_list.lookup_var(st->name);
+  auto var = lookup_var(st->name);
   if(var) {
     if(var->type->eql(TY_ARRAY)) {
       llvm::Value *a = var->val;
@@ -414,7 +425,7 @@ llvm::Value *Codegen::statement(VariableAST *st) {
 llvm::Value *Codegen::get_value(AST *st) {
   if(st->get_type() == AST_VARIABLE) {
     VariableAST *va = (VariableAST *)st;
-    auto cur_var = cur_func->block_list.lookup_var(va->name);
+    auto cur_var = lookup_var(va->name);
     if(!cur_var) error("error: not found variable '%s'", va->name.c_str());
     return cur_var->val;
   } else if(st->get_type() == AST_INDEX) {
@@ -452,7 +463,7 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
   bool ptr = false;
   if(st->ary->get_type() == AST_VARIABLE) { 
     VariableAST *va = (VariableAST *)st->ary;
-    auto v = this->cur_func->block_list.lookup_var(va->name);
+    auto v = lookup_var(va->name);
     if(!v) error("error: not found variable '%s'", va->name.c_str());
     a = v->type->eql(TY_PTR) ? ptr = true, builder.CreateLoad(v->val) : v->val;
   } else if(st->ary->get_type() == AST_INDEX) {
@@ -588,3 +599,9 @@ llvm::Value *Codegen::statement(NumberAST *st) {
   return llvm::ConstantInt::get(builder.getInt32Ty(), st->number, true);
 }
 
+var_t *Codegen::lookup_var(std::string name) {
+  var_t *v = nullptr;
+  if(cur_func) v = cur_func->block_list.lookup_var(name);
+  if(!v) return global_var.get(name);
+  return v;
+}
