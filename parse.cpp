@@ -165,13 +165,16 @@ AST *Parser::statement_top() {
 }
 
 AST *Parser::statement() {
+  if(token.skip(";")) return statement();
   if(is_type()) return read_declaration();
   if(token.is("if")) return make_if();
   if(token.is("while")) return make_while();
   if(token.is("for")) return make_for();
   if(token.is("return")) return make_return();
   if(token.is("{")) return make_block();
-  return expr_entry();
+  auto e = expr_entry();
+  token.skip(";");
+  return e;
 }
 
 AST *Parser::read_declaration() {
