@@ -31,6 +31,8 @@ class Parser {
     AST *make_struct_declaration();
     AST *make_typedef();
     AST *make_block();
+    AST *make_break();
+    AST *make_continue();
     AST *make_if();
     AST *make_while();
     AST *make_for();

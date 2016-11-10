@@ -30,6 +30,8 @@ class Codegen {
     llvm::Type  *statement(StructDeclarationAST *); 
     llvm::Value *statement(VariableAST *         ); 
     llvm::Value *statement(IndexAST *            ); 
+    llvm::Value *statement(BreakAST *            ); 
+    llvm::Value *statement(ContinueAST *         ); 
     llvm::Value *statement(IfAST *               ); 
     llvm::Value *statement(WhileAST *            ); 
     llvm::Value *statement(ForAST *              ); 

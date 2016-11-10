@@ -16,6 +16,8 @@ enum {
   AST_DOT,
   AST_INDEX,
   AST_VARIABLE,
+  AST_BREAK,
+  AST_CONTINUE,
   AST_IF,
   AST_WHILE,
   AST_FOR,
@@ -139,6 +141,16 @@ class IndexAST : public AST {
    AST *ary, *idx;
    virtual int get_type() const { return AST_INDEX; };
    IndexAST(AST *, AST *);
+};
+
+class BreakAST : public AST {
+  public:
+    virtual int get_type() const { return AST_BREAK; };
+};
+
+class ContinueAST : public AST {
+  public:
+    virtual int get_type() const { return AST_CONTINUE; };
 };
 
 class IfAST : public AST {

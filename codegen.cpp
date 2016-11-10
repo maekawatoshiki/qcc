@@ -73,6 +73,10 @@ llvm::Value *Codegen::statement(AST *st) {
       return statement((BlockAST *)st);
     case AST_FUNCTION_CALL:
       return statement((FunctionCallAST *)st);
+    case AST_BREAK:
+      return statement((BreakAST *)st);
+    case AST_CONTINUE:
+      return statement((ContinueAST *)st);
     case AST_IF:
       return statement((IfAST *)st);
     case AST_WHILE:
@@ -296,6 +300,15 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
   return nullptr;
 }
 
+llvm::Value *Codegen::statement(BreakAST *st) {
+  cur_func->br_list.top() = true;
+  return builder.CreateBr(cur_func->break_list.top());
+}
+llvm::Value *Codegen::statement(ContinueAST *st) {
+  cur_func->br_list.top() = true;
+  return builder.CreateBr(cur_func->continue_list.top());
+}
+
 llvm::Value *Codegen::statement(IfAST *st) {
   llvm::Value *cond_val = statement(st->cond);
   cond_val = builder.CreateICmpNE(
@@ -357,7 +370,11 @@ llvm::Value *Codegen::statement(WhileAST *st) {
 
   builder.SetInsertPoint(bb_loop);
 
+  cur_func->break_list.push(bb_after_loop);
+  cur_func->continue_list.push(bb_before_loop);
   statement(st->body);
+  cur_func->break_list.pop();
+  cur_func->continue_list.pop();
 
   builder.CreateBr(bb_before_loop);
 
@@ -370,6 +387,7 @@ llvm::Value *Codegen::statement(ForAST *st) {
   auto func = builder.GetInsertBlock()->getParent();
   llvm::BasicBlock *bb_before_loop = llvm::BasicBlock::Create(context, "before_loop", func);
   llvm::BasicBlock *bb_loop = llvm::BasicBlock::Create(context, "loop", func);
+  llvm::BasicBlock *bb_step = llvm::BasicBlock::Create(context, "loop_step", func);
   llvm::BasicBlock *bb_after_loop = llvm::BasicBlock::Create(context, "after_loop", func);
 
   statement(st->init);
@@ -385,8 +403,14 @@ llvm::Value *Codegen::statement(ForAST *st) {
   builder.CreateCondBr(first_cond_val, bb_loop, bb_after_loop);
   builder.SetInsertPoint(bb_loop);
 
+  cur_func->break_list.push(bb_after_loop);
+  cur_func->continue_list.push(bb_step);
   statement(st->body);
+  cur_func->break_list.pop();
+  cur_func->continue_list.pop();
+  builder.CreateBr(bb_step);
 
+  builder.SetInsertPoint(bb_step);
   statement(st->reinit);
 
   builder.CreateBr(bb_before_loop);
@@ -399,7 +423,7 @@ llvm::Value *Codegen::statement(ForAST *st) {
 llvm::Value *Codegen::statement(ReturnAST *st) {
   if(!cur_func->br_list.empty()) cur_func->br_list.top() = true;
   if(st->expr) 
-    return builder.CreateRet(statement(st->expr));
+    return builder.CreateRet(type_cast(statement(st->expr), cur_func->llvm_function->getReturnType()));
   else
     return builder.CreateRetVoid();
 }
@@ -441,7 +465,7 @@ llvm::Value *Codegen::get_value(AST *st) {
     DotOpAST *da = (DotOpAST *)st;
     auto parent = get_value(da->lhs);
     if(da->is_arrow) parent = builder.CreateLoad(parent);
-    if(!parent) error("error");
+    if(!parent) error("error: " __FILE__ "(%d)", __LINE__);
     struct_t *sinfo = this->struct_list.get(
         ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str()
         );

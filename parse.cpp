@@ -171,6 +171,8 @@ AST *Parser::statement() {
   if(token.is("while")) return make_while();
   if(token.is("for")) return make_for();
   if(token.is("return")) return make_return();
+  if(token.skip("break")) return make_break();
+  if(token.skip("continue")) return make_continue();
   if(token.is("{")) return make_block();
   auto e = expr_entry();
   token.skip(";");
@@ -291,6 +293,13 @@ AST *Parser::make_block() {
     return new BlockAST(body);
   }
   return nullptr;
+}
+
+AST *Parser::make_break() {
+  return new BreakAST;
+}
+AST *Parser::make_continue() {
+  return new ContinueAST;
 }
 
 AST *Parser::make_if() {

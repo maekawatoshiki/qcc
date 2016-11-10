@@ -28,6 +28,8 @@ struct func_t {
   std::vector<llvm::Type *> llvm_args_type;
   std::vector<std::string> args_name;
   std::stack<bool> br_list;
+  std::stack<llvm::BasicBlock *> 
+    break_list, continue_list;
   llvm::Function *llvm_function;
   BlockList block_list;
 };
