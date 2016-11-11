@@ -18,11 +18,11 @@ Token Lexer::run(std::string source) {
         ident += source[i];
       --i; token.add_ident_tok(ident, cur_line);
     } else if(isblank(source[i])) { // skip
-    } else if(source[i] == '/' && (source[i+1] == '/' ||
-                                   source[i+1] == '*')) {
-      i++; bool is_oneline=source[i] == '/';
-      for(; is_oneline ? source[i] != '\n' : 
-            (source[i] != '*' && source[i+1] != '/'); i++) { ; }
+    } else if(source[i] == '/' && source[i+1] == '/') {
+      for(; source[i] != '\n'; i++) {};
+    } else if(source[i] == '/' && source[i+1] == '*') {
+      for(; !(source[i] == '*' && source[i+1] == '/'); i++) { ; }
+      i++;
     } else if(source[i] == '\"') {
       std::string content;
       for(i++; source[i] != '\"' && i < source.size(); i++) {

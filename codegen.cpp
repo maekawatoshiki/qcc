@@ -154,7 +154,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
         ty = new Type(TY_PTR, ary_to_ptr(ty->next));
       }
       return ty;
-    }; // array(e.g. int a[3]) will be casted to pointer.
+    }; // zero-sized array(e.g. int a[]) will be casted to pointer. (int *a)
     auto ty = ary_to_ptr(arg->type);
     func.args_type.push_back(ty);
     func.args_name.push_back(arg->name);
