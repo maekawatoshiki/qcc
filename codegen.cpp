@@ -150,7 +150,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
   func.block_list.create_new_block();
   for(auto arg : st->args) {
     std::function<Type *(Type *)> ary_to_ptr = [&](Type *ty) -> Type * {
-      if(ty->eql(TY_ARRAY)) {
+      if(ty->get().ary_size == -1 && ty->eql(TY_ARRAY)) {
         ty = new Type(TY_PTR, ary_to_ptr(ty->next));
       }
       return ty;
@@ -159,7 +159,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
     func.args_type.push_back(ty);
     func.args_name.push_back(arg->name);
     func.block_list.get_varlist()->add(var_t(arg->name, ty));
-    func.llvm_args_type.push_back(to_llvm_type(arg->type));
+    func.llvm_args_type.push_back(to_llvm_type(ty));
   }
   this->func_list.add(func);
   func_t *function = this->func_list.get(func.name);
