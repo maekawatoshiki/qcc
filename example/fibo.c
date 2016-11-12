@@ -9,7 +9,7 @@ int fibo(int n) {
 
 int main() {
   int n;
-  n = 10;
-  printf("fibo(%d) = %d%c", n, fibo(10), n);
+  n = 45;
+  printf("fibo(%d) = %d%c", n, fibo(n), 10);
   return 0;
 }
