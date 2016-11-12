@@ -10,7 +10,6 @@ enum {
   AST_BLOCK,
   AST_VAR_DECLARATION,
   AST_TYPEDEF,
-  AST_STRUCT_DECLARATION,
   AST_UNARY,
   AST_BINARY,
   AST_DOT,
@@ -37,26 +36,26 @@ typedef std::vector<AST *> AST_vec;
 class FunctionProtoAST : public AST {
   public:
     std::string name;
-    Type *ret_type;
+    llvm::Type *ret_type;
     Type_vec args;
     virtual int get_type() const { return AST_FUNCTION_PROTO; };
-    FunctionProtoAST(std::string func_name, Type *, Type_vec argments_type);
+    FunctionProtoAST(std::string func_name, llvm::Type *, Type_vec argments_type);
 };
 
 struct argument_t {
-  argument_t(Type *ty, std::string nm):type(ty), name(nm) {};
-  Type *type;
+  argument_t(llvm::Type *ty, std::string nm):type(ty), name(nm) {};
+  llvm::Type *type;
   std::string name;
 };
 
 class FunctionDefAST : public AST {
   public:
     std::string name;
-    Type *ret_type;
+    llvm::Type *ret_type;
     std::vector<argument_t *> args;
     AST_vec body;
     virtual int get_type() const { return AST_FUNCTION_DEF; };
-    FunctionDefAST(std::string, Type *, std::vector<argument_t *>, AST_vec);
+    FunctionDefAST(std::string, llvm::Type *, std::vector<argument_t *>, AST_vec);
 };
 
 class FunctionCallAST : public AST {
@@ -100,8 +99,8 @@ class DotOpAST : public AST {
 };
 
 struct declarator_t {
-  declarator_t(Type *ty, std::string nm, AST *init_exp = nullptr):type(ty), name(nm), init_expr(init_exp) {};
-  Type *type;
+  declarator_t(llvm::Type *ty, std::string nm, AST *init_exp = nullptr):type(ty), name(nm), init_expr(init_exp) {};
+  llvm::Type *type;
   std::string name;
   AST *init_expr = nullptr;
 };
@@ -114,19 +113,10 @@ class VarDeclarationAST : public AST {
 
 class TypedefAST : public AST {
   public:
-    Type *from;
+    llvm::Type *from;
     std::string to;
     virtual int get_type() const { return AST_TYPEDEF; };
-    TypedefAST(Type *, std::string);
-};
-
-class StructDeclarationAST : public AST {
-  public:
-    bool def = false; // if already define, true
-    std::string name;
-    AST *decls;
-    virtual int get_type() const { return AST_STRUCT_DECLARATION; };
-    StructDeclarationAST(std::string name, AST *);
+    TypedefAST(llvm::Type *, std::string);
 };
 
 class VariableAST : public AST {

@@ -3,6 +3,7 @@
 #include "common.hpp"
 #include "token.hpp"
 #include "ast.hpp"
+#include "struct.hpp"
 
 
 class Parser {
@@ -15,7 +16,7 @@ class Parser {
     AST *statement_top();
     AST *statement();
 
-    std::map<std::string, bool> typedef_map;
+    std::map<std::string, llvm::Type *> typedef_map;
     bool is_function_def();
     bool is_function_proto();
     bool is_type();
@@ -23,13 +24,15 @@ class Parser {
     AST *make_function_proto();
     AST *make_var_declaration();
     AST *read_declaration();
-    Type *read_declarator(std::string &, Type *);
-    Type *read_declarator(std::string &, Type *, std::vector<argument_t *>);
-    Type *read_declarator_func(Type *, std::vector<argument_t *>);
-    Type *read_declarator_tail(Type *);
-    Type *read_declarator_array(Type *);
-    AST *make_struct_declaration();
-    AST *make_typedef();
+    llvm::Type *read_declarator(std::string &, llvm::Type *);
+    llvm::Type *read_declarator(std::string &, llvm::Type *, std::vector<argument_t *>);
+    llvm::Type *read_declarator_func(llvm::Type *, std::vector<argument_t *>);
+    llvm::Type *read_declarator_tail(llvm::Type *);
+    llvm::Type *read_declarator_array(llvm::Type *);
+    // Type_vec read_field();
+    StructList struct_list;
+    llvm::Type *make_struct_declaration();
+    void read_typedef();
     AST *make_block();
     AST *make_break();
     AST *make_continue();
@@ -38,8 +41,9 @@ class Parser {
     AST *make_for();
     AST *make_return();
 
-    Type *skip_type_spec();
-    Type *read_type_declarator();
+    llvm::Type *to_llvm_type(std::string);
+    llvm::Type *skip_type_spec();
+    llvm::Type *read_type_declarator();
     int skip_pointer();
     std::vector<int> skip_array(); // .size() = number of [], elem = ary size
 

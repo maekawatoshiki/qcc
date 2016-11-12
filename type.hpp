@@ -59,7 +59,7 @@ class Type {
     std::string to_string();
 };
 
-typedef std::vector<Type *> Type_vec;
+typedef std::vector<llvm::Type *> Type_vec;
 
 namespace TypeTool {
   Type *to_type(std::string);

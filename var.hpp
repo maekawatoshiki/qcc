@@ -4,9 +4,9 @@
 #include "type.hpp"
 
 struct var_t {
-  var_t(std::string _name, Type *_type):
+  var_t(std::string _name, llvm::Type *_type):
     name(_name), type(_type) {};
-  Type *type;
+  llvm::Type *type;
   llvm::Value *val;
   std::string name;
 };

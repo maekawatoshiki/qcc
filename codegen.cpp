@@ -20,39 +20,6 @@ llvm::AllocaInst *Codegen::create_entry_alloca(llvm::Function *TheFunction, std:
   return TmpB.CreateAlloca(type == nullptr ? llvm::Type::getInt32Ty(context) : type, 0, VarName.c_str());
 }
 
-llvm::Type *Codegen::to_llvm_type(Type *type) {
-  switch(type->get().type) {
-    case TY_VOID:
-      return builder.getVoidTy();
-    case TY_INT:
-      return builder.getInt32Ty();
-    case TY_CHAR:
-      return builder.getInt8Ty();
-    case TY_TYPEDEF: {
-      return typedef_map.count(type->get().user_type) ?
-        typedef_map[type->get().user_type] : nullptr;
-    }
-    case TY_STRUCT_DEF: {
-      return statement((StructDeclarationAST *)type->get().su);
-    }
-    case TY_STRUCT: {
-      auto strct = this->struct_list.get("struct." + type->get().user_type);
-      if(strct)
-        return strct->llvm_struct;
-      else error("error: not found struct type '%s'", strct->name.c_str());
-    }
-    case TY_PTR:
-      return to_llvm_type(type->next)->getPointerTo();
-    case TY_ARRAY: {
-      if(type->get().ary_size == -1) {
-        return to_llvm_type(type->next)->getPointerTo();
-      } else 
-        return llvm::ArrayType::get(to_llvm_type(type->next), type->get().ary_size);
-    }
-  }
-  return nullptr;
-}
-
 llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
   if(val->getType()->isIntegerTy() && to->isIntegerTy()) {
     llvm::IntegerType *ival = (llvm::IntegerType *)val->getType();
@@ -87,10 +54,6 @@ llvm::Value *Codegen::statement(AST *st) {
       return statement((ReturnAST *)st);
     case AST_VAR_DECLARATION:
       return statement((VarDeclarationAST *)st);
-    case AST_TYPEDEF:
-      statement((TypedefAST *)st); break;
-    case AST_STRUCT_DECLARATION:
-      statement((StructDeclarationAST *)st); break;
     case AST_VARIABLE:
       return statement((VariableAST *)st);
     case AST_ASGMT:
@@ -116,22 +79,20 @@ llvm::Value *Codegen::statement(FunctionProtoAST *st) {
   func.name = st->name;
   func.ret_type = st->ret_type;
   std::vector<llvm::Type *> llvm_args_type;
-  std::vector<Type *>       args_type;
   std::vector<std::string>  args_name;
   bool has_vararg = false;
   for(auto arg : st->args) {
-    if(arg->eql(TY_VARARG)) {
+    if(arg == nullptr) { // null means variable arguments
       has_vararg = true;
     } else {
-      func.args_type.push_back(arg);
-      func.llvm_args_type.push_back(to_llvm_type(arg));
+      func.llvm_args_type.push_back(arg);
     }
   }
   this->func_list.add(func);
   func_t *function = this->func_list.get(func.name);
   
   llvm::FunctionType *llvm_func_type = 
-    llvm::FunctionType::get(to_llvm_type(func.ret_type), func.llvm_args_type, has_vararg);
+    llvm::FunctionType::get(func.ret_type, func.llvm_args_type, has_vararg);
   llvm::Function *llvm_func = 
     llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
   function->llvm_function = llvm_func;
@@ -144,28 +105,19 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
   func.name = st->name;
   func.ret_type = st->ret_type;
   std::vector<llvm::Type *> llvm_args_type;
-  std::vector<Type *>       args_type;
   std::vector<std::string>  args_name;
 
   func.block_list.create_new_block();
   for(auto arg : st->args) {
-    std::function<Type *(Type *)> ary_to_ptr = [&](Type *ty) -> Type * {
-      if(ty->get().ary_size == -1 && ty->eql(TY_ARRAY)) {
-        ty = new Type(TY_PTR, ary_to_ptr(ty->next));
-      }
-      return ty;
-    }; // zero-sized array(e.g. int a[]) will be casted to pointer. (int *a)
-    auto ty = ary_to_ptr(arg->type);
-    func.args_type.push_back(ty);
     func.args_name.push_back(arg->name);
-    func.block_list.get_varlist()->add(var_t(arg->name, ty));
-    func.llvm_args_type.push_back(to_llvm_type(ty));
+    func.block_list.get_varlist()->add(var_t(arg->name, arg->type));
+    func.llvm_args_type.push_back(arg->type);
   }
   this->func_list.add(func);
   func_t *function = this->func_list.get(func.name);
 
   llvm::FunctionType *llvm_func_type = 
-    llvm::FunctionType::get(to_llvm_type(func.ret_type), func.llvm_args_type, false);
+    llvm::FunctionType::get(func.ret_type, func.llvm_args_type, false);
   llvm::Function *llvm_func = llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
   function->llvm_function = llvm_func;
 
@@ -229,59 +181,12 @@ llvm::Value *Codegen::statement(FunctionCallAST *st) {
   return nullptr;
 }
 
-llvm::Type *Codegen::statement(TypedefAST *st) {
-  if(st->from->eql(TY_STRUCT)) {
-    auto strct = this->struct_list.get("struct." + st->from->get().user_type);
-    typedef_map.insert(std::make_pair(st->to, strct->llvm_struct));
-    return strct->llvm_struct;
-  } else if(st->from->eql(TY_STRUCT_DEF)) {
-    auto strct = statement((StructDeclarationAST *)st->from->get().su);
-    typedef_map[st->to] = strct;
-    return strct;
-  } else { // primitive type
-    typedef_map[st->to] = to_llvm_type(st->from);
-  }
-  return nullptr;
-}
-
-llvm::Type *Codegen::statement(StructDeclarationAST *st) {
-  if(st->def) return this->struct_list.get("struct." + st->name)->llvm_struct;
-  st->def = true;
-  std::vector<llvm::Type *> field;
-  std::vector<std::string> members_name;
-	if(st->name.empty()) [](std::string &str) {
-		int len = 8; while(len--)
-      str += (rand() % 26) + 65;
-	}(st->name);
-  llvm::StructType *new_struct = llvm::StructType::create(context, "struct." + st->name);
-  BlockAST *decl_block = (BlockAST *)st->decls;
-  // TODO: here's code is not beautiful :(
-  for(auto a : decl_block->body) {
-    if(a->get_type() == AST_VAR_DECLARATION) {
-      VarDeclarationAST *decl = (VarDeclarationAST *)a;
-      for(auto v : decl->decls)
-        members_name.push_back(v->name);
-    }
-  }
-  this->struct_list.add("struct." + st->name, members_name, new_struct);
-  for(auto a : decl_block->body) {
-    if(a->get_type() == AST_VAR_DECLARATION) {
-      VarDeclarationAST *decl = (VarDeclarationAST *)a;
-      for(auto v : decl->decls)
-        field.push_back(to_llvm_type(v->type));
-    }
-  }
-  if(new_struct->isOpaque())
-    new_struct->setBody(field, false);
-  return new_struct;
-}
-
 llvm::Value *Codegen::statement(VarDeclarationAST *st) {
   for(auto v : st->decls) {
     if(cur_func == nullptr) { // global 
       global_var.add(var_t(v->name, v->type));
       auto cur_var = lookup_var(v->name);
-      mod->getOrInsertGlobal(v->name, to_llvm_type(v->type));
+      mod->getOrInsertGlobal(v->name, v->type);
       llvm::GlobalVariable *gv = mod->getNamedGlobal(v->name);
       gv->setLinkage(llvm::GlobalVariable::CommonLinkage);
       llvm::ConstantAggregateZero *zeroinit = llvm::ConstantAggregateZero::get(gv->getType()->getElementType());
@@ -291,7 +196,7 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
       cur_func->block_list.get_varlist()->add(var_t(v->name, v->type));
       auto cur_var = lookup_var(v->name);
       if(!cur_var) error("error: not found variable '%s'", v->name.c_str());
-      llvm::Type *decl_type = to_llvm_type(cur_var->type);
+      llvm::Type *decl_type = cur_var->type;
       cur_var->val = builder.CreateAlloca(decl_type);
       if(v->init_expr) 
         asgmt_value(cur_var->val, statement(v->init_expr));
@@ -431,7 +336,7 @@ llvm::Value *Codegen::statement(ReturnAST *st) {
 llvm::Value *Codegen::statement(VariableAST *st) {
   auto var = lookup_var(st->name);
   if(var) {
-    if(var->type->eql(TY_ARRAY)) {
+    if(var->type->isArrayTy()) {
       llvm::Value *a = var->val;
       llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
           a, 
@@ -469,7 +374,7 @@ llvm::Value *Codegen::get_value(AST *st) {
     struct_t *sinfo = this->struct_list.get(
         ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str()
         );
-    if(!sinfo) error("error: not found");
+    if(!sinfo) error("error: not found struct");
     auto strct = sinfo->llvm_struct;
     int member_count = 0;
     std::string expected_name = ((VariableAST *)da->rhs)->name;
@@ -489,7 +394,7 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
     VariableAST *va = (VariableAST *)st->ary;
     auto v = lookup_var(va->name);
     if(!v) error("error: not found variable '%s'", va->name.c_str());
-    a = v->type->eql(TY_PTR) ? ptr = true, builder.CreateLoad(v->val) : v->val;
+    a = v->type->isPointerTy() ? ptr = true, builder.CreateLoad(v->val) : v->val;
   } else if(st->ary->get_type() == AST_INDEX) {
     a = get_element_ptr((IndexAST *)st->ary);
     if(!a->getType()->getArrayElementType()->isArrayTy()) {

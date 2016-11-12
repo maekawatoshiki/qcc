@@ -1,10 +1,10 @@
 #include "ast.hpp"
 
-FunctionProtoAST::FunctionProtoAST(std::string _name, Type *ret, Type_vec _args):
+FunctionProtoAST::FunctionProtoAST(std::string _name, llvm::Type *ret, Type_vec _args):
   name(_name), ret_type(ret), args(_args) {
 }
 
-FunctionDefAST::FunctionDefAST(std::string _name, Type *ret, std::vector<argument_t *> _args, AST_vec _body):
+FunctionDefAST::FunctionDefAST(std::string _name, llvm::Type *ret, std::vector<argument_t *> _args, AST_vec _body):
   name(_name), ret_type(ret), args(_args), body(_body) {
 }
 
@@ -32,12 +32,8 @@ VarDeclarationAST::VarDeclarationAST(std::vector<declarator_t *> _decls):
   decls(_decls) {
 }
 
-TypedefAST::TypedefAST(Type *_from, std::string _to):
+TypedefAST::TypedefAST(llvm::Type *_from, std::string _to):
   from(_from), to(_to) {
-}
-
-StructDeclarationAST::StructDeclarationAST(std::string _name, AST *_decls):
-  name(_name), decls(_decls) {
 }
 
 VariableAST::VariableAST(std::string _name):

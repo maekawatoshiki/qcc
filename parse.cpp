@@ -1,122 +1,117 @@
 #include "parse.hpp"
+#include "codegen.hpp"
 
 void show_ast(AST *ast) {
-  switch(ast->get_type()) {
-    case AST_FUNCTION_DEF: {
-      FunctionDefAST *a = (FunctionDefAST *)ast;
-      std::cout << "(def (" << a->ret_type->to_string() << ") " << a->name << " ";
-      for(auto st : a->body)
-        show_ast(st);
-      std::cout << ")";
-    } break;
-    case AST_FUNCTION_PROTO: {
-      FunctionProtoAST *a = (FunctionProtoAST *)ast;
-      std::cout << "(proto (" << a->ret_type->to_string() << ") " << a->name << "(";
-      for(auto t : a->args)
-        std::cout << t->to_string() << " ";
-      std::cout << ") ";
-    } break;
-    case AST_BLOCK: {
-      BlockAST *a = (BlockAST *)ast;
-      for(auto st : a->body)
-        show_ast(st);
-    } break;
-    case AST_FUNCTION_CALL: {
-      FunctionCallAST *a = (FunctionCallAST *)ast;
-      std::cout << "(call " << a->name << " ";
-      for(auto st : a->args) {
-        std::cout << "("; show_ast(st); std::cout << ") ";
-      }
-      std::cout << ") ";
-    } break;
-    case AST_IF: {
-      IfAST *a = (IfAST *)ast;
-      std::cout << "(if ";
-      show_ast(a->cond); std::cout << " (";
-      show_ast(a->b_then); std::cout << ")";
-      if(a->b_else) {
-        std::cout << " (";
-        show_ast(a->b_else); std::cout << ")";
-      }
-      std::cout << ")";
-    } break;
-    case AST_WHILE: {
-      WhileAST *a = (WhileAST *)ast;
-      std::cout << "(while ";
-      show_ast(a->cond); std::cout << " ";
-      show_ast(a->body);
-      std::cout << ")";
-    } break;
-    case AST_UNARY: {
-      UnaryAST *a = (UnaryAST *)ast;
-      std::cout << "(" << a->op << " ";
-      show_ast(a->expr);
-      std::cout << ") ";
-    } break;
-    case AST_BINARY: {
-      BinaryAST *a = (BinaryAST *)ast;
-      std::cout << "(" << a->op << " ";
-      show_ast(a->lhs);
-      std::cout << " ";
-      show_ast(a->rhs);
-      std::cout << ") ";
-    } break;
-    case AST_DOT: {
-      DotOpAST *a = (DotOpAST *)ast;
-      std::cout << "(. ";
-      show_ast(a->lhs);
-      std::cout << " ";
-      show_ast(a->rhs);
-      std::cout << ") ";
-    } break;
-    case AST_STRUCT_DECLARATION: {
-      StructDeclarationAST *a = (StructDeclarationAST *)ast;
-      std::cout << "(struct-decl " << a->name << " ";
-      show_ast(a->decls);
-      std::cout << ") ";
-    } break;
-    case AST_VAR_DECLARATION: {
-      VarDeclarationAST *a = (VarDeclarationAST *)ast;
-      std::cout << "(var-decl ";
-      for(auto decl : a->decls) 
-        std::cout << "(" << decl->type->to_string() << ", " << decl->name << ") ";
-      std::cout << ") ";
-    } break;
-    case AST_VARIABLE: {
-      VariableAST *a = (VariableAST *)ast;
-      std::cout << "(var " << a->name << ") ";
-    } break;
-    case AST_INDEX: {
-      IndexAST *a = (IndexAST *)ast;
-      std::cout << "([] ";
-      show_ast(a->ary);
-      std::cout << " ";
-      show_ast(a->idx);
-      std::cout << ") ";
-    } break;
-    case AST_ASGMT: {
-      AsgmtAST *a = (AsgmtAST *)ast;
-      std::cout << "(= (";
-      show_ast(a->dst);
-      std::cout << ") (";
-      show_ast(a->src);
-      std::cout << ")) ";
-    } break;
-    case AST_RETURN: {
-      ReturnAST *a = (ReturnAST *)ast;
-      std::cout << "(return ";
-      if(a->expr) show_ast(a->expr);
-      std::cout << ") ";
-    } break;
-    case AST_NUMBER: {
-      NumberAST *a = (NumberAST *)ast;
-      std::cout << a->number << " ";
-    } break;
-    case AST_STRING: {
-      StringAST *a = (StringAST *)ast;
-      std::cout << "\"" << a->str << "\" ";
-    } break;
-  }
+  // switch(ast->get_type()) {
+  //   case AST_FUNCTION_DEF: {
+  //     FunctionDefAST *a = (FunctionDefAST *)ast;
+  //     std::cout << "(def ("; a->ret_type->dump(); std::cout << ") " << a->name << " ";
+  //     for(auto st : a->body)
+  //       show_ast(st);
+  //     std::cout << ")";
+  //   } break;
+  //   case AST_FUNCTION_PROTO: {
+  //     FunctionProtoAST *a = (FunctionProtoAST *)ast;
+  //     std::cout << "(proto ("; a->ret_type->dump(); std::cout << ") " << a->name << "(";
+  //     for(auto t : a->args)
+  //       t->dump(); std::cout << " ";
+  //     std::cout << ") ";
+  //   } break;
+  //   case AST_BLOCK: {
+  //     BlockAST *a = (BlockAST *)ast;
+  //     for(auto st : a->body)
+  //       show_ast(st);
+  //   } break;
+  //   case AST_FUNCTION_CALL: {
+  //     FunctionCallAST *a = (FunctionCallAST *)ast;
+  //     std::cout << "(call " << a->name << " ";
+  //     for(auto st : a->args) {
+  //       std::cout << "("; show_ast(st); std::cout << ") ";
+  //     }
+  //     std::cout << ") ";
+  //   } break;
+  //   case AST_IF: {
+  //     IfAST *a = (IfAST *)ast;
+  //     std::cout << "(if ";
+  //     show_ast(a->cond); std::cout << " (";
+  //     show_ast(a->b_then); std::cout << ")";
+  //     if(a->b_else) {
+  //       std::cout << " (";
+  //       show_ast(a->b_else); std::cout << ")";
+  //     }
+  //     std::cout << ")";
+  //   } break;
+  //   case AST_WHILE: {
+  //     WhileAST *a = (WhileAST *)ast;
+  //     std::cout << "(while ";
+  //     show_ast(a->cond); std::cout << " ";
+  //     show_ast(a->body);
+  //     std::cout << ")";
+  //   } break;
+  //   case AST_UNARY: {
+  //     UnaryAST *a = (UnaryAST *)ast;
+  //     std::cout << "(" << a->op << " ";
+  //     show_ast(a->expr);
+  //     std::cout << ") ";
+  //   } break;
+  //   case AST_BINARY: {
+  //     BinaryAST *a = (BinaryAST *)ast;
+  //     std::cout << "(" << a->op << " ";
+  //     show_ast(a->lhs);
+  //     std::cout << " ";
+  //     show_ast(a->rhs);
+  //     std::cout << ") ";
+  //   } break;
+  //   case AST_DOT: {
+  //     DotOpAST *a = (DotOpAST *)ast;
+  //     std::cout << "(. ";
+  //     show_ast(a->lhs);
+  //     std::cout << " ";
+  //     show_ast(a->rhs);
+  //     std::cout << ") ";
+  //   } break;
+  //   case AST_VAR_DECLARATION: {
+  //     VarDeclarationAST *a = (VarDeclarationAST *)ast;
+  //     std::cout << "(var-decl ";
+  //     for(auto decl : a->decls) {
+  //       std::cout << "("; decl->type->dump(); std::cout << ", " << decl->name << ") "; }
+  //     std::cout << ") ";
+  //   } break;
+  //   case AST_VARIABLE: {
+  //     VariableAST *a = (VariableAST *)ast;
+  //     std::cout << "(var " << a->name << ") ";
+  //   } break;
+  //   case AST_INDEX: {
+  //     IndexAST *a = (IndexAST *)ast;
+  //     std::cout << "([] ";
+  //     show_ast(a->ary);
+  //     std::cout << " ";
+  //     show_ast(a->idx);
+  //     std::cout << ") ";
+  //   } break;
+  //   case AST_ASGMT: {
+  //     AsgmtAST *a = (AsgmtAST *)ast;
+  //     std::cout << "(= (";
+  //     show_ast(a->dst);
+  //     std::cout << ") (";
+  //     show_ast(a->src);
+  //     std::cout << ")) ";
+  //   } break;
+  //   case AST_RETURN: {
+  //     ReturnAST *a = (ReturnAST *)ast;
+  //     std::cout << "(return ";
+  //     if(a->expr) show_ast(a->expr);
+  //     std::cout << ") ";
+  //   } break;
+  //   case AST_NUMBER: {
+  //     NumberAST *a = (NumberAST *)ast;
+  //     std::cout << a->number << " ";
+  //   } break;
+  //   case AST_STRING: {
+  //     StringAST *a = (StringAST *)ast;
+  //     std::cout << "\"" << a->str << "\" ";
+  //   } break;
+  // }
 }
 
 AST_vec Parser::run(Token tok) {
@@ -159,7 +154,7 @@ AST_vec Parser::eval() {
 AST *Parser::statement_top() {
   if(is_function_def()) return make_function();
   if(is_function_proto()) return make_function_proto();
-  if(token.is("typedef")) return make_typedef();
+  if(token.skip("typedef"))  read_typedef();
   if(is_type()) return read_declaration();
   return nullptr;
 }
@@ -180,15 +175,12 @@ AST *Parser::statement() {
 }
 
 AST *Parser::read_declaration() {
-  Type *basety = skip_type_spec();
-  if(token.skip(";")) {
-    if(basety->eql(TY_STRUCT_DEF) || basety->eql(TY_UNION_DEF))
-      return basety->get().su;
-  }
+  llvm::Type *basety = skip_type_spec();
+  if(token.skip(";")) return nullptr;
   std::vector<declarator_t *> decls;
   while(1) {
     std::string name;
-    Type *type = read_declarator(name, basety);
+    llvm::Type *type = read_declarator(name, basety);
     AST *init_expr = nullptr;
     if(token.skip("=")) 
       init_expr = expr_entry();
@@ -199,9 +191,9 @@ AST *Parser::read_declaration() {
   return new VarDeclarationAST(decls);
 }
 
-Type *Parser::read_declarator(std::string &name, Type *basety) {
+llvm::Type *Parser::read_declarator(std::string &name, llvm::Type *basety) {
   if(token.skip("*")) {
-    return read_declarator(name, new Type(TY_PTR, basety));
+    return read_declarator(name, basety->getPointerTo());
   }
   if(token.get().type == TOK_TYPE_IDENT) {
     name = token.next().val;
@@ -210,14 +202,14 @@ Type *Parser::read_declarator(std::string &name, Type *basety) {
   return basety;
 }
 
-Type *Parser::read_declarator_tail(Type *basety) {
+llvm::Type *Parser::read_declarator_tail(llvm::Type *basety) {
   if(token.skip("[")) {
     return read_declarator_array(basety);
   }
   return basety;
 }
 
-Type *Parser::read_declarator_array(Type *basety) {
+llvm::Type *Parser::read_declarator_array(llvm::Type *basety) {
   int len;
   if(token.skip("]")) {
     len = -1;
@@ -227,23 +219,28 @@ Type *Parser::read_declarator_array(Type *basety) {
     len = atoi(token.next().val.c_str());
     token.expect_skip("]");
   }
-  Type *t = read_declarator_tail(basety);
-  return new Type(TY_ARRAY, len, t);
+  llvm::Type *t = read_declarator_tail(basety);
+  if(len == -1) return t->getPointerTo();
+  return llvm::ArrayType::get(t, len);
 }
 
 AST *Parser::make_function() {
   // puts("MAKE_FUNCTION");
-  Type *ret_type = read_type_declarator();
+  llvm::Type *ret_type = read_type_declarator();
   std::string name = token.next().val;
   if(token.skip("(")) {
     std::vector<argument_t *> args;
     while(!token.skip(")")) {
-      Type *type = read_type_declarator();
+      llvm::Type *type = read_type_declarator();
       std::string name = token.next().val;
       std::vector<int> ary = skip_array();
       std::reverse(ary.begin(), ary.end());
-      for(auto e : ary)
-        type = new Type(TY_ARRAY, e, type);
+      for(auto e : ary) {
+        if(e == -1)
+          type = type->getPointerTo();
+        else
+          type = llvm::ArrayType::get(type, e); //llvm::Type(TY_ARRAY, e, type);
+      }
       args.push_back(new argument_t(type, name));
       if(token.skip(")")) break;
       token.expect_skip(",");
@@ -262,17 +259,21 @@ AST *Parser::make_function() {
 
 AST *Parser::make_function_proto() {
   // puts("MAKE_PROTO");
-  Type *ret_type = read_type_declarator();
+  llvm::Type *ret_type = read_type_declarator();
   std::string name = token.next().val;
   if(token.skip("(")) {
     Type_vec args_type;
     while(!token.skip(")")) {
-      Type *type = read_type_declarator();
+      llvm::Type *type = read_type_declarator();
       if(token.get().type == TOK_TYPE_IDENT) token.skip();
       std::vector<int> ary = skip_array();
       std::reverse(ary.begin(), ary.end());
-      for(auto e : ary)
-        type = new Type(TY_ARRAY, e, type);
+      for(auto e : ary) {
+        if(e == -1)
+          type = type->getPointerTo();
+        else
+          type = llvm::ArrayType::get(type, e); //llvm::Type(TY_ARRAY, e, type);
+      }
       args_type.push_back(type);
       if(token.skip(")")) break;
       token.expect_skip(",");
@@ -355,26 +356,46 @@ AST *Parser::make_return() {
   return nullptr;
 }
 
-AST *Parser::make_struct_declaration() {
-  if(token.skip("struct")) {
-    std::string name;
-    if(token.get().type == TOK_TYPE_IDENT) 
-      name = token.next().val;
-    AST *decls = statement();
-    return new StructDeclarationAST(name, decls);
+llvm::Type *Parser::make_struct_declaration() {
+  if(!token.skip("struct")) return nullptr;
+  std::string name;
+  if(token.get().type == TOK_TYPE_IDENT) 
+    name = token.next().val;
+	if(name.empty()) [](std::string &str) {
+		int len = 8; while(len--)
+      str += (rand() % 26) + 65;
+	}(name);
+  BlockAST *decls = (BlockAST *)statement();
+  llvm::StructType *new_struct = llvm::StructType::create(context, "struct." + name);
+  std::vector<std::string> members_name;
+  Type_vec field;
+  for(auto a : decls->body) {
+    if(a->get_type() == AST_VAR_DECLARATION) {
+      VarDeclarationAST *decl = (VarDeclarationAST *)a;
+      for(auto v : decl->decls)
+        members_name.push_back(v->name);
+    }
   }
-  return nullptr;
+  this->struct_list.add("struct." + name, members_name, new_struct);
+  for(auto a : decls->body) {
+    if(a->get_type() == AST_VAR_DECLARATION) {
+      VarDeclarationAST *decl = (VarDeclarationAST *)a;
+      for(auto v : decl->decls)
+        field.push_back(v->type);
+    }
+  }
+  if(new_struct->isOpaque())
+    new_struct->setBody(field, false);
+  return new_struct;
 }
 
-AST *Parser::make_typedef() {
-  if(!token.skip("typedef")) return nullptr;
-  Type *from = skip_type_spec();
+void Parser::read_typedef() {
+  llvm::Type *from = skip_type_spec();
   if(token.get().type != TOK_TYPE_IDENT)
     error("error(%d): expected identifier", token.get().line);
   std::string name = token.next().val;
-  typedef_map[name] = true;
-  token.expect_skip(";");
-  return new TypedefAST(from, name);
+  typedef_map[name] = from;
+  return;
 }
 
 
@@ -422,30 +443,30 @@ bool Parser::is_type() {
   return false;
 }
 
-Type *Parser::read_type_declarator() {
-  Type *type = skip_type_spec();
+llvm::Type *Parser::read_type_declarator() {
+  llvm::Type *type = skip_type_spec();
   if(type == nullptr) return nullptr;
   for(int i=skip_pointer(); i > 0; i--)
-    type = new Type(TY_PTR, type);
+    type = type->getPointerTo(); //new llvm::Type(TY_PTR, type);
   return type;
 }
 
-Type *Parser::skip_type_spec() {
+llvm::Type *Parser::skip_type_spec() {
   bool is_struct = false;
   if((is_struct=token.is("struct")) || token.is("union")) {
     if(token.get(1).val == "{" || token.get(2).val == "{") // define struct or union
-      return new Type(TY_STRUCT_DEF, make_struct_declaration());
+      return make_struct_declaration();
     token.skip();
     std::string name;
     if(token.get().type == TOK_TYPE_IDENT) 
       name = token.next().val; 
     else puts("err"); // TODO: add err check
-    return new Type(TY_STRUCT, name);
+    return this->struct_list.get("struct." + name)->llvm_struct;
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
-    return TypeTool::to_type(name);
+    return to_llvm_type(name);
   } else if(token.skip("...")) {
-    return new Type(TY_VARARG);
+    return nullptr; // null is variable argument
   }
   return nullptr;
 }
@@ -467,4 +488,18 @@ std::vector<int> Parser::skip_array() {
     ary.push_back(ary_size);
   }
   return ary;
+}
+
+llvm::Type *Parser::to_llvm_type(std::string ty) {
+  if(ty == "int") {
+    return builder.getInt32Ty();
+  } else if(ty == "void") {
+    return builder.getVoidTy();
+  } else if(ty == "char") {
+    return builder.getInt8Ty();
+  } else if(ty == "double") {
+    return builder.getDoubleTy();
+  } else { // typedef
+    return typedef_map[ty];
+  }
 }

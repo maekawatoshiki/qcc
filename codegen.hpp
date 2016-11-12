@@ -10,7 +10,6 @@ extern llvm::IRBuilder<> builder;
 extern llvm::Module *mod;
 class Codegen {
   private:
-    StructList struct_list;
     FunctionList func_list;
     std::map<std::string, llvm::Type *> typedef_map;
     VariableList global_var;
@@ -27,7 +26,6 @@ class Codegen {
     llvm::Value *statement(FunctionCallAST *     ); 
     llvm::Value *statement(VarDeclarationAST *   ); 
     llvm::Type  *statement(TypedefAST *          ); 
-    llvm::Type  *statement(StructDeclarationAST *); 
     llvm::Value *statement(VariableAST *         ); 
     llvm::Value *statement(IndexAST *            ); 
     llvm::Value *statement(BreakAST *            ); 
@@ -45,10 +43,10 @@ class Codegen {
     llvm::Value *get_element_ptr(IndexAST *      ); 
     llvm::Value *get_value(AST *                 ); 
     llvm::Value *asgmt_value(llvm::Value *, llvm::Value *src);
-    llvm::Type  *to_llvm_type(Type *);
     llvm::Value *type_cast(llvm::Value *, llvm::Type *);
     llvm::AllocaInst *create_entry_alloca(llvm::Function *TheFunction, std::string &VarName, llvm::Type *type = nullptr);
     var_t *lookup_var(std::string);
   public:
+    StructList struct_list;
     void run(AST_vec, std::string = "a.bc", bool emit_llvm_ir = false);    
 };
