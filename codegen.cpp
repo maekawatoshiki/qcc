@@ -188,9 +188,17 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
       auto cur_var = lookup_var(v->name);
       mod->getOrInsertGlobal(v->name, v->type);
       llvm::GlobalVariable *gv = mod->getNamedGlobal(v->name);
-      gv->setLinkage(llvm::GlobalVariable::CommonLinkage);
-      llvm::ConstantAggregateZero *zeroinit = llvm::ConstantAggregateZero::get(gv->getType()->getElementType());
-      gv->setInitializer(zeroinit);
+      if(v->init_expr) {
+        auto expr = statement(v->init_expr);
+        if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(expr)) {
+          gv->setInitializer(c);
+          gv->setLinkage(llvm::GlobalVariable::ExternalLinkage);
+        } else error("error: initialization of global variables must be constant");
+      } else {
+        gv->setLinkage(llvm::GlobalVariable::CommonLinkage);
+        llvm::ConstantAggregateZero *zeroinit = llvm::ConstantAggregateZero::get(gv->getType()->getElementType());
+        gv->setInitializer(zeroinit);
+      }
       cur_var->val = gv;
     } else {
       cur_func->block_list.get_varlist()->add(var_t(v->name, v->type));
