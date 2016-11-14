@@ -205,8 +205,11 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
       auto cur_var = lookup_var(v->name);
       if(!cur_var) error("error: not found variable '%s'", v->name.c_str());
       llvm::Type *decl_type = cur_var->type;
-      auto first_inst = cur_func->llvm_function->begin()->begin();
-      llvm::IRBuilder<> B(first_inst);
+      llvm::IRBuilder<> B = [&]() -> llvm::IRBuilder<> {
+        if(cur_func->llvm_function->begin()->empty())
+          return llvm::IRBuilder<>(cur_func->llvm_function->begin());
+        else return llvm::IRBuilder<>(cur_func->llvm_function->begin()->begin());
+      }();
       cur_var->val = B.CreateAlloca(decl_type, nullptr, cur_var->name);
       if(v->init_expr) 
         asgmt_value(cur_var->val, statement(v->init_expr));
