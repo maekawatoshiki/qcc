@@ -431,10 +431,10 @@ exit:
 bool Parser::is_type() {
   auto cur = token.get().val;
   if(
-      cur == "int" ||
-      cur == "char" ||
-      cur == "double" ||
-      cur == "struct" ||
+      cur == "int"      ||
+      cur == "char"     ||
+      cur == "double"   ||
+      cur == "struct"   ||
       cur == "union") {
     return true;
   } else if(typedef_map.count(cur)) {
