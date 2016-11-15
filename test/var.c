@@ -6,6 +6,6 @@ int test() {
   {
     int q = 10;
   }
-  int a[] = {1, 2};
+  int x[] = {1, 2};
   return 0;
 }

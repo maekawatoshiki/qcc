@@ -209,7 +209,7 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
       auto cur_var = lookup_var(v->name);
       if(!cur_var) error("error: not found variable '%s'", v->name.c_str());
       llvm::Type *decl_type = cur_var->type;
-      if(decl_type->isPointerTy()) {
+      if(decl_type->isPointerTy() && init_val) {
         // int a[] = {1, 2}; -> int a[2] = {1, 2};
         decl_type = init_val->getType();
         cur_var->type = decl_type;
