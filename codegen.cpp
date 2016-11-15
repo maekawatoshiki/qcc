@@ -60,6 +60,8 @@ llvm::Value *Codegen::statement(AST *st) {
       return statement((AsgmtAST *)st);
     case AST_INDEX:
       return statement((IndexAST *)st);
+    case AST_ARRAY:
+      return statement((ArrayAST *)st);
     case AST_UNARY:
       return statement((UnaryAST *)st);
     case AST_BINARY:
@@ -201,18 +203,25 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
       }
       cur_var->val = gv;
     } else {
+      llvm::Value *init_val = nullptr;
+      if(v->init_expr) init_val = statement(v->init_expr);
       cur_func->block_list.get_varlist()->add(var_t(v->name, v->type));
       auto cur_var = lookup_var(v->name);
       if(!cur_var) error("error: not found variable '%s'", v->name.c_str());
       llvm::Type *decl_type = cur_var->type;
+      if(decl_type->isPointerTy()) {
+        // int a[] = {1, 2}; -> int a[2] = {1, 2};
+        decl_type = init_val->getType();
+        cur_var->type = decl_type;
+      }
       llvm::IRBuilder<> B = [&]() -> llvm::IRBuilder<> {
         if(cur_func->llvm_function->begin()->empty())
           return llvm::IRBuilder<>(cur_func->llvm_function->begin());
         else return llvm::IRBuilder<>(cur_func->llvm_function->begin()->begin());
       }();
       cur_var->val = B.CreateAlloca(decl_type, nullptr, cur_var->name);
-      if(v->init_expr) 
-        asgmt_value(cur_var->val, statement(v->init_expr));
+      if(init_val) 
+        asgmt_value(cur_var->val, init_val);
     }
   }
   return nullptr;
@@ -467,6 +476,24 @@ llvm::Value *Codegen::op_sub(llvm::Value *lhs, llvm::Value *rhs) {
     return builder.CreateSub(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
+}
+
+llvm::Value *Codegen::statement(ArrayAST *st) {
+  std::vector<llvm::Constant *> elems;
+  for(auto elem : st->elems) {
+    elems.push_back( (llvm::Constant *)statement(elem) );
+  }
+  auto ary_type = llvm::ArrayType::get(elems[0]->getType(), elems.size());
+  std::string name = []() -> std::string {
+    std::string str;
+    int len = 8; while(len--)
+      str += (rand() % 26) + 65;
+    return str;
+  }();
+  mod->getOrInsertGlobal("const_ary."+name, ary_type);
+  llvm::GlobalVariable *gv = mod->getNamedGlobal("const_ary."+name);
+  gv->setInitializer(llvm::ConstantArray::get(ary_type, elems));
+  return builder.CreateLoad(gv);
 }
 
 llvm::Value *Codegen::statement(UnaryAST *st) {

@@ -10,6 +10,7 @@ enum {
   AST_BLOCK,
   AST_VAR_DECLARATION,
   AST_TYPEDEF,
+  AST_ARRAY,
   AST_UNARY,
   AST_BINARY,
   AST_DOT,
@@ -71,6 +72,13 @@ class BlockAST : public AST {
     AST_vec body;
     virtual int get_type() const { return AST_BLOCK; };
     BlockAST(AST_vec);
+};
+
+class ArrayAST : public AST {
+  public:
+    AST_vec elems;
+    virtual int get_type() const { return AST_ARRAY; };
+    ArrayAST(AST_vec);
 };
 
 class UnaryAST : public AST {

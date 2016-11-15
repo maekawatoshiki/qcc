@@ -16,6 +16,10 @@ BlockAST::BlockAST(AST_vec _body):
   body(_body) {
 }
 
+ArrayAST::ArrayAST(AST_vec _elems):
+  elems(_elems) {
+}
+
 UnaryAST::UnaryAST(std::string _op, AST *_expr, bool _postfix):
   op(_op), expr(_expr), postfix(_postfix) {
 }

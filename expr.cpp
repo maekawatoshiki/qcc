@@ -134,6 +134,14 @@ AST *Parser::expr_primary() {
     } else { // variable
       return new VariableAST(name);
     }
+  } else if(token.skip("{")) {
+    AST_vec elems;
+    while(token.get().type != TOK_TYPE_END) {
+      elems.push_back(expr_entry());
+      if(token.skip("}")) break;
+      token.expect_skip(",");
+    }
+    return new ArrayAST(elems);
   } else if(token.skip("(")) {
     auto e = expr_entry();
     token.skip(")");

@@ -35,6 +35,7 @@ class Codegen {
     llvm::Value *statement(ForAST *              ); 
     llvm::Value *statement(ReturnAST *           ); 
     llvm::Value *statement(AsgmtAST *            ); 
+    llvm::Value *statement(ArrayAST *            ); 
     llvm::Value *statement(UnaryAST *            ); 
     llvm::Value *statement(BinaryAST *           ); 
     llvm::Value *statement(DotOpAST *            ); 
