@@ -15,6 +15,8 @@ class Codegen {
     VariableList global_var;
     func_t *cur_func = nullptr;
 
+    llvm::Function *tool_memcpy;
+
     llvm::Value *op_add(llvm::Value *, llvm::Value *);
     llvm::Value *op_sub(llvm::Value *, llvm::Value *);
     // llvm::Value *op_eq (llvm::Value *, llvm::Value *);

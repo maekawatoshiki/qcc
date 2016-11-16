@@ -5,8 +5,15 @@ llvm::IRBuilder<> builder(context);
 llvm::Module *mod;
 
 void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
-  Type ty;
   mod = new llvm::Module("QCC", context);
+  llvm::FunctionType *llvm_func_type_memcpy = 
+    llvm::FunctionType::get(
+        builder.getVoidTy()->getPointerTo(),
+        std::vector<llvm::Type *>{
+          builder.getVoidTy()->getPointerTo(), 
+          builder.getVoidTy()->getPointerTo(),
+          builder.getInt32Ty()}, /*var arg=*/false);
+  tool_memcpy = llvm::Function::Create(llvm_func_type_memcpy, llvm::Function::ExternalLinkage, "memcpy", mod);
   for(auto st : ast) statement(st);
   if(emit_llvm_ir) mod->dump();
   std::string EC;
@@ -211,7 +218,7 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
       llvm::Type *decl_type = cur_var->type;
       if(decl_type->isPointerTy() && init_val) {
         // int a[] = {1, 2}; -> int a[2] = {1, 2};
-        decl_type = init_val->getType();
+        decl_type = init_val->getType()->getPointerElementType();//getType();
         cur_var->type = decl_type;
       }
       llvm::IRBuilder<> B = [&]() -> llvm::IRBuilder<> {
@@ -440,7 +447,17 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
 }
 
 llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
-  src = this->type_cast(src, dst->getType()->getPointerElementType());
+  if(dst->getType()->getPointerElementType()->isArrayTy() && 
+      src->getType()->getPointerElementType()->isArrayTy()) {
+    return builder.CreateCall(tool_memcpy,
+        std::vector<llvm::Value *> {
+          type_cast(dst, builder.getVoidTy()->getPointerTo()), type_cast(src, builder.getVoidTy()->getPointerTo()), 
+          llvm::ConstantInt::get(
+              builder.getInt32Ty(), 
+              src->getType()->getPointerElementType()->getArrayElementType()->getScalarSizeInBits() / 8 * 
+              src->getType()->getPointerElementType()->getArrayNumElements())});
+  } else 
+    src = this->type_cast(src, dst->getType()->getPointerElementType());
   return builder.CreateStore(src, dst);
 }
 
@@ -493,7 +510,7 @@ llvm::Value *Codegen::statement(ArrayAST *st) {
   mod->getOrInsertGlobal("const_ary."+name, ary_type);
   llvm::GlobalVariable *gv = mod->getNamedGlobal("const_ary."+name);
   gv->setInitializer(llvm::ConstantArray::get(ary_type, elems));
-  return builder.CreateLoad(gv);
+  return gv;
 }
 
 llvm::Value *Codegen::statement(UnaryAST *st) {
