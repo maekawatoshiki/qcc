@@ -192,7 +192,10 @@ llvm::Value *Codegen::statement(FunctionCallAST *st) {
 
 llvm::Value *Codegen::statement(VarDeclarationAST *st) {
   for(auto v : st->decls) {
+    llvm::Value *init_val = nullptr;
+    if(v->init_expr) init_val = statement(v->init_expr);
     if(cur_func == nullptr) { // global 
+      if(v->type->isPointerTy() && init_val) v->type = init_val->getType();
       global_var.add(var_t(v->name, v->type));
       auto cur_var = lookup_var(v->name);
       mod->getOrInsertGlobal(v->name, v->type);
@@ -200,6 +203,21 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
       if(v->init_expr) {
         auto expr = statement(v->init_expr);
         if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(expr)) {
+          // TODO: this should be function. similar code is used some times
+          if(c->getType()->isArrayTy() && 
+              c->getType()->getArrayNumElements() != gv->getType()->getPointerElementType()->getArrayNumElements()) {
+            ArrayAST *ar = (ArrayAST *)v->init_expr;
+            std::vector<llvm::Constant *> elems;
+            for(auto elem : ar->elems) {
+              elems.push_back( (llvm::Constant *)statement(elem) );
+            }
+            auto ary_elem_type = elems[0]->getType();
+            for(int i = elems.size(); i < gv->getType()->getPointerElementType()->getArrayNumElements(); i++) {
+              elems.push_back(llvm::ConstantInt::get(ary_elem_type, 0));
+            }
+            auto ary_type = llvm::ArrayType::get(ary_elem_type, 0);
+            c = llvm::ConstantArray::get(ary_type, elems);
+          }
           gv->setInitializer(c);
           gv->setLinkage(llvm::GlobalVariable::ExternalLinkage);
         } else error("error: initialization of global variables must be constant");
@@ -210,15 +228,13 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
       }
       cur_var->val = gv;
     } else {
-      llvm::Value *init_val = nullptr;
-      if(v->init_expr) init_val = statement(v->init_expr);
       cur_func->block_list.get_varlist()->add(var_t(v->name, v->type));
       auto cur_var = lookup_var(v->name);
       if(!cur_var) error("error: not found variable '%s'", v->name.c_str());
       llvm::Type *decl_type = cur_var->type;
       if(decl_type->isPointerTy() && init_val) {
         // int a[] = {1, 2}; -> int a[2] = {1, 2};
-        decl_type = init_val->getType()->getPointerElementType();//getType();
+        decl_type = init_val->getType();//getType();
         cur_var->type = decl_type;
       }
       llvm::IRBuilder<> B = [&]() -> llvm::IRBuilder<> {
@@ -447,8 +463,21 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
 }
 
 llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
-  if(dst->getType()->getPointerElementType()->isArrayTy() && 
-      src->getType()->getPointerElementType()->isArrayTy()) {
+  if(dst->getType()->getPointerElementType()->isArrayTy()) {
+    if(src->getType()->isArrayTy() && llvm::dyn_cast<llvm::Constant>(src)) {
+      // if src is constant array, copy it to global variable
+      std::string name = []() -> std::string { 
+        std::string str;
+        int len = 8; while(len--)
+          str += (rand() % 26) + 65;
+        return str;
+      }();
+      mod->getOrInsertGlobal("const_ary."+name, src->getType());
+      llvm::GlobalVariable *gv = mod->getNamedGlobal("const_ary."+name);
+      gv->setInitializer((llvm::Constant *)src);
+      src = gv;
+    }
+
     return builder.CreateCall(tool_memcpy,
         std::vector<llvm::Value *> {
           type_cast(dst, builder.getVoidTy()->getPointerTo()), type_cast(src, builder.getVoidTy()->getPointerTo()), 
@@ -501,16 +530,17 @@ llvm::Value *Codegen::statement(ArrayAST *st) {
     elems.push_back( (llvm::Constant *)statement(elem) );
   }
   auto ary_type = llvm::ArrayType::get(elems[0]->getType(), elems.size());
-  std::string name = []() -> std::string {
-    std::string str;
-    int len = 8; while(len--)
-      str += (rand() % 26) + 65;
-    return str;
-  }();
-  mod->getOrInsertGlobal("const_ary."+name, ary_type);
-  llvm::GlobalVariable *gv = mod->getNamedGlobal("const_ary."+name);
-  gv->setInitializer(llvm::ConstantArray::get(ary_type, elems));
-  return gv;
+  // std::string name = []() -> std::string {
+  //   std::string str;
+  //   int len = 8; while(len--)
+  //     str += (rand() % 26) + 65;
+  //   return str;
+  // }();
+  // mod->getOrInsertGlobal("const_ary."+name, ary_type);
+  // llvm::GlobalVariable *gv = mod->getNamedGlobal("const_ary."+name);
+  // gv->setInitializer(llvm::ConstantArray::get(ary_type, elems));
+  // return gv;
+  return llvm::ConstantArray::get(ary_type, elems);
 }
 
 llvm::Value *Codegen::statement(UnaryAST *st) {
