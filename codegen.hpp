@@ -43,6 +43,7 @@ class Codegen {
     llvm::Value *statement(DotOpAST *            ); 
     llvm::Value *statement(StringAST *           ); 
     llvm::Value *statement(NumberAST *           ); 
+    llvm::Constant *create_const_array(std::vector<AST *>, int = 0);
     llvm::Value *get_element_ptr(IndexAST *      ); 
     llvm::Value *get_value(AST *                 ); 
     llvm::Value *asgmt_value(llvm::Value *, llvm::Value *src);

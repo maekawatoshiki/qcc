@@ -203,20 +203,10 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
       if(v->init_expr) {
         auto expr = statement(v->init_expr);
         if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(expr)) {
-          // TODO: this should be function. similar code is used some times
           if(c->getType()->isArrayTy() && 
               c->getType()->getArrayNumElements() != gv->getType()->getPointerElementType()->getArrayNumElements()) {
             ArrayAST *ar = (ArrayAST *)v->init_expr;
-            std::vector<llvm::Constant *> elems;
-            for(auto elem : ar->elems) {
-              elems.push_back( (llvm::Constant *)statement(elem) );
-            }
-            auto ary_elem_type = elems[0]->getType();
-            for(int i = elems.size(); i < gv->getType()->getPointerElementType()->getArrayNumElements(); i++) {
-              elems.push_back(llvm::ConstantInt::get(ary_elem_type, 0));
-            }
-            auto ary_type = llvm::ArrayType::get(ary_elem_type, 0);
-            c = llvm::ConstantArray::get(ary_type, elems);
+            c = create_const_array(ar->elems, gv->getType()->getPointerElementType()->getArrayNumElements());
           }
           gv->setInitializer(c);
           gv->setLinkage(llvm::GlobalVariable::ExternalLinkage);
@@ -432,6 +422,17 @@ llvm::Value *Codegen::get_value(AST *st) {
   return nullptr;
 }
 
+llvm::Constant *Codegen::create_const_array(std::vector<AST *> ast_elems, int size) {
+  std::vector<llvm::Constant *> elems;
+  for(auto elem : ast_elems) {
+    elems.push_back( (llvm::Constant *)statement(elem) );
+  }
+  for(int i = elems.size(); i < size; i++)
+    elems.push_back(llvm::ConstantInt::get(elems[0]->getType(), 0));
+  auto ary_type = llvm::ArrayType::get(elems[0]->getType(), elems.size());
+  return llvm::ConstantArray::get(ary_type, elems);
+}
+
 llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
   llvm::Value *a = nullptr;
   bool ptr = false;
@@ -525,22 +526,7 @@ llvm::Value *Codegen::op_sub(llvm::Value *lhs, llvm::Value *rhs) {
 }
 
 llvm::Value *Codegen::statement(ArrayAST *st) {
-  std::vector<llvm::Constant *> elems;
-  for(auto elem : st->elems) {
-    elems.push_back( (llvm::Constant *)statement(elem) );
-  }
-  auto ary_type = llvm::ArrayType::get(elems[0]->getType(), elems.size());
-  // std::string name = []() -> std::string {
-  //   std::string str;
-  //   int len = 8; while(len--)
-  //     str += (rand() % 26) + 65;
-  //   return str;
-  // }();
-  // mod->getOrInsertGlobal("const_ary."+name, ary_type);
-  // llvm::GlobalVariable *gv = mod->getNamedGlobal("const_ary."+name);
-  // gv->setInitializer(llvm::ConstantArray::get(ary_type, elems));
-  // return gv;
-  return llvm::ConstantArray::get(ary_type, elems);
+  return create_const_array(st->elems);
 }
 
 llvm::Value *Codegen::statement(UnaryAST *st) {
