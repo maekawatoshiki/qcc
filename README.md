@@ -17,6 +17,8 @@ $ clang c.s # c.s -> a.out
 - if you are using Ubuntu or Debian, maybe you can see what you have to apt-get install if you look at Dockerfile.
 ```
 $ make
+$ make test
+$ ./qcc.sh <SOURCE CODE>
 ```
 
 # TRY ON DOCKER

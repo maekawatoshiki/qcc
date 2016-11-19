@@ -15,6 +15,7 @@ void prime(int table[]) {
       }
     }
   }
+  return;
 }
 
 void show(int table[]) {
@@ -27,6 +28,7 @@ void show(int table[]) {
     if(count % 10 == 0) { puts(""); count++; }
   }
   puts("");
+  return;
 }
 
 int main() {
