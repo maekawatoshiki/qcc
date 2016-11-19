@@ -23,6 +23,7 @@ enum {
   AST_FOR,
   AST_ASGMT,
   AST_RETURN,
+  AST_SIZEOF,
   AST_NUMBER,
   AST_STRING,
 };
@@ -184,6 +185,13 @@ class ReturnAST : public AST {
     AST *expr;
     virtual int get_type() const { return AST_RETURN; };
     ReturnAST(AST *);
+};
+
+class SizeofAST : public AST {
+  public:
+    llvm::Type *type;
+    virtual int get_type() const { return AST_SIZEOF; };
+    SizeofAST(llvm::Type *);
 };
 
 class NumberAST : public AST {

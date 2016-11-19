@@ -199,7 +199,7 @@ llvm::Type *Parser::read_declarator(std::string &name, llvm::Type *basety) {
     name = token.next().val;
     return read_declarator_tail(basety);
   }
-  return basety;
+  return read_declarator_tail(basety);
 }
 
 llvm::Type *Parser::read_declarator_tail(llvm::Type *basety) {

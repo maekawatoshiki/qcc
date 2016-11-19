@@ -13,6 +13,7 @@ class Codegen {
     FunctionList func_list;
     std::map<std::string, llvm::Type *> typedef_map;
     VariableList global_var;
+    llvm::DataLayout *data_layout;
     func_t *cur_func = nullptr;
 
     llvm::Function *tool_memcpy;
@@ -43,6 +44,7 @@ class Codegen {
     llvm::Value *statement(DotOpAST *            ); 
     llvm::Value *statement(StringAST *           ); 
     llvm::Value *statement(NumberAST *           ); 
+    llvm::Value *statement(SizeofAST *           );
     llvm::Constant *create_const_array(std::vector<AST *>, int = 0);
     llvm::Value *get_element_ptr(IndexAST *      ); 
     llvm::Value *get_value(AST *                 ); 

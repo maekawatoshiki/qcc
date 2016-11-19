@@ -6,14 +6,17 @@ llvm::Module *mod;
 
 void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
   mod = new llvm::Module("QCC", context);
-  llvm::FunctionType *llvm_func_type_memcpy = 
-    llvm::FunctionType::get(
-        builder.getVoidTy()->getPointerTo(),
-        std::vector<llvm::Type *>{
+  data_layout = new llvm::DataLayout(mod);
+  { // create function(s) used in such as array initialization
+    llvm::FunctionType *llvm_func_type_memcpy = 
+      llvm::FunctionType::get(
+          builder.getVoidTy()->getPointerTo(),
+          std::vector<llvm::Type *>{
           builder.getVoidTy()->getPointerTo(), 
           builder.getVoidTy()->getPointerTo(),
           builder.getInt32Ty()}, /*var arg=*/false);
-  tool_memcpy = llvm::Function::Create(llvm_func_type_memcpy, llvm::Function::ExternalLinkage, "memcpy", mod);
+    tool_memcpy = llvm::Function::Create(llvm_func_type_memcpy, llvm::Function::ExternalLinkage, "memcpy", mod);
+  }
   for(auto st : ast) statement(st);
   if(emit_llvm_ir) mod->dump();
   std::string EC;
@@ -75,6 +78,8 @@ llvm::Value *Codegen::statement(AST *st) {
       return statement((BinaryAST *)st);
     case AST_DOT:
       return statement((DotOpAST *)st);
+    case AST_SIZEOF:
+      return statement((SizeofAST *)st);
     case AST_STRING:
       return statement((StringAST *)st);
     case AST_NUMBER:
@@ -591,6 +596,10 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
 
 llvm::Value *Codegen::statement(DotOpAST *st) {
   return builder.CreateLoad(get_value(st));
+}
+
+llvm::Value *Codegen::statement(SizeofAST *st) {
+  return llvm::ConstantInt::get(builder.getInt32Ty(), data_layout->getTypeAllocSize(st->type));
 }
 
 llvm::Value *Codegen::statement(StringAST *st) {

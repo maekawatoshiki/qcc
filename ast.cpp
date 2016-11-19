@@ -68,6 +68,10 @@ ReturnAST::ReturnAST(AST *_expr):
   expr(_expr) {
 }
 
+SizeofAST::SizeofAST(llvm::Type *_type):
+  type(_type) {
+}
+
 NumberAST::NumberAST(int num):
   number(num) {
 }

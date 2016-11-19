@@ -121,6 +121,16 @@ AST *Parser::expr_primary() {
     return new StringAST(token.next().val);
   } else if(token.get().type == TOK_TYPE_CHAR) {
     return new NumberAST(token.next().val[0]);
+  } else if(token.skip("sizeof")) {
+    token.expect_skip("(");
+    llvm::Type *type; 
+    if(is_type()) {
+      type = skip_type_spec(); // base type
+      std::string _; 
+      type = read_declarator(_, type);
+    }
+    token.expect_skip(")");
+    return new SizeofAST(type);
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
     if(token.skip("(")) { // function?
