@@ -71,7 +71,7 @@ AST *Parser::expr_unary() {
                         op_inc  ? "++":
                         op_dec  ? "--" : "", expr);
   } else 
-    expr = expr_dot();
+    expr = expr_ternary();
   return expr_unary_postfix(expr);
 }
 
@@ -81,6 +81,17 @@ AST *Parser::expr_unary_postfix(AST *expr) {
     token.skip();
     return new UnaryAST(op_inc ? "++" : 
                         op_dec ? "--" : "", expr, /*postfix=*/true);
+  }
+  return expr;
+}
+
+AST *Parser::expr_ternary() {
+  AST *expr = expr_dot();
+  if(token.skip("?")) { // ternary operator cond ? then : else
+    AST *then_expr = expr_entry();
+    token.expect_skip(":");
+    AST *else_expr = expr_entry();
+    return new TernaryAST(expr, then_expr, else_expr);
   }
   return expr;
 }

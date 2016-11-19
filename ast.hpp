@@ -13,6 +13,7 @@ enum {
   AST_ARRAY,
   AST_UNARY,
   AST_BINARY,
+  AST_TERNARY,
   AST_DOT,
   AST_INDEX,
   AST_VARIABLE,
@@ -97,6 +98,13 @@ class BinaryAST : public AST {
     AST *lhs, *rhs;
     virtual int get_type() const { return AST_BINARY; };
     BinaryAST(std::string, AST *, AST *);
+};
+
+class TernaryAST : public AST {
+  public:
+    AST *cond, *then_expr, *else_expr;
+    virtual int get_type() const { return AST_TERNARY; };
+    TernaryAST(AST *, AST *, AST *);
 };
 
 class DotOpAST : public AST {

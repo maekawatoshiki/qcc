@@ -76,6 +76,8 @@ llvm::Value *Codegen::statement(AST *st) {
       return statement((UnaryAST *)st);
     case AST_BINARY:
       return statement((BinaryAST *)st);
+    case AST_TERNARY:
+      return statement((TernaryAST *)st);
     case AST_DOT:
       return statement((DotOpAST *)st);
     case AST_SIZEOF:
@@ -255,12 +257,12 @@ llvm::Value *Codegen::statement(ContinueAST *st) {
 }
 
 llvm::Value *Codegen::statement(IfAST *st) {
-  llvm::Value *cond_val = statement(st->cond);
-  cond_val = builder.CreateICmpNE(
-      cond_val, 
-      cond_val->getType()->isPointerTy() ?
-      llvm::ConstantPointerNull::getNullValue(cond_val->getType()) :
-      llvm::ConstantInt::get(cond_val->getType(), 0, true));
+  llvm::Value *val_cond = statement(st->cond);
+  val_cond = builder.CreateICmpNE(
+      val_cond, 
+      val_cond->getType()->isPointerTy() ?
+      llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
+      llvm::ConstantInt::get(val_cond->getType(), 0, true));
 
   auto *func = builder.GetInsertBlock()->getParent();
 
@@ -268,7 +270,7 @@ llvm::Value *Codegen::statement(IfAST *st) {
   llvm::BasicBlock *bb_else = llvm::BasicBlock::Create(context, "else");
   llvm::BasicBlock *bb_merge= llvm::BasicBlock::Create(context, "merge");
 
-  builder.CreateCondBr(cond_val, bb_then, bb_else);
+  builder.CreateCondBr(val_cond, bb_then, bb_else);
   builder.SetInsertPoint(bb_then);
 
   bool necessary_merge = false;
@@ -305,13 +307,13 @@ llvm::Value *Codegen::statement(WhileAST *st) {
   builder.CreateBr(bb_before_loop);
 
   builder.SetInsertPoint(bb_before_loop);
-  llvm::Value *cond_val_1 = statement(st->cond);
-  llvm::Value *first_cond_val = builder.CreateICmpNE(
-      cond_val_1, 
-      cond_val_1->getType()->isPointerTy() ?
-      llvm::ConstantPointerNull::getNullValue(cond_val_1->getType()) :
-      llvm::ConstantInt::get(cond_val_1->getType(), 0, true));
-  builder.CreateCondBr(first_cond_val, bb_loop, bb_after_loop);
+  llvm::Value *val_cond_1 = statement(st->cond);
+  llvm::Value *first_val_cond = builder.CreateICmpNE(
+      val_cond_1, 
+      val_cond_1->getType()->isPointerTy() ?
+      llvm::ConstantPointerNull::getNullValue(val_cond_1->getType()) :
+      llvm::ConstantInt::get(val_cond_1->getType(), 0, true));
+  builder.CreateCondBr(first_val_cond, bb_loop, bb_after_loop);
 
   builder.SetInsertPoint(bb_loop);
 
@@ -339,13 +341,13 @@ llvm::Value *Codegen::statement(ForAST *st) {
 
   builder.CreateBr(bb_before_loop);
   builder.SetInsertPoint(bb_before_loop);
-  auto cond_val = statement(st->cond);
-  llvm::Value *first_cond_val = builder.CreateICmpNE(
-      cond_val, 
-      cond_val->getType()->isPointerTy() ?
-      llvm::ConstantPointerNull::getNullValue(cond_val->getType()) :
-      llvm::ConstantInt::get(cond_val->getType(), 0, true));
-  builder.CreateCondBr(first_cond_val, bb_loop, bb_after_loop);
+  auto val_cond = statement(st->cond);
+  llvm::Value *first_val_cond = builder.CreateICmpNE(
+      val_cond, 
+      val_cond->getType()->isPointerTy() ?
+      llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
+      llvm::ConstantInt::get(val_cond->getType(), 0, true));
+  builder.CreateCondBr(first_val_cond, bb_loop, bb_after_loop);
   builder.SetInsertPoint(bb_loop);
 
   cur_func->break_list.push(bb_after_loop);
@@ -592,6 +594,18 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
     ret = builder.CreateXor(lhs, rhs);
   }
   return ret;
+}
+
+llvm::Value *Codegen::statement(TernaryAST *st) {
+  llvm::Value *val_cond = statement(st->cond);
+  val_cond = builder.CreateICmpNE(
+      val_cond, 
+      val_cond->getType()->isPointerTy() ?
+      llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
+      llvm::ConstantInt::get(val_cond->getType(), 0, true));
+  auto val_then = statement(st->then_expr);
+  auto val_else = statement(st->else_expr);
+  return builder.CreateSelect(val_cond, val_then, val_else);
 }
 
 llvm::Value *Codegen::statement(DotOpAST *st) {

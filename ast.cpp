@@ -28,6 +28,10 @@ BinaryAST::BinaryAST(std::string _op, AST *_lhs, AST *_rhs):
   op(_op), lhs(_lhs), rhs(_rhs) {
 }
 
+TernaryAST::TernaryAST(AST *_cond, AST *_then, AST *_else):
+  cond(_cond), then_expr(_then), else_expr(_else) {
+}
+
 DotOpAST::DotOpAST(AST *_lhs, AST *_rhs, bool _arrow):
   lhs(_lhs), rhs(_rhs), is_arrow(_arrow) {
 }
