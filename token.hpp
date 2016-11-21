@@ -15,6 +15,7 @@ struct token_t {
   int type;
   std::string val;
   int line;
+  bool space;
 };
 
 class Token {
@@ -22,11 +23,11 @@ class Token {
     std::vector<token_t> token;
     int pos = 0;
 
-    void add_ident_tok  (std::string, int);
-    void add_symbol_tok (std::string, int);
-    void add_number_tok (std::string, int);
-    void add_string_tok (std::string, int);
-    void add_char_tok   (std::string, int);
+    void add_ident_tok  (std::string, int, bool = false);
+    void add_symbol_tok (std::string, int, bool = false);
+    void add_number_tok (std::string, int, bool = false);
+    void add_string_tok (std::string, int, bool = false);
+    void add_char_tok   (std::string, int, bool = false);
     void add_end_tok    ();
 
     token_t get();
