@@ -1,12 +1,19 @@
 #include <stdio.h>
 
+struct something_t;
 struct vec {
   int x, y;
+  struct something_t something;
 };
 
 typedef struct {
   int x, y;
 } pair;
+
+struct something_t {
+  int a, b, c;
+  char *s;
+};
 
 void annonymas_struct() {
   struct {

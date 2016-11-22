@@ -361,31 +361,46 @@ llvm::Type *Parser::make_struct_declaration() {
   std::string name;
   if(token.get().type == TOK_TYPE_IDENT) 
     name = token.next().val;
-	if(name.empty()) [](std::string &str) {
-		int len = 8; while(len--)
+  if(name.empty()) [](std::string &str) { // if name is empty, generate random name
+    int len = 8; while(len--)
       str += (rand() % 26) + 65;
-	}(name);
-  BlockAST *decls = (BlockAST *)statement();
-  llvm::StructType *new_struct = llvm::StructType::create(context, "struct." + name);
-  std::vector<std::string> members_name;
-  Type_vec field;
-  for(auto a : decls->body) {
-    if(a->get_type() == AST_VAR_DECLARATION) {
-      VarDeclarationAST *decl = (VarDeclarationAST *)a;
-      for(auto v : decl->decls)
-        members_name.push_back(v->name);
+  }(name);
+
+  llvm::StructType *new_struct = nullptr;
+  // this if block should be function. not beautiful
+  if(token.is("{")) {
+    BlockAST *decls = (BlockAST *)statement();
+    std::vector<std::string> members_name;
+    Type_vec field;
+    for(auto a : decls->body) {
+      if(a->get_type() == AST_VAR_DECLARATION) {
+        VarDeclarationAST *decl = (VarDeclarationAST *)a;
+        for(auto v : decl->decls)
+          members_name.push_back(v->name);
+      } else error("error: struct fields must be varaible declaration");
     }
-  }
-  this->struct_list.add("struct." + name, members_name, new_struct);
-  for(auto a : decls->body) {
-    if(a->get_type() == AST_VAR_DECLARATION) {
-      VarDeclarationAST *decl = (VarDeclarationAST *)a;
-      for(auto v : decl->decls)
-        field.push_back(v->type);
+    auto t_strct = this->struct_list.get("struct." + name);
+    if(t_strct) { // if prototype exists
+      t_strct->members_name = members_name;
+      new_struct = t_strct->llvm_struct;
+    } else { // new struct decl
+      new_struct = llvm::StructType::create(context, "struct." + name);
+      this->struct_list.add("struct." + name, members_name, new_struct);
     }
+
+    for(auto a : decls->body) {
+      if(a->get_type() == AST_VAR_DECLARATION) {
+        VarDeclarationAST *decl = (VarDeclarationAST *)a;
+        for(auto v : decl->decls)
+          field.push_back(v->type);
+      }
+    }
+    if(new_struct->isOpaque())
+      new_struct->setBody(field, false);
+  } else if(token.is(";")) { // prototype (e.g. struct A;)
+    llvm::StructType *new_struct = llvm::StructType::create(context, "struct." + name);
+    this->struct_list.add("struct." + name, std::vector<std::string>(), new_struct);
   }
-  if(new_struct->isOpaque())
-    new_struct->setBody(field, false);
   return new_struct;
 }
 
@@ -454,8 +469,10 @@ llvm::Type *Parser::read_type_declarator() {
 llvm::Type *Parser::skip_type_spec() {
   bool is_struct = false;
   if((is_struct=token.is("struct")) || token.is("union")) {
-    if(token.get(1).val == "{" || token.get(2).val == "{") // define struct or union
-      return make_struct_declaration();
+    if( token.get(1).val == "{" || // struct { ... }
+        token.get(2).val == "{" || // struct NAME { ... }
+        token.get(2).val == ";") //   struct NAME; (prototype?)
+      return make_struct_declaration(); // TODO: union implement
     token.skip();
     std::string name;
     if(token.get().type == TOK_TYPE_IDENT) 
