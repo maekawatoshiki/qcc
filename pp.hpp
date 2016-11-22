@@ -22,6 +22,7 @@ class Preprocessor {
 
     void read_include();
     void read_define();
+    void read_undef();
 
     void add_define_macro(std::string macro_name, std::vector<token_t> rep);
     void add_define_funclike_macro(std::string macro_name, 
