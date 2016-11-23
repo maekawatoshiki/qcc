@@ -603,9 +603,34 @@ llvm::Value *Codegen::statement(TernaryAST *st) {
       val_cond->getType()->isPointerTy() ?
       llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
       llvm::ConstantInt::get(val_cond->getType(), 0, true));
+
+  auto *func = builder.GetInsertBlock()->getParent();
+
+  llvm::BasicBlock *bb_then = llvm::BasicBlock::Create(context, "then", func);
+  llvm::BasicBlock *bb_else = llvm::BasicBlock::Create(context, "else");
+  llvm::BasicBlock *bb_merge= llvm::BasicBlock::Create(context, "merge");
+
+  builder.CreateCondBr(val_cond, bb_then, bb_else);
+  builder.SetInsertPoint(bb_then);
+
   auto val_then = statement(st->then_expr);
+  builder.CreateBr(bb_merge);
+  bb_then = builder.GetInsertBlock();
+
+  func->getBasicBlockList().push_back(bb_else);
+  builder.SetInsertPoint(bb_else);
+
   auto val_else = statement(st->else_expr);
-  return builder.CreateSelect(val_cond, val_then, val_else);
+  builder.CreateBr(bb_merge);
+  bb_else = builder.GetInsertBlock();
+
+  func->getBasicBlockList().push_back(bb_merge);
+  builder.SetInsertPoint(bb_merge);
+
+  llvm::PHINode *pnode = builder.CreatePHI(val_then->getType(), 2);
+  pnode->addIncoming(val_then, bb_then);
+  pnode->addIncoming(val_else, bb_else);
+  return pnode;
 }
 
 llvm::Value *Codegen::statement(DotOpAST *st) {

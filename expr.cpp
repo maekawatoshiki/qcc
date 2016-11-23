@@ -12,13 +12,17 @@ AST *Parser::expr_rhs(int prec, AST *lhs) {
       if(tok_prec < prec) return lhs;
     } else return lhs;
     std::string op = token.next().val;
-    AST *rhs = expr_asgmt();
-    if(token.get().type == TOK_TYPE_SYMBOL) {
-      next_prec = get_op_prec(token.get().val);
-      if(tok_prec < next_prec) 
-        rhs = expr_rhs(tok_prec + 1, rhs);
-    } 
-    lhs = new BinaryAST(op, lhs, rhs);    
+    if(op == "?") {
+      lhs = expr_ternary(lhs);
+    } else {
+      AST *rhs = expr_asgmt();
+      if(token.get().type == TOK_TYPE_SYMBOL) {
+        next_prec = get_op_prec(token.get().val);
+        if(tok_prec < next_prec) 
+          rhs = expr_rhs(tok_prec + 1, rhs);
+      } 
+      lhs = new BinaryAST(op, lhs, rhs);    
+    }
   }
 }
 
@@ -71,7 +75,7 @@ AST *Parser::expr_unary() {
                         op_inc  ? "++":
                         op_dec  ? "--" : "", expr);
   } else 
-    expr = expr_ternary();
+    expr = expr_dot();
   return expr_unary_postfix(expr);
 }
 
@@ -85,15 +89,11 @@ AST *Parser::expr_unary_postfix(AST *expr) {
   return expr;
 }
 
-AST *Parser::expr_ternary() {
-  AST *expr = expr_dot();
-  if(token.skip("?")) { // ternary operator cond ? then : else
-    AST *then_expr = expr_entry();
-    token.expect_skip(":");
-    AST *else_expr = expr_entry();
-    return new TernaryAST(expr, then_expr, else_expr);
-  }
-  return expr;
+AST *Parser::expr_ternary(AST *expr) {
+  AST *then_expr = expr_entry();
+  token.expect_skip(":");
+  AST *else_expr = expr_entry();
+  return new TernaryAST(expr, then_expr, else_expr);
 }
 
 AST *Parser::expr_dot() {

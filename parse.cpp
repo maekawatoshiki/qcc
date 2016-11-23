@@ -124,6 +124,7 @@ AST_vec Parser::run(Token tok) {
   op_prec[">"] =  200;
   op_prec["&&"] =  150;
   op_prec["||"] =  150;
+  op_prec["?"] = 100;
   op_prec["&"] =  150;
   op_prec["|"] =  150;
   op_prec["^"] =  150;

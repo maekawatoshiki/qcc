@@ -53,7 +53,7 @@ class Parser {
     AST *expr_asgmt();
     AST *expr_unary();
     AST *expr_unary_postfix(AST *);
-    AST *expr_ternary();
+    AST *expr_ternary(AST *);
     AST *expr_dot();
     AST *expr_index();
     AST *expr_primary();
