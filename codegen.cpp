@@ -382,7 +382,7 @@ llvm::Value *Codegen::statement(VariableAST *st) {
       llvm::Value *a = var->val;
       llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
           a, 
-          llvm::ArrayRef<llvm::Value *>{
+          std::vector<llvm::Value *>{
             llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
             llvm::ConstantInt::get(builder.getInt32Ty(), 0)}, "elem", builder.GetInsertBlock());
       return elem;
@@ -464,7 +464,7 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
   } else {
     elem = llvm::GetElementPtrInst::CreateInBounds(
         a, 
-        llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
+        std::vector<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
         statement(st->idx)}, "elem", builder.GetInsertBlock());
   }
   return elem;

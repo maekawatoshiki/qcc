@@ -368,6 +368,12 @@ llvm::Type *Parser::make_struct_declaration() {
   }(name);
 
   llvm::StructType *new_struct = nullptr;
+  auto t_strct = this->struct_list.get("struct." + name);
+  if(!t_strct) {
+    new_struct = llvm::StructType::create(context, "struct." + name);
+    this->struct_list.add("struct." + name, std::vector<std::string>(), new_struct);
+    t_strct = this->struct_list.get("struct." + name);
+  } else new_struct = t_strct->llvm_struct;
   // this if block should be function. not beautiful
   if(token.is("{")) {
     BlockAST *decls = (BlockAST *)statement();
@@ -380,13 +386,8 @@ llvm::Type *Parser::make_struct_declaration() {
           members_name.push_back(v->name);
       } else error("error: struct fields must be varaible declaration");
     }
-    auto t_strct = this->struct_list.get("struct." + name);
-    if(t_strct) { // if prototype exists
+    if(t_strct->members_name.empty()) {
       t_strct->members_name = members_name;
-      new_struct = t_strct->llvm_struct;
-    } else { // new struct decl
-      new_struct = llvm::StructType::create(context, "struct." + name);
-      this->struct_list.add("struct." + name, members_name, new_struct);
     }
 
     for(auto a : decls->body) {
@@ -399,8 +400,6 @@ llvm::Type *Parser::make_struct_declaration() {
     if(new_struct->isOpaque())
       new_struct->setBody(field, false);
   } else if(token.is(";")) { // prototype (e.g. struct A;)
-    llvm::StructType *new_struct = llvm::StructType::create(context, "struct." + name);
-    this->struct_list.add("struct." + name, std::vector<std::string>(), new_struct);
   }
   return new_struct;
 }
