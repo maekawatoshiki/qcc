@@ -1,5 +1,9 @@
 #include "expr.hpp"
 
+AST *Parser::expr_entry() {
+  return expr_rhs(0, expr_asgmt());
+}
+
 int Parser::get_op_prec(std::string op) {
   return op_prec.count(op) != 0 ? op_prec[op] : -1;
 }
@@ -24,10 +28,6 @@ AST *Parser::expr_rhs(int prec, AST *lhs) {
       lhs = new BinaryAST(op, lhs, rhs);    
     }
   }
-}
-
-AST *Parser::expr_entry() {
-  return expr_rhs(0, expr_asgmt());
 }
 
 AST *Parser::expr_asgmt() {
