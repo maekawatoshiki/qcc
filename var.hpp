@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.hpp"
-#include "type.hpp"
 
 struct var_t {
   var_t(std::string _name, llvm::Type *_type):

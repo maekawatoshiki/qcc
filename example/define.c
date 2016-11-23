@@ -6,7 +6,7 @@
 int f() {
   return NUM;
 }
-#undef
+#undef NUM
 
 int main() {
   if(OnePlusTwo == Three) puts("True");

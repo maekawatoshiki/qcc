@@ -1,119 +1,6 @@
 #include "parse.hpp"
 #include "codegen.hpp"
 
-void show_ast(AST *ast) {
-  // switch(ast->get_type()) {
-  //   case AST_FUNCTION_DEF: {
-  //     FunctionDefAST *a = (FunctionDefAST *)ast;
-  //     std::cout << "(def ("; a->ret_type->dump(); std::cout << ") " << a->name << " ";
-  //     for(auto st : a->body)
-  //       show_ast(st);
-  //     std::cout << ")";
-  //   } break;
-  //   case AST_FUNCTION_PROTO: {
-  //     FunctionProtoAST *a = (FunctionProtoAST *)ast;
-  //     std::cout << "(proto ("; a->ret_type->dump(); std::cout << ") " << a->name << "(";
-  //     for(auto t : a->args)
-  //       t->dump(); std::cout << " ";
-  //     std::cout << ") ";
-  //   } break;
-  //   case AST_BLOCK: {
-  //     BlockAST *a = (BlockAST *)ast;
-  //     for(auto st : a->body)
-  //       show_ast(st);
-  //   } break;
-  //   case AST_FUNCTION_CALL: {
-  //     FunctionCallAST *a = (FunctionCallAST *)ast;
-  //     std::cout << "(call " << a->name << " ";
-  //     for(auto st : a->args) {
-  //       std::cout << "("; show_ast(st); std::cout << ") ";
-  //     }
-  //     std::cout << ") ";
-  //   } break;
-  //   case AST_IF: {
-  //     IfAST *a = (IfAST *)ast;
-  //     std::cout << "(if ";
-  //     show_ast(a->cond); std::cout << " (";
-  //     show_ast(a->b_then); std::cout << ")";
-  //     if(a->b_else) {
-  //       std::cout << " (";
-  //       show_ast(a->b_else); std::cout << ")";
-  //     }
-  //     std::cout << ")";
-  //   } break;
-  //   case AST_WHILE: {
-  //     WhileAST *a = (WhileAST *)ast;
-  //     std::cout << "(while ";
-  //     show_ast(a->cond); std::cout << " ";
-  //     show_ast(a->body);
-  //     std::cout << ")";
-  //   } break;
-  //   case AST_UNARY: {
-  //     UnaryAST *a = (UnaryAST *)ast;
-  //     std::cout << "(" << a->op << " ";
-  //     show_ast(a->expr);
-  //     std::cout << ") ";
-  //   } break;
-  //   case AST_BINARY: {
-  //     BinaryAST *a = (BinaryAST *)ast;
-  //     std::cout << "(" << a->op << " ";
-  //     show_ast(a->lhs);
-  //     std::cout << " ";
-  //     show_ast(a->rhs);
-  //     std::cout << ") ";
-  //   } break;
-  //   case AST_DOT: {
-  //     DotOpAST *a = (DotOpAST *)ast;
-  //     std::cout << "(. ";
-  //     show_ast(a->lhs);
-  //     std::cout << " ";
-  //     show_ast(a->rhs);
-  //     std::cout << ") ";
-  //   } break;
-  //   case AST_VAR_DECLARATION: {
-  //     VarDeclarationAST *a = (VarDeclarationAST *)ast;
-  //     std::cout << "(var-decl ";
-  //     for(auto decl : a->decls) {
-  //       std::cout << "("; decl->type->dump(); std::cout << ", " << decl->name << ") "; }
-  //     std::cout << ") ";
-  //   } break;
-  //   case AST_VARIABLE: {
-  //     VariableAST *a = (VariableAST *)ast;
-  //     std::cout << "(var " << a->name << ") ";
-  //   } break;
-  //   case AST_INDEX: {
-  //     IndexAST *a = (IndexAST *)ast;
-  //     std::cout << "([] ";
-  //     show_ast(a->ary);
-  //     std::cout << " ";
-  //     show_ast(a->idx);
-  //     std::cout << ") ";
-  //   } break;
-  //   case AST_ASGMT: {
-  //     AsgmtAST *a = (AsgmtAST *)ast;
-  //     std::cout << "(= (";
-  //     show_ast(a->dst);
-  //     std::cout << ") (";
-  //     show_ast(a->src);
-  //     std::cout << ")) ";
-  //   } break;
-  //   case AST_RETURN: {
-  //     ReturnAST *a = (ReturnAST *)ast;
-  //     std::cout << "(return ";
-  //     if(a->expr) show_ast(a->expr);
-  //     std::cout << ") ";
-  //   } break;
-  //   case AST_NUMBER: {
-  //     NumberAST *a = (NumberAST *)ast;
-  //     std::cout << a->number << " ";
-  //   } break;
-  //   case AST_STRING: {
-  //     StringAST *a = (StringAST *)ast;
-  //     std::cout << "\"" << a->str << "\" ";
-  //   } break;
-  // }
-}
-
 AST_vec Parser::run(Token tok) {
   token = tok;
   op_prec["=="] = 200;
@@ -135,11 +22,7 @@ AST_vec Parser::run(Token tok) {
   op_prec["/"] =  400;
   op_prec["%"] =  400;  
   op_prec["."] =  500;  
-  auto a = eval();
-  for(auto b : a)
-    show_ast(b);
-  puts("");
-  return a;
+  return eval();
 }
 
 AST_vec Parser::eval() {

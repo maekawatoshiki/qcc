@@ -4,9 +4,9 @@ CXX = clang++ $(CXXFLAGS)
 LLVM = `llvm-config-3.5 --cppflags `
 LLVM_LIB = `llvm-config-3.5 --system-libs --cppflags --ldflags --libs all`
 TESTS := $(patsubst %.c,%,$(filter-out test/main.c, $(wildcard test/*.c)))
-qcc: main.o qcc.o pp.o token.o lexer.o parse.o ast.o type.o expr.o codegen.o func.o var.o struct.o
+qcc: main.o qcc.o pp.o token.o lexer.o parse.o ast.o expr.o codegen.o func.o var.o struct.o
 	$(CXX) -o qcc -rdynamic main.o qcc.o pp.o token.o lexer.o parse.o ast.o \
-		type.o expr.o codegen.o func.o var.o struct.o $(LIBFLAGS) $(LLVM_LIB)
+		expr.o codegen.o func.o var.o struct.o $(LIBFLAGS) $(LLVM_LIB)
 
 test: qcc
 	@for t in $(TESTS); do \
@@ -36,9 +36,6 @@ parse.o: parse.cpp parse.hpp common.hpp
 
 ast.o: ast.cpp ast.hpp common.hpp
 	$(CXX) -c ast.cpp $(LLVM)
-
-type.o: type.cpp type.hpp common.hpp
-	$(CXX) -c type.cpp $(LLVM)
 
 expr.o: expr.cpp expr.hpp common.hpp
 	$(CXX) -c expr.cpp $(LLVM)

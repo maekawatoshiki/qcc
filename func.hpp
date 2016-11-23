@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.hpp"
-#include "type.hpp"
 #include "var.hpp"
 
 struct block_t {

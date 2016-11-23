@@ -87,3 +87,5 @@ static void error(const char *errs, ...) {
   va_end(args);
   exit(0);
 }
+
+typedef std::vector<llvm::Type *> Type_vec;

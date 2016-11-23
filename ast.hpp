@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.hpp"
-#include "type.hpp"
 
 enum {
   AST_FUNCTION_PROTO,
