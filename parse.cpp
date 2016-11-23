@@ -112,8 +112,8 @@ AST *Parser::make_function() {
   // puts("MAKE_FUNCTION");
   llvm::Type *ret_type = read_type_declarator();
   std::string name = token.next().val;
-  token.expect_skip("(")
-    std::vector<argument_t *> args;
+  token.expect_skip("(");
+  std::vector<argument_t *> args;
   while(!token.skip(")")) {
     llvm::Type *type = read_type_declarator();
     std::string name = token.next().val;
