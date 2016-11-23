@@ -18,26 +18,26 @@ Token Preprocessor::run(Token tok) {
         token.skip(); // IDENT
         token.expect_skip("(");
         std::vector< std::vector<token_t> > args;
-        while(1) {
+        while(token.get().type != TOK_TYPE_END) {
           std::vector<token_t> arg;
           while(1) {
             arg.push_back(token.next());
-            if(token.skip(")")) break;
-            if(token.skip(",")) break;
+            if(token.is(")") || token.is(",")) break;
           }
           args.push_back(arg);
           if(token.skip(")")) break;
           token.expect_skip(",");
         }
-        token.expect_skip(")");
         auto repd_end = token.pos;
         std::vector<token_t> rep_to = macro.rep;
         for(int i = 0; i < macro.args.size(); i++) {
-          for(auto r = rep_to.begin(); r != rep_to.end(); ++r) {
-            if(r->val == macro.args[i]) {
-              rep_to.erase(r);
-              rep_to.insert(r, args[i].begin(), args[i].end());
-            }
+          auto it = std::find_if(rep_to.begin(), rep_to.end(), [&](token_t &t) {
+              return t.val == macro.args[i]; });
+          while(it != rep_to.end()) {
+            rep_to.erase(it);
+            rep_to.insert(it, args[i].begin(), args[i].end());
+            it = std::find_if(rep_to.begin(), rep_to.end(), [&](token_t &t) {
+              return t.val == macro.args[i]; });
           }
         }
         token.token.erase(token.token.begin() + repd_bgn, token.token.begin() + repd_end);
