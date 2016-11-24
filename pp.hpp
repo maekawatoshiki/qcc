@@ -24,6 +24,8 @@ class Preprocessor {
     void read_define();
     void read_undef();
 
+    void replace_macro(); // replace current token to macro
+
     void add_define_macro(std::string macro_name, std::vector<token_t> rep);
     void add_define_funclike_macro(std::string macro_name, 
         std::vector<std::string> args_name, std::vector<token_t> rep);
