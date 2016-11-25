@@ -46,10 +46,10 @@ AST *Parser::statement_top() {
 AST *Parser::statement() {
   if(token.skip(";")) return statement();
   if(is_type()) return read_declaration();
-  if(token.is("if")) return make_if();
-  if(token.is("while")) return make_while();
-  if(token.is("for")) return make_for();
-  if(token.is("return")) return make_return();
+  if(token.skip("if")) return make_if();
+  if(token.skip("while")) return make_while();
+  if(token.skip("for")) return make_for();
+  if(token.skip("return")) return make_return();
   if(token.skip("break")) return make_break();
   if(token.skip("continue")) return make_continue();
   if(token.is("{")) return make_block();
@@ -112,33 +112,31 @@ AST *Parser::make_function() {
   // puts("MAKE_FUNCTION");
   llvm::Type *ret_type = read_type_declarator();
   std::string name = token.next().val;
-  if(token.skip("(")) {
-    std::vector<argument_t *> args;
-    while(!token.skip(")")) {
-      llvm::Type *type = read_type_declarator();
-      std::string name = token.next().val;
-      std::vector<int> ary = skip_array();
-      std::reverse(ary.begin(), ary.end());
-      for(auto e : ary) {
-        if(e == -1)
-          type = type->getPointerTo();
-        else
-          type = llvm::ArrayType::get(type, e); //llvm::Type(TY_ARRAY, e, type);
-      }
-      args.push_back(new argument_t(type, name));
-      if(token.skip(")")) break;
-      token.expect_skip(",");
+  token.expect_skip("(");
+  std::vector<argument_t *> args;
+  while(!token.skip(")")) {
+    llvm::Type *type = read_type_declarator();
+    std::string name = token.next().val;
+    std::vector<int> ary = skip_array();
+    std::reverse(ary.begin(), ary.end());
+    for(auto e : ary) {
+      if(e == -1)
+        type = type->getPointerTo();
+      else
+        type = llvm::ArrayType::get(type, e); //llvm::Type(TY_ARRAY, e, type);
     }
-    AST_vec body;
-    token.expect_skip("{");
-    while(!token.skip("}")) {
-      auto st = statement();
-      if(st) body.push_back(st);
-      while(token.skip(";"));
-    }
-    return new FunctionDefAST(name, ret_type, args, body);
-  } else puts("err");
-  return nullptr;
+    args.push_back(new argument_t(type, name));
+    if(token.skip(")")) break;
+    token.expect_skip(",");
+  }
+  AST_vec body;
+  token.expect_skip("{");
+  while(!token.skip("}")) {
+    auto st = statement();
+    if(st) body.push_back(st);
+    while(token.skip(";"));
+  }
+  return new FunctionDefAST(name, ret_type, args, body);
 }
 
 AST *Parser::make_function_proto() {
@@ -188,56 +186,44 @@ AST *Parser::make_continue() {
 }
 
 AST *Parser::make_if() {
-  if(token.skip("if")) {
-    token.expect_skip("(");
-    AST *cond = expr_entry();
-    token.expect_skip(")");
-    AST *b_then = statement();
-    if(token.skip("else")) {
-      AST *b_else = statement();
-      return new IfAST(cond, b_then, b_else);
-    } else return new IfAST(cond, b_then);
-  }
-  return nullptr;
+  token.expect_skip("(");
+  AST *cond = expr_entry();
+  token.expect_skip(")");
+  AST *b_then = statement();
+  if(token.skip("else")) {
+    AST *b_else = statement();
+    return new IfAST(cond, b_then, b_else);
+  } else return new IfAST(cond, b_then);
 }
 
 AST *Parser::make_while() {
-  if(token.skip("while")) {
-    token.expect_skip("(");
-    AST *cond = expr_entry();
-    token.expect_skip(")");
-    AST *body = statement();
-    return new WhileAST(cond, body);
-  }
-  return nullptr;
+  token.expect_skip("(");
+  AST *cond = expr_entry();
+  token.expect_skip(")");
+  AST *body = statement();
+  return new WhileAST(cond, body);
 }
 
 AST *Parser::make_for() {
-  if(token.skip("for")) {
-    token.expect_skip("(");
-    AST *init;
-    if(is_type()) init = read_declaration();
-    else init = expr_entry();
-    token.skip(";");
-    AST *cond = expr_entry();
-    token.expect_skip(";");
-    AST *reinit = expr_entry();
-    token.expect_skip(")");
-    AST *body = statement();
-    return new ForAST(init, cond, reinit, body);
-  }
-  return nullptr;
+  token.expect_skip("(");
+  AST *init;
+  if(is_type()) init = read_declaration();
+  else init = expr_entry();
+  token.skip(";");
+  AST *cond = expr_entry();
+  token.expect_skip(";");
+  AST *reinit = expr_entry();
+  token.expect_skip(")");
+  AST *body = statement();
+  return new ForAST(init, cond, reinit, body);
 }
 
 AST *Parser::make_return() {
-  if(token.skip("return")) {
-    if(token.skip(";"))
-      return new ReturnAST(nullptr);
-    ReturnAST *ret = new ReturnAST(expr_entry());
-    token.skip(";");
-    return ret;
-  }
-  return nullptr;
+  if(token.skip(";"))
+    return new ReturnAST(nullptr);
+  ReturnAST *ret = new ReturnAST(expr_entry());
+  token.skip(";");
+  return ret;
 }
 
 llvm::Type *Parser::make_struct_declaration() {

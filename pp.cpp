@@ -5,45 +5,10 @@ Token Preprocessor::run(Token tok) {
   token = tok;
   while(token.get().type != TOK_TYPE_END) {
     if(token.skip("#")) {
-           if(token.skip("include")) read_include();
+      if(token.skip("include")) read_include();
       else if(token.skip("define"))  read_define();
       else if(token.skip("undef"))   read_undef();
-    } else if(define_map.count(token.get().val)) {
-      auto macro = define_map[token.get().val];
-      if(macro.type == DEFINE_MACRO) {
-        token.token.erase(token.token.begin() + token.pos);
-        token.token.insert(token.token.begin() + token.pos, macro.rep.begin(), macro.rep.end());
-      } else { // TODO: this should be function
-        auto repd_bgn = token.pos;
-        token.skip(); // IDENT
-        token.expect_skip("(");
-        std::vector< std::vector<token_t> > args;
-        while(token.get().type != TOK_TYPE_END) {
-          std::vector<token_t> arg;
-          while(1) {
-            arg.push_back(token.next());
-            if(token.is(")") || token.is(",")) break;
-          }
-          args.push_back(arg);
-          if(token.skip(")")) break;
-          token.expect_skip(",");
-        }
-        auto repd_end = token.pos;
-        std::vector<token_t> rep_to = macro.rep;
-        for(int i = 0; i < macro.args.size(); i++) {
-          auto it = std::find_if(rep_to.begin(), rep_to.end(), [&](token_t &t) {
-              return t.val == macro.args[i]; });
-          while(it != rep_to.end()) {
-            rep_to.erase(it);
-            rep_to.insert(it, args[i].begin(), args[i].end());
-            it = std::find_if(rep_to.begin(), rep_to.end(), [&](token_t &t) {
-              return t.val == macro.args[i]; });
-          }
-        }
-        token.token.erase(token.token.begin() + repd_bgn, token.token.begin() + repd_end);
-        token.token.insert(token.token.begin() + repd_bgn, rep_to.begin(), rep_to.end());
-        token.pos = repd_bgn + rep_to.size();
-      }
+      else if(define_map.count(token.get().val)) replace_macro();
     } else token.skip();
   }
   token.pos = 0;
@@ -102,11 +67,11 @@ void Preprocessor::read_include() {
     file_name = token.next().val;
   }
   std::string include_content = [&]() -> std::string {
-      std::ifstream ifs_src(default_include_path + file_name);
-      if(!ifs_src) { puts("file not found"); return ""; }
-      std::istreambuf_iterator<char> it(ifs_src), last;
-      std::string src_all(it, last);
-      return src_all;
+    std::ifstream ifs_src(default_include_path + file_name);
+    if(!ifs_src) { puts("file not found"); return ""; }
+    std::istreambuf_iterator<char> it(ifs_src), last;
+    std::string src_all(it, last);
+    return src_all;
   }();
   Lexer lex; Token include_tok = lex.run(include_content);
   Preprocessor pp; include_tok = pp.run(include_tok);
@@ -116,6 +81,44 @@ void Preprocessor::read_include() {
   token.token.erase(it_bgn, it_end);
   token.token.insert(it_bgn, include_tok.token.begin(), include_tok.token.end() /*TOK_TYPE_END=*/-1);
   // token.pos = include_tok.token.size() + pos_bgn;
+}
+void Preprocessor::replace_macro() {
+  auto macro = define_map[token.get().val];
+  if(macro.type == DEFINE_MACRO) {
+    token.token.erase(token.token.begin() + token.pos);
+    token.token.insert(token.token.begin() + token.pos, macro.rep.begin(), macro.rep.end());
+    return; 
+  }
+  // funclike macro
+  auto repd_bgn = token.pos;
+  token.skip(); // IDENT
+  token.expect_skip("(");
+  std::vector< std::vector<token_t> > args;
+  while(token.get().type != TOK_TYPE_END) {
+    std::vector<token_t> arg;
+    while(1) {
+      arg.push_back(token.next());
+      if(token.is(")") || token.is(",")) break;
+    }
+    args.push_back(arg);
+    if(token.skip(")")) break;
+    token.expect_skip(",");
+  }
+  auto repd_end = token.pos;
+  std::vector<token_t> rep_to = macro.rep;
+  for(int i = 0; i < macro.args.size(); i++) {
+    auto it = std::find_if(rep_to.begin(), rep_to.end(), [&](token_t &t) {
+        return t.val == macro.args[i]; });
+    while(it != rep_to.end()) {
+      rep_to.erase(it);
+      rep_to.insert(it, args[i].begin(), args[i].end());
+      it = std::find_if(rep_to.begin(), rep_to.end(), [&](token_t &t) {
+          return t.val == macro.args[i]; });
+    }
+  }
+  token.token.erase(token.token.begin() + repd_bgn, token.token.begin() + repd_end);
+  token.token.insert(token.token.begin() + repd_bgn, rep_to.begin(), rep_to.end());
+  token.pos = repd_bgn + rep_to.size();
 }
 
 void Preprocessor::add_define_macro(std::string name, std::vector<token_t> rep) {
