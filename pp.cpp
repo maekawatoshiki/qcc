@@ -5,11 +5,11 @@ Token Preprocessor::run(Token tok) {
   token = tok;
   while(token.get().type != TOK_TYPE_END) {
     if(token.skip("#")) {
-      if(token.skip("include")) read_include();
-      else if(token.skip("define"))  read_define();
-      else if(token.skip("undef"))   read_undef();
-      else if(define_map.count(token.get().val)) replace_macro();
-    } else token.skip();
+           if(token.skip("include"))             read_include();
+      else if(token.skip("define"))              read_define();
+      else if(token.skip("undef"))               read_undef();
+    } else if(define_map.count(token.get().val)) replace_macro();
+    else token.skip();
   }
   token.pos = 0;
   return token;
@@ -31,7 +31,6 @@ void Preprocessor::read_define() {
       token.expect_skip(",");
     }
   }
-  puts(macro_name.c_str());
   int cur_line = token.get().line;
   std::vector<token_t> content;
   while(cur_line==token.get().line)
@@ -41,7 +40,6 @@ void Preprocessor::read_define() {
   auto it_end = token.token.begin() + token.pos;
   token.token.erase(it_bgn, it_end);
   token.pos = pos_bgn;
-  // std::cout << token.get().val << std::endl;
 }
 
 void Preprocessor::read_undef() {

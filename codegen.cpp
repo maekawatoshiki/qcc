@@ -201,8 +201,9 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
   for(auto v : st->decls) {
     llvm::Value *init_val = nullptr;
     if(v->init_expr) init_val = statement(v->init_expr);
+    // int a[] = {1, 2}; -->> int a[2] = {1, 2};
+    if(v->type->isPointerTy() && init_val && init_val->getType()->isArrayTy()) v->type = init_val->getType();
     if(cur_func == nullptr) { // global 
-      if(v->type->isPointerTy() && init_val) v->type = init_val->getType();
       global_var.add(var_t(v->name, v->type));
       auto cur_var = lookup_var(v->name);
       mod->getOrInsertGlobal(v->name, v->type);
@@ -228,18 +229,12 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
       cur_func->block_list.get_varlist()->add(var_t(v->name, v->type));
       auto cur_var = lookup_var(v->name);
       if(!cur_var) error("error: not found variable '%s'", v->name.c_str());
-      llvm::Type *decl_type = cur_var->type;
-      if(decl_type->isPointerTy() && init_val) {
-        // int a[] = {1, 2}; -> int a[2] = {1, 2};
-        decl_type = init_val->getType();//getType();
-        cur_var->type = decl_type;
-      }
       llvm::IRBuilder<> B = [&]() -> llvm::IRBuilder<> {
         if(cur_func->llvm_function->begin()->empty())
           return llvm::IRBuilder<>(cur_func->llvm_function->begin());
         else return llvm::IRBuilder<>(cur_func->llvm_function->begin()->begin());
       }();
-      cur_var->val = B.CreateAlloca(decl_type, nullptr, cur_var->name);
+      cur_var->val = B.CreateAlloca(cur_var->type, nullptr, cur_var->name);
       if(init_val) 
         asgmt_value(cur_var->val, init_val);
     }
