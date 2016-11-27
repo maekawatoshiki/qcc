@@ -70,7 +70,7 @@ void Lexer::tok_symbol(std::string::iterator &pos) {
       (*pos == '-' && *(pos+1) == '>') ||
       (*pos == '.' && *(pos+1) == '.') )
     op += *++pos;
-  if(*(pos+1) == '.') op += *++pos;
+  if(*(pos+1) == '.') op += *++pos; // variable arguments '...'
   token.add_symbol_tok(op, cur_line, space);
   space = false;
 }

@@ -6,7 +6,7 @@
 class Lexer {
   private:
     int cur_line = 1;
-    bool space = false;
+    bool space = false; // means a leading space
     Token token;
 
     void tok_number(std::string::iterator &);
