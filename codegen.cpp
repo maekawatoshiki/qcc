@@ -118,8 +118,13 @@ llvm::Value *Codegen::statement(FunctionProtoAST *st) {
 
 llvm::Value *Codegen::statement(FunctionDefAST *st) {
   func_t func;
-  func.name = st->name;
-  func.ret_type = st->ret_type;
+  // if prototype exists, use it instead
+  func_t *proto = this->func_list.get(st->name);
+  if(proto) func = *proto;
+  else {
+    func.name = st->name;
+    func.ret_type = st->ret_type;
+  }
   std::vector<llvm::Type *> llvm_args_type;
   std::vector<std::string>  args_name;
 
@@ -132,10 +137,12 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
   this->func_list.add(func);
   func_t *function = this->func_list.get(func.name);
 
-  llvm::FunctionType *llvm_func_type = 
-    llvm::FunctionType::get(func.ret_type, func.llvm_args_type, false);
-  llvm::Function *llvm_func = llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
-  function->llvm_function = llvm_func;
+  if(!proto) {
+    llvm::FunctionType *llvm_func_type = 
+      llvm::FunctionType::get(func.ret_type, func.llvm_args_type, false);
+    llvm::Function *llvm_func = llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
+    function->llvm_function = llvm_func;
+  }
 
   { // create function body
     llvm::BasicBlock *entry = llvm::BasicBlock::Create(context, "entry", function->llvm_function);

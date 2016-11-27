@@ -36,6 +36,11 @@ var_t *BlockList::lookup_var(std::string name) {
 }
 
 void FunctionList::add(func_t f) {
+  if(get(f.name)) { // exist?
+    auto it = std::find_if(func_list.begin(), func_list.end(), [&](func_t &fn) {
+        return f.name == fn.name; });
+    func_list.erase(it);
+  }
   func_list.push_back(f);
 }
 

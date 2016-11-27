@@ -54,10 +54,9 @@ void Lexer::tok_string(std::string::iterator &pos) {
 void Lexer::tok_char(std::string::iterator &pos) {
   if(*(pos+1) == '\\') { // TODO: implemet escape sequence
   } else {
-    pos++; std::string ch;ch=*pos;
+    pos++; std::string ch;ch=*pos++;
     token.add_char_tok(ch, cur_line, space);
     space = false;
-    pos++; // '
   }
 }
 void Lexer::tok_symbol(std::string::iterator &pos) {
