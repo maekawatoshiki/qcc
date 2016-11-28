@@ -78,6 +78,17 @@ struct node_t *expr_addsub() {
   return left;
 }
 
+int calc(struct node_t *node) {
+  if(node->kind == KIND_OP) {
+    int l = calc(node->op.left), r = calc(node->op.right);
+    if(node->op.op == '+') return l + r;
+    if(node->op.op == '-') return l - r;
+    if(node->op.op == '*') return l * r;
+    if(node->op.op == '/') return l / r;
+  } else return node->num;
+  // return 0;
+}
+
 void show(struct node_t *node) {
   if(node->kind == KIND_OP) {
     printf("(%c ", node->op.op);
@@ -96,5 +107,7 @@ int main() {
 
   struct node_t *node = expr_addsub();
   show(node); puts("");
+
+  printf("%d%c", calc(node), 10);
   return 0;
 }

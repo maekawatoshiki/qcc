@@ -164,7 +164,8 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
       statement(stmt);
     for(auto it = cur_func->llvm_function->getBasicBlockList().begin(); 
         it != cur_func->llvm_function->getBasicBlockList().end(); ++it) {
-      auto term = it->back().isTerminator();
+      auto term = !it->empty();
+      if(term) term = it->back().isTerminator();
       if(!term) {
         printf("warning: in function '%s': expected termination instruction such as 'return'\n", function->name.c_str());
         if(function->llvm_function->getReturnType()->isVoidTy())
