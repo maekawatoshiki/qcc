@@ -38,7 +38,7 @@ AST_vec Parser::eval() {
 AST *Parser::statement_top() {
   if(is_function_def()) return make_function();
   if(is_function_proto()) return make_function_proto();
-  if(token.skip("typedef"))  read_typedef();
+  if(token.skip("typedef")) { read_typedef(); return nullptr; }
   if(is_type()) return read_declaration();
   return nullptr;
 }
@@ -255,9 +255,8 @@ llvm::Type *Parser::make_struct_declaration() {
           members_name.push_back(v->name);
       } else error("error: struct fields must be varaible declaration");
     }
-    if(t_strct->members_name.empty()) {
-      t_strct->members_name = members_name;
-    }
+    t_strct = this->struct_list.get("struct." + name);
+    t_strct->members_name = members_name;
 
     for(auto a : decls->body) {
       if(a->get_type() == AST_VAR_DECLARATION) {
@@ -386,6 +385,7 @@ llvm::Type *Parser::to_llvm_type(std::string ty) {
   } else if(ty == "double") {
     return builder.getDoubleTy();
   } else { // typedef
+    if(!typedef_map.count(ty)) return nullptr;
     return typedef_map[ty];
   }
 }
