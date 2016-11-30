@@ -4,7 +4,7 @@
  * - usage: 
  *     input: an expression WITHOUT SPACES. e.g. 1+2*3 (not 1 + 2 * 3)
  *            brackets can be used. e.g. 2*(1/2)
- *     output: show nodes. e.g. (+ 1 (* 2 3) )
+ *     output: show nodes e.g. (+ 1 (* 2 3) ) and the answer
  */
 
 #include <stdio.h>
@@ -86,7 +86,6 @@ int calc(node_t *node) {
     if(node->op.op == '*') return l * r;
     if(node->op.op == '/') return l / r;
   } else return node->num;
-  // return 0;
 }
 
 void show(node_t *node) {
@@ -96,7 +95,6 @@ void show(node_t *node) {
     show(node->op.right);
     printf(") ");
   } else printf("%d ", node->num);
-  return;
 }
 
 int main() {
