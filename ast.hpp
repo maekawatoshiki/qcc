@@ -203,9 +203,14 @@ class SizeofAST : public AST {
 
 class NumberAST : public AST {
   public:
-    int number;
+    bool is_float = false;
+    union {
+      int i_number;
+      double f_number;
+    };
     virtual int get_type() const { return AST_NUMBER; };
     NumberAST(int);
+    NumberAST(double);
 };
 
 class StringAST : public AST {

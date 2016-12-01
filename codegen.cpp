@@ -36,7 +36,9 @@ llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
     llvm::IntegerType *ito  = (llvm::IntegerType *)to;
     if(ival->getBitWidth() < ito->getBitWidth()) 
       return builder.CreateSExtOrBitCast(val, to);
-  } 
+  } else if(val->getType()->isIntegerTy() && to->isDoubleTy()) {
+    return builder.CreateSIToFP(val, to);
+  }
   return builder.CreateTruncOrBitCast(val, to);
 }
 
@@ -521,6 +523,8 @@ llvm::Value *Codegen::op_add(llvm::Value *lhs, llvm::Value *rhs) {
         llvm::ArrayRef<llvm::Value *>(rhs), "elem", builder.GetInsertBlock());
   } else if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateAdd(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFAdd(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
 }
@@ -531,9 +535,41 @@ llvm::Value *Codegen::op_sub(llvm::Value *lhs, llvm::Value *rhs) {
           builder.CreateSub(llvm::ConstantInt::get(rhs->getType(), 0), rhs)), "elem", builder.GetInsertBlock());
   } else if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateSub(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFSub(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
 }
+llvm::Value *Codegen::op_mul(llvm::Value *lhs, llvm::Value *rhs) {
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateMul(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFMul(lhs, type_cast(rhs, lhs->getType()));
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+llvm::Value *Codegen::op_div(llvm::Value *lhs, llvm::Value *rhs) {
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateSDiv(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFDiv(lhs, type_cast(rhs, lhs->getType()));
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+llvm::Value *Codegen::op_rem(llvm::Value *lhs, llvm::Value *rhs) {
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateSRem(lhs, type_cast(rhs, lhs->getType()));
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+llvm::Value *Codegen::op_eq(llvm::Value *lhs, llvm::Value *rhs) {
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateICmpEQ(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFCmpOEQ(lhs, type_cast(rhs, lhs->getType()));
+  } else error("error: unknown operation");
+  return nullptr;
+} 
 
 llvm::Value *Codegen::statement(ArrayAST *st) {
   return create_const_array(st->elems);
@@ -570,14 +606,13 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
   } else if(st->op == "-") {
     ret = op_sub(lhs, rhs);
   } else if(st->op == "*") {
-    ret = builder.CreateMul(lhs, rhs);
+    ret = op_mul(lhs, rhs);
   } else if(st->op == "/") {
-    ret = builder.CreateSDiv(lhs, rhs);
+    ret = op_div(lhs, rhs);
   } else if(st->op == "%") {
-    ret = builder.CreateSRem(lhs, rhs);
+    ret = op_rem(lhs, rhs);
   } else if(st->op == "==") {
-    rhs = type_cast(rhs, lhs->getType());
-    ret = builder.CreateICmpEQ(lhs, rhs);
+    ret = op_eq(lhs, rhs);
   } else if(st->op == "!=") {
     rhs = type_cast(rhs, lhs->getType());
     ret = builder.CreateICmpNE(lhs, rhs);
@@ -647,7 +682,10 @@ llvm::Value *Codegen::statement(StringAST *st) {
 }
 
 llvm::Value *Codegen::statement(NumberAST *st) {
-  return llvm::ConstantInt::get(builder.getInt32Ty(), st->number, true);
+  if(st->is_float) {
+    return llvm::ConstantFP::get(builder.getDoubleTy(), st->f_number);
+  } else 
+    return llvm::ConstantInt::get(builder.getInt32Ty(), st->i_number, true);
 }
 
 var_t *Codegen::lookup_var(std::string name) {

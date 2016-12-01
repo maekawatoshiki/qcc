@@ -127,7 +127,11 @@ AST *Parser::expr_index() {
 
 AST *Parser::expr_primary() {
   if(token.get().type == TOK_TYPE_NUMBER) {
-    return new NumberAST(atoi(token.next().val.c_str()));
+    std::string num = token.next().val;
+    if(strstr(num.c_str(), ".")) { // float
+      return new NumberAST(atof(num.c_str()));
+    } else 
+      return new NumberAST(atoi(num.c_str()));
   } else if(token.get().type == TOK_TYPE_STRING) {
     return new StringAST(token.next().val);
   } else if(token.get().type == TOK_TYPE_CHAR) {

@@ -77,7 +77,11 @@ SizeofAST::SizeofAST(llvm::Type *_type):
 }
 
 NumberAST::NumberAST(int num):
-  number(num) {
+  i_number(num) {
+}
+
+NumberAST::NumberAST(double num):
+  f_number(num), is_float(true) {
 }
 
 StringAST::StringAST(std::string _str):
