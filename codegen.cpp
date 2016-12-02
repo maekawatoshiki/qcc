@@ -35,7 +35,7 @@ llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
     llvm::IntegerType *ival = (llvm::IntegerType *)val->getType();
     llvm::IntegerType *ito  = (llvm::IntegerType *)to;
     if(ival->getBitWidth() < ito->getBitWidth()) 
-      return builder.CreateSExtOrBitCast(val, to);
+      return builder.CreateZExtOrBitCast(val, to);
   } else if(val->getType()->isIntegerTy() && to->isDoubleTy()) {
     return builder.CreateSIToFP(val, to);
   }
@@ -516,7 +516,14 @@ llvm::Value *Codegen::statement(IndexAST *st) {
   return builder.CreateLoad(elem);
 }
 
+#define IMPLICIT_CAST \
+  if(lhs->getType()->isDoubleTy()) \
+    rhs = type_cast(rhs, builder.getDoubleTy()); \
+  else if(rhs->getType()->isDoubleTy()) \
+    lhs = type_cast(lhs, builder.getDoubleTy());
+
 llvm::Value *Codegen::op_add(llvm::Value *lhs, llvm::Value *rhs) {
+  IMPLICIT_CAST;
   if(lhs->getType()->isPointerTy() && rhs->getType()->isIntegerTy()) {
     return llvm::GetElementPtrInst::CreateInBounds(
         lhs, 
@@ -524,11 +531,12 @@ llvm::Value *Codegen::op_add(llvm::Value *lhs, llvm::Value *rhs) {
   } else if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateAdd(lhs, type_cast(rhs, lhs->getType()));
   } else if(lhs->getType()->isDoubleTy()) {
-    return builder.CreateFAdd(lhs, type_cast(rhs, lhs->getType()));
+    return builder.CreateFAdd(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
 }
 llvm::Value *Codegen::op_sub(llvm::Value *lhs, llvm::Value *rhs) {
+  IMPLICIT_CAST;
   if(lhs->getType()->isPointerTy() && rhs->getType()->isIntegerTy()) {
     return llvm::GetElementPtrInst::CreateInBounds(lhs,
         llvm::ArrayRef<llvm::Value *>(
@@ -536,23 +544,25 @@ llvm::Value *Codegen::op_sub(llvm::Value *lhs, llvm::Value *rhs) {
   } else if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateSub(lhs, type_cast(rhs, lhs->getType()));
   } else if(lhs->getType()->isDoubleTy()) {
-    return builder.CreateFSub(lhs, type_cast(rhs, lhs->getType()));
+    return builder.CreateFSub(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
 }
 llvm::Value *Codegen::op_mul(llvm::Value *lhs, llvm::Value *rhs) {
+  IMPLICIT_CAST;
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateMul(lhs, type_cast(rhs, lhs->getType()));
   } else if(lhs->getType()->isDoubleTy()) {
-    return builder.CreateFMul(lhs, type_cast(rhs, lhs->getType()));
+    return builder.CreateFMul(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
 } 
 llvm::Value *Codegen::op_div(llvm::Value *lhs, llvm::Value *rhs) {
+  IMPLICIT_CAST;
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateSDiv(lhs, type_cast(rhs, lhs->getType()));
   } else if(lhs->getType()->isDoubleTy()) {
-    return builder.CreateFDiv(lhs, type_cast(rhs, lhs->getType()));
+    return builder.CreateFDiv(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
 } 
@@ -562,14 +572,62 @@ llvm::Value *Codegen::op_rem(llvm::Value *lhs, llvm::Value *rhs) {
   } else error("error: unknown operation");
   return nullptr;
 } 
-llvm::Value *Codegen::op_eq(llvm::Value *lhs, llvm::Value *rhs) {
+llvm::Value *Codegen::op_and(llvm::Value *lhs, llvm::Value *rhs) {
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
-    return builder.CreateICmpEQ(lhs, type_cast(rhs, lhs->getType()));
-  } else if(lhs->getType()->isDoubleTy()) {
-    return builder.CreateFCmpOEQ(lhs, type_cast(rhs, lhs->getType()));
+    return builder.CreateAnd(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
 } 
+llvm::Value *Codegen::op_or(llvm::Value *lhs, llvm::Value *rhs) {
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateOr(lhs, type_cast(rhs, lhs->getType()));
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+llvm::Value *Codegen::op_xor(llvm::Value *lhs, llvm::Value *rhs) {
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateXor(lhs, type_cast(rhs, lhs->getType()));
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+llvm::Value *Codegen::op_eq(llvm::Value *lhs, llvm::Value *rhs) {
+  IMPLICIT_CAST;
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateICmpEQ(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFCmpOEQ(lhs, rhs);
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+llvm::Value *Codegen::op_ne(llvm::Value *lhs, llvm::Value *rhs) {
+  IMPLICIT_CAST;
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateICmpNE(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFCmpONE(lhs, rhs);
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+llvm::Value *Codegen::op_lt(llvm::Value *lhs, llvm::Value *rhs) {
+  IMPLICIT_CAST;
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateICmpSLT(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFCmpOLT(lhs, rhs);
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+llvm::Value *Codegen::op_gt(llvm::Value *lhs, llvm::Value *rhs) {
+  IMPLICIT_CAST;
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateICmpSGT(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFCmpOGT(lhs, rhs);
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+
+#undef IMPLICIT_CAST
 
 llvm::Value *Codegen::statement(ArrayAST *st) {
   return create_const_array(st->elems);
@@ -614,22 +672,21 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
   } else if(st->op == "==") {
     ret = op_eq(lhs, rhs);
   } else if(st->op == "!=") {
-    rhs = type_cast(rhs, lhs->getType());
-    ret = builder.CreateICmpNE(lhs, rhs);
+    ret = op_ne(lhs, rhs);
   } else if(st->op == "<=") {
     ret = builder.CreateICmpSLE(lhs, rhs);
   } else if(st->op == (">=")) {
     ret = builder.CreateICmpSGE(lhs, rhs);
   } else if(st->op == "<") {
-    ret = builder.CreateICmpSLT(lhs, rhs);
+    ret = op_lt(lhs, rhs);
   } else if(st->op == (">")) {
-    ret = builder.CreateICmpSGT(lhs, rhs);
+    ret = op_gt(lhs, rhs);
   } else if(st->op == "&" || st->op == "&&") {
-    ret = builder.CreateAnd(lhs, rhs);
+    ret = op_and(lhs, rhs);
   } else if(st->op == "|" || st->op == "||") {
-    ret = builder.CreateOr(lhs, rhs);
+    ret = op_or(lhs, rhs);
   } else if(st->op == "^") {
-    ret = builder.CreateXor(lhs, rhs);
+    ret = op_xor(lhs, rhs);
   }
   return ret;
 }

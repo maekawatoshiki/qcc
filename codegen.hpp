@@ -23,7 +23,13 @@ class Codegen {
     llvm::Value *op_mul(llvm::Value *, llvm::Value *);
     llvm::Value *op_div(llvm::Value *, llvm::Value *);
     llvm::Value *op_rem(llvm::Value *, llvm::Value *);
+    llvm::Value *op_and(llvm::Value *, llvm::Value *);
+    llvm::Value *op_or (llvm::Value *, llvm::Value *);
+    llvm::Value *op_xor(llvm::Value *, llvm::Value *);
     llvm::Value *op_eq (llvm::Value *, llvm::Value *);
+    llvm::Value *op_ne (llvm::Value *, llvm::Value *);
+    llvm::Value *op_lt (llvm::Value *, llvm::Value *);
+    llvm::Value *op_gt (llvm::Value *, llvm::Value *);
 
     llvm::Value *statement(AST *                 ); 
     llvm::Value *statement(FunctionDefAST *      ); 
