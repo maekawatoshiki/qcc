@@ -156,6 +156,8 @@ AST *Parser::expr_primary() {
       }
       // token.skip(";");
       return new FunctionCallAST(name, args);
+    } else if(enum_list.count(name)) {
+      return enum_list[name];
     } else { // variable
       return new VariableAST(name);
     }

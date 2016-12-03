@@ -32,6 +32,8 @@ class Parser {
     // Type_vec read_field();
     StructList struct_list;
     llvm::Type *make_struct_declaration();
+    std::map<std::string, NumberAST *> enum_list;
+    llvm::Type *make_enum_declaration();
     void read_typedef();
     AST *make_block();
     AST *make_break();

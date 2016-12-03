@@ -272,6 +272,25 @@ llvm::Type *Parser::make_struct_declaration() {
   return new_struct;
 }
 
+llvm::Type *Parser::make_enum_declaration() {
+  if(!token.skip("enum")) return nullptr;
+  std::string name;
+  if(token.get().type == TOK_TYPE_IDENT) 
+    name = token.next().val;
+  if(token.skip("{")) {
+    std::vector<std::string> consts;
+    while(!token.skip("}")) {
+      if(token.get().type != TOK_TYPE_IDENT) error("ERR");
+      consts.push_back(token.next().val);
+      if(token.skip("}")) break;
+      token.expect_skip(",");
+    }
+    for(int i = 0; i < consts.size(); i++) 
+      enum_list[ consts[i] ] = new NumberAST(i);
+  }
+  return builder.getInt32Ty();
+}
+
 void Parser::read_typedef() {
   llvm::Type *from = skip_type_spec();
   if(token.get().type != TOK_TYPE_IDENT)
@@ -318,6 +337,7 @@ bool Parser::is_type() {
       cur == "char"     ||
       cur == "double"   ||
       cur == "struct"   ||
+      cur == "enum"     ||
       cur == "union") {
     return true;
   } else if(typedef_map.count(cur)) {
@@ -339,14 +359,24 @@ llvm::Type *Parser::skip_type_spec() {
   if((is_struct=token.is("struct")) || token.is("union")) {
     if( token.get(1).val == "{" || // struct { ... }
         token.get(2).val == "{" || // struct NAME { ... }
-        token.get(2).val == ";") //   struct NAME; (prototype?)
-      return make_struct_declaration(); // TODO: union implement
+        token.get(2).val == ";") {//   struct NAME; (prototype?)
+      if(is_struct)
+        return make_struct_declaration(); // TODO: union implement
+    }
     token.skip();
     std::string name;
     if(token.get().type == TOK_TYPE_IDENT) 
       name = token.next().val; 
     else puts("err"); // TODO: add err check
     return this->struct_list.get("struct." + name)->llvm_struct;
+  } else if(token.is("enum")) {
+    if( token.get(1).val == "{" || // struct { ... }
+        token.get(2).val == "{") // struct NAME { ... }
+        return make_enum_declaration();
+    token.skip("enum");
+    if(token.get().type == TOK_TYPE_IDENT)
+      token.skip();
+    return builder.getInt32Ty();
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
     return to_llvm_type(name);
