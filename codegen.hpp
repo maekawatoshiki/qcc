@@ -30,6 +30,8 @@ class Codegen {
     llvm::Value *op_ne (llvm::Value *, llvm::Value *);
     llvm::Value *op_lt (llvm::Value *, llvm::Value *);
     llvm::Value *op_gt (llvm::Value *, llvm::Value *);
+    llvm::Value *op_le (llvm::Value *, llvm::Value *);
+    llvm::Value *op_ge (llvm::Value *, llvm::Value *);
 
     llvm::Value *statement(AST *                 ); 
     llvm::Value *statement(FunctionDefAST *      ); 

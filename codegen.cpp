@@ -172,7 +172,13 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
         printf("warning: in function '%s': expected termination instruction such as 'return'\n", function->name.c_str());
         if(function->llvm_function->getReturnType()->isVoidTy())
           builder.CreateRetVoid();
-        else builder.CreateRet(llvm::ConstantInt::get(function->llvm_function->getReturnType(), 0));
+        else {
+          auto ret_type = function->llvm_function->getReturnType();
+          if(ret_type->isDoubleTy())
+            builder.CreateRet(llvm::ConstantFP::get(builder.getDoubleTy(), 0.0));
+          else // ptr, int ...
+            builder.CreateRet(llvm::ConstantInt::get(function->llvm_function->getReturnType(), 0));
+        }
       }
     }
     cur_func = nullptr;
@@ -626,6 +632,24 @@ llvm::Value *Codegen::op_gt(llvm::Value *lhs, llvm::Value *rhs) {
   } else error("error: unknown operation");
   return nullptr;
 } 
+llvm::Value *Codegen::op_le(llvm::Value *lhs, llvm::Value *rhs) {
+  IMPLICIT_CAST;
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateICmpSLE(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFCmpOLE(lhs, rhs);
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+llvm::Value *Codegen::op_ge(llvm::Value *lhs, llvm::Value *rhs) {
+  IMPLICIT_CAST;
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateICmpSGE(lhs, type_cast(rhs, lhs->getType()));
+  } else if(lhs->getType()->isDoubleTy()) {
+    return builder.CreateFCmpOGE(lhs, rhs);
+  } else error("error: unknown operation");
+  return nullptr;
+} 
 
 #undef IMPLICIT_CAST
 
@@ -674,9 +698,9 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
   } else if(st->op == "!=") {
     ret = op_ne(lhs, rhs);
   } else if(st->op == "<=") {
-    ret = builder.CreateICmpSLE(lhs, rhs);
+    ret = op_le(lhs, rhs);
   } else if(st->op == (">=")) {
-    ret = builder.CreateICmpSGE(lhs, rhs);
+    ret = op_ge(lhs, rhs);
   } else if(st->op == "<") {
     ret = op_lt(lhs, rhs);
   } else if(st->op == (">")) {

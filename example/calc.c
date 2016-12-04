@@ -4,30 +4,33 @@
  * - usage: 
  *     input: an expression WITHOUT SPACES. e.g. 1+2*3 (not 1 + 2 * 3)
  *            brackets can be used. e.g. 2*(1/2)
+ *            double is available e.g. 1.3/43
  *     output: show nodes e.g. (+ 1 (* 2 3) ) and the answer
  */
 
 #include <stdio.h>
-#define KIND_NUM 0
-#define KIND_OP  1
+#include <stdlib.h>
 
-void *malloc(int);
 int isdigit(char);
-int atoi(char *);
 
-char *str;
+enum NODE_KIND {
+  KIND_NUM,
+  KIND_OP
+};
+
+char *str; // input 
 
 typedef struct node_t {
-  int kind;
+  enum NODE_KIND kind;
 
-  int num;
+  double num;
   struct {
     char op;
     struct node_t *left, *right;
   } op;
 } node_t;
 
-node_t *make_number(int n) {
+node_t *make_number(double n) {
   node_t *num = malloc(sizeof(node_t));
   num->kind = KIND_NUM;
   num->num = n;
@@ -54,8 +57,8 @@ node_t *expr_number() {
   if(0 == isdigit(*str)) return NULL; // unary operator '!' is still unsupported
   char buf[16], *ptr = buf;
   for(int i = 0; i < 16; i++) buf[i] = 0;
-  while(isdigit(*str)) *ptr++ = *str++;
-  return make_number(atoi(buf));
+  while(isdigit(*str) || *str=='.') *ptr++ = *str++;
+  return make_number(atof(buf));
 }
 
 node_t *expr_muldiv() {
@@ -78,9 +81,9 @@ node_t *expr_addsub() {
   return left;
 }
 
-int calc(node_t *node) {
+double calc(node_t *node) {
   if(node->kind == KIND_OP) {
-    int l = calc(node->op.left), r = calc(node->op.right);
+    double l = calc(node->op.left), r = calc(node->op.right);
     if(node->op.op == '+') return l + r;
     if(node->op.op == '-') return l - r;
     if(node->op.op == '*') return l * r;
@@ -94,7 +97,7 @@ void show(node_t *node) {
     show(node->op.left);
     show(node->op.right);
     printf(") ");
-  } else printf("%d ", node->num);
+  } else printf("%.10g ", node->num);
 }
 
 int main() {
@@ -106,6 +109,6 @@ int main() {
   node_t *node = expr_addsub();
   show(node); puts("");
 
-  printf("%d%c", calc(node), 10);
+  printf("%.10g%c", calc(node), 10);
   return 0;
 }
