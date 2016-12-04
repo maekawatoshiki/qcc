@@ -278,8 +278,8 @@ llvm::Value *Codegen::statement(IfAST *st) {
   auto *func = builder.GetInsertBlock()->getParent();
 
   llvm::BasicBlock *bb_then = llvm::BasicBlock::Create(context, "then", func);
-  llvm::BasicBlock *bb_else = llvm::BasicBlock::Create(context, "else", func);
-  llvm::BasicBlock *bb_merge= llvm::BasicBlock::Create(context, "merge", func);
+  llvm::BasicBlock *bb_else = llvm::BasicBlock::Create(context, "else");
+  llvm::BasicBlock *bb_merge= llvm::BasicBlock::Create(context, "merge");
 
   builder.CreateCondBr(val_cond, bb_then, bb_else);
   builder.SetInsertPoint(bb_then);
