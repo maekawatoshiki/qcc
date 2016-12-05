@@ -139,29 +139,24 @@ AST *Parser::make_function() {
 }
 
 AST *Parser::make_function_proto() {
-  // puts("MAKE_PROTO");
   llvm::Type *ret_type = read_type_declarator();
   std::string name = token.next().val;
-  if(token.skip("(")) {
-    Type_vec args_type;
-    while(!token.skip(")")) {
-      llvm::Type *type = read_type_declarator();
-      if(token.get().type == TOK_TYPE_IDENT) token.skip();
-      std::vector<int> ary = skip_array();
-      std::reverse(ary.begin(), ary.end());
-      for(auto e : ary) {
-        if(e == -1)
-          type = type->getPointerTo();
-        else
-          type = llvm::ArrayType::get(type, e); //llvm::Type(TY_ARRAY, e, type);
-      }
-      args_type.push_back(type);
-      if(token.skip(")")) break;
-      token.expect_skip(",");
+  token.expect_skip("(");
+  Type_vec args_type;
+  while(token.get().type != TOK_TYPE_END) {
+    llvm::Type *type = read_type_declarator();
+    if(token.get().type == TOK_TYPE_IDENT) token.skip();
+    std::vector<int> ary = skip_array();
+    std::reverse(ary.begin(), ary.end());
+    for(auto e : ary) {
+      if(e == -1) type = type->getPointerTo();
+      else type = llvm::ArrayType::get(type, e);
     }
-    return new FunctionProtoAST(name, ret_type, args_type);
-  } else puts("err");
-  return nullptr;
+    args_type.push_back(type);
+    if(token.skip(")")) break;
+    token.expect_skip(",");
+  }
+  return new FunctionProtoAST(name, ret_type, args_type);
 }
 
 AST *Parser::make_block() { 
