@@ -259,11 +259,11 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
 }
 
 llvm::Value *Codegen::statement(BreakAST *st) {
-  *cur_func->br_list.top() = true;
+  cur_func->br_list.top() = true;
   return builder.CreateBr(cur_func->break_list.top());
 }
 llvm::Value *Codegen::statement(ContinueAST *st) {
-  *cur_func->br_list.top() = true;
+  cur_func->br_list.top() = true;
   return builder.CreateBr(cur_func->continue_list.top());
 }
 
@@ -284,24 +284,26 @@ llvm::Value *Codegen::statement(IfAST *st) {
   builder.CreateCondBr(val_cond, bb_then, bb_else);
   builder.SetInsertPoint(bb_then);
 
-  bool necessary_merge = false;
-  bool has_br = false;
-  cur_func->br_list.push(&has_br);
+  bool necessary_merge = false, has_br;
+  cur_func->br_list.push(false);
   statement(st->b_then);
-  if(*cur_func->br_list.top());
+  if(cur_func->br_list.top());
   else builder.CreateBr(bb_merge), necessary_merge = true;
+  has_br = cur_func->br_list.top();
   cur_func->br_list.pop();
+  if(!cur_func->br_list.empty()) cur_func->br_list.top() = has_br;
   bb_then = builder.GetInsertBlock();
 
   func->getBasicBlockList().push_back(bb_else);
   builder.SetInsertPoint(bb_else);
 
-  has_br = false;
-  cur_func->br_list.push(&has_br);
+  cur_func->br_list.push(false);
   if(st->b_else) statement(st->b_else);
-  if(*cur_func->br_list.top());
+  if(cur_func->br_list.top());
   else builder.CreateBr(bb_merge), necessary_merge = true;
+  has_br = cur_func->br_list.top();
   cur_func->br_list.pop();
+  if(!cur_func->br_list.empty()) cur_func->br_list.top() = has_br;
   bb_else = builder.GetInsertBlock();
 
   if(necessary_merge) {
@@ -381,7 +383,7 @@ llvm::Value *Codegen::statement(ForAST *st) {
 }
 
 llvm::Value *Codegen::statement(ReturnAST *st) {
-  if(!cur_func->br_list.empty()) *cur_func->br_list.top() = true;
+  if(!cur_func->br_list.empty()) cur_func->br_list.top() = true;
   if(st->expr) 
     return builder.CreateRet(type_cast(statement(st->expr), cur_func->llvm_function->getReturnType()));
   else

@@ -3,25 +3,24 @@
 
 AST_vec Parser::run(Token tok) {
   token = tok;
-  op_prec["=="] = 200;
-  op_prec["!="] = 200;
-  op_prec["<="] = 200;
-  op_prec[">="] = 200;
-  op_prec["<"] =  200;
-  op_prec[">"] =  200;
-  op_prec["&&"] =  150;
-  op_prec["||"] =  150;
-  op_prec["?"] = 100;
-  op_prec["&"] =  150;
-  op_prec["|"] =  150;
-  op_prec["^"] =  150;
-  op_prec["+"] =  300;
-  op_prec["-"] =  300;
-  op_prec["?"] =  300;
-  op_prec["*"] =  400;
-  op_prec["/"] =  400;
-  op_prec["%"] =  400;  
-  op_prec["."] =  500;  
+  op_prec["."] =  600;  
+  op_prec["*"] =  500;
+  op_prec["/"] =  500;
+  op_prec["%"] =  500;  
+  op_prec["+"] =  400;
+  op_prec["-"] =  400;
+  op_prec["=="] = 300;
+  op_prec["!="] = 300;
+  op_prec["<="] = 300;
+  op_prec[">="] = 300;
+  op_prec["<"] =  300;
+  op_prec[">"] =  300;
+  op_prec["&"] =  300;
+  op_prec["|"] =  200;
+  op_prec["^"] =  200;
+  op_prec["&&"] = 200;
+  op_prec["||"] = 200;
+  op_prec["?"] =  100;
   return eval();
 }
 
