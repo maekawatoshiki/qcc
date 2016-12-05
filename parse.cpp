@@ -354,35 +354,44 @@ llvm::Type *Parser::read_type_declarator() {
 }
 
 llvm::Type *Parser::skip_type_spec() {
-  bool is_struct = false;
-  if((is_struct=token.is("struct")) || token.is("union")) {
-    if( token.get(1).val == "{" || // struct { ... }
-        token.get(2).val == "{" || // struct NAME { ... }
-        token.get(2).val == ";") {//   struct NAME; (prototype?)
-      if(is_struct)
-        return make_struct_declaration(); // TODO: union implement
-    }
-    token.skip();
-    std::string name;
-    if(token.get().type == TOK_TYPE_IDENT) 
-      name = token.next().val; 
-    else puts("err"); // TODO: add err check
-    return this->struct_list.get("struct." + name)->llvm_struct;
-  } else if(token.is("enum")) {
-    if( token.get(1).val == "{" || // struct { ... }
-        token.get(2).val == "{") // struct NAME { ... }
-        return make_enum_declaration();
-    token.skip("enum");
-    if(token.get().type == TOK_TYPE_IDENT)
-      token.skip();
-    return builder.getInt32Ty();
-  } else if(token.get().type == TOK_TYPE_IDENT) {
-    std::string name = token.next().val;
-    return to_llvm_type(name);
-  } else if(token.skip("...")) {
-    return nullptr; // null is variable argument
-  }
+  if(token.is("struct") || token.is("union")) return read_struct_union_type();
+  else if(token.is("enum")) return read_enum_type();
+  else if(token.get().type == TOK_TYPE_IDENT) return read_primitive_type();
+  else if(token.skip("...")) return nullptr; // null is variable argument
   return nullptr;
+}
+
+llvm::Type *Parser::read_struct_union_type() {
+  bool is_struct = token.is("struct");
+  if( token.get(1).val == "{" || // struct { ... }
+      token.get(2).val == "{" || // struct NAME { ... }
+      token.get(2).val == ";") {//   struct NAME; (prototype?)
+    if(is_struct)
+      return make_struct_declaration(); // TODO: union implement
+  }
+  token.skip();
+  std::string name;
+  if(token.get().type == TOK_TYPE_IDENT) 
+    name = token.next().val; 
+  else puts("err"); // TODO: add err check
+  return this->struct_list.get("struct." + name)->llvm_struct;
+}
+
+llvm::Type *Parser::read_enum_type() {
+  if( token.get(1).val == "{" || // struct { ... }
+      token.get(2).val == "{") // struct NAME { ... }
+    return make_enum_declaration();
+  token.skip("enum");
+  if(token.get().type == TOK_TYPE_IDENT)
+    token.skip();
+  return builder.getInt32Ty();
+}
+
+llvm::Type *Parser::read_primitive_type() {
+  std::string name = token.next().val;
+  if(name == "signed" || name == "unsigned") 
+    name = token.next().val;
+  return to_llvm_type(name);
 }
 
 int Parser::skip_pointer() {
