@@ -8,6 +8,7 @@
 extern llvm::LLVMContext &context;
 extern llvm::IRBuilder<> builder;
 extern llvm::Module *mod;
+
 class Codegen {
   private:
     FunctionList func_list;
@@ -32,6 +33,8 @@ class Codegen {
     llvm::Value *op_gt (llvm::Value *, llvm::Value *);
     llvm::Value *op_le (llvm::Value *, llvm::Value *);
     llvm::Value *op_ge (llvm::Value *, llvm::Value *);
+
+    llvm::Value *make_int(int, llvm::Type * = builder.getInt32Ty());
 
     llvm::Value *statement(AST *                 ); 
     llvm::Value *statement(FunctionDefAST *      ); 

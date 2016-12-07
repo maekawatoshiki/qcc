@@ -177,7 +177,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
           if(ret_type->isDoubleTy())
             builder.CreateRet(llvm::ConstantFP::get(builder.getDoubleTy(), 0.0));
           else // ptr, int ...
-            builder.CreateRet(llvm::ConstantInt::get(function->llvm_function->getReturnType(), 0));
+            builder.CreateRet(make_int(0, function->llvm_function->getReturnType()));
         }
       }
     }
@@ -273,7 +273,7 @@ llvm::Value *Codegen::statement(IfAST *st) {
       val_cond, 
       val_cond->getType()->isPointerTy() ?
       llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
-      llvm::ConstantInt::get(val_cond->getType(), 0, true));
+      make_int(0, val_cond->getType()));
 
   auto *func = builder.GetInsertBlock()->getParent();
 
@@ -526,6 +526,10 @@ llvm::Value *Codegen::statement(IndexAST *st) {
   return builder.CreateLoad(elem);
 }
 
+llvm::Value *Codegen::make_int(int n, llvm::Type *ty) {
+  return llvm::ConstantInt::get(ty, n);
+}
+
 #define IMPLICIT_CAST \
   if(lhs->getType()->isDoubleTy()) \
     rhs = type_cast(rhs, builder.getDoubleTy()); \
@@ -550,7 +554,7 @@ llvm::Value *Codegen::op_sub(llvm::Value *lhs, llvm::Value *rhs) {
   if(lhs->getType()->isPointerTy() && rhs->getType()->isIntegerTy()) {
     return llvm::GetElementPtrInst::CreateInBounds(lhs,
         llvm::ArrayRef<llvm::Value *>(
-          builder.CreateSub(llvm::ConstantInt::get(rhs->getType(), 0), rhs)), "elem", builder.GetInsertBlock());
+          builder.CreateSub(make_int(0, rhs->getType()), rhs)), "elem", builder.GetInsertBlock());
   } else if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateSub(lhs, type_cast(rhs, lhs->getType()));
   } else if(lhs->getType()->isDoubleTy()) {
@@ -667,16 +671,18 @@ llvm::Value *Codegen::statement(UnaryAST *st) {
   } else if(st->op == "*") {
     auto e = statement(st->expr);
     return builder.CreateLoad(e);
+  } else if(st->op == "-") {
+    return op_sub(make_int(0), statement(st->expr));
   } else if(st->op == "++") {
     auto v1 = get_value(st->expr);
     auto v  = builder.CreateLoad(v1);
-    auto vv = op_add(v, llvm::ConstantInt::get(builder.getInt32Ty(), 1));
+    auto vv = op_add(v, make_int(1));
     asgmt_value(v1, vv);
     return st->postfix ? v : vv;
   } else if(st->op == "--") {
     auto v1 = get_value(st->expr);
     auto v  = builder.CreateLoad(v1);
-    auto vv = op_sub(v, llvm::ConstantInt::get(builder.getInt32Ty(), 1));
+    auto vv = op_sub(v, make_int(1));
     asgmt_value(v1, vv);
     return st->postfix ? v : vv;
   }
@@ -725,7 +731,7 @@ llvm::Value *Codegen::statement(TernaryAST *st) {
       val_cond, 
       val_cond->getType()->isPointerTy() ?
       llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
-      llvm::ConstantInt::get(val_cond->getType(), 0, true));
+      make_int(0, val_cond->getType()));
 
   auto *func = builder.GetInsertBlock()->getParent();
 
@@ -759,7 +765,7 @@ llvm::Value *Codegen::statement(DotOpAST *st) {
 }
 
 llvm::Value *Codegen::statement(SizeofAST *st) {
-  return llvm::ConstantInt::get(builder.getInt32Ty(), data_layout->getTypeAllocSize(st->type));
+  return make_int(data_layout->getTypeAllocSize(st->type));
 }
 
 llvm::Value *Codegen::statement(StringAST *st) {
@@ -770,7 +776,7 @@ llvm::Value *Codegen::statement(NumberAST *st) {
   if(st->is_float) {
     return llvm::ConstantFP::get(builder.getDoubleTy(), st->f_number);
   } else 
-    return llvm::ConstantInt::get(builder.getInt32Ty(), st->i_number, true);
+    return make_int(st->i_number);
 }
 
 var_t *Codegen::lookup_var(std::string name) {

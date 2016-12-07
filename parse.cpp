@@ -327,8 +327,11 @@ exit:
 bool Parser::is_type() {
   auto cur = token.get().val;
   if(
+      cur == "unsigned" ||
+      cur == "signed"   ||
       cur == "int"      ||
       cur == "char"     ||
+      cur == "short"    ||
       cur == "double"   ||
       cur == "struct"   ||
       cur == "enum"     ||
@@ -411,6 +414,8 @@ std::vector<int> Parser::skip_array() {
 llvm::Type *Parser::to_llvm_type(std::string ty) {
   if(ty == "int") {
     return builder.getInt32Ty();
+  } else if(ty == "short") {
+    return builder.getInt16Ty();
   } else if(ty == "void") {
     return builder.getVoidTy();
   } else if(ty == "char") {

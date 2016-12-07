@@ -4,7 +4,7 @@
  * - usage: 
  *     input: an expression WITHOUT SPACES. e.g. 1+2*3 (not 1 + 2 * 3)
  *            brackets can be used. e.g. 2*(1/2)
- *            double is available e.g. 1.3/43
+ *            double   can be used. e.g. 1.3/43
  *     output: show nodes e.g. (+ 1 (* 2 3) ) and the answer
  */
 
@@ -103,7 +103,7 @@ void show(node_t *node) {
 int main() {
   char buf[100];
   puts("input an expression without spaces - e.g. 3/2+12*(2-3)");
-  scanf("%s", buf);
+  scanf("%99s", buf);
   str = buf;
 
   node_t *node = expr_addsub();

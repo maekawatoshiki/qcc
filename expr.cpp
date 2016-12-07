@@ -61,19 +61,25 @@ AST *Parser::expr_asgmt() {
 }
 
 AST *Parser::expr_unary() {
-  bool op_addr = false, op_aste = false, op_inc = false, op_dec = false;
-  op_addr = token.is("&");
-  op_aste = token.is("*");
-  op_inc = token.is("++");
-  op_dec = token.is("--");
+  bool op_addr = false, 
+       op_aste = false, 
+       op_inc  = false, 
+       op_dec  = false,
+       op_minus= false;
+  op_addr  = token.is("&");
+  op_aste  = token.is("*");
+  op_inc   = token.is("++");
+  op_dec   = token.is("--");
+  op_minus = token.is("-");
   AST *expr = nullptr;
-  if(op_addr || op_aste || op_inc || op_dec) {
+  if(op_addr || op_aste || op_inc || op_dec || op_minus) {
     token.skip();
     expr = expr_unary();
     return new UnaryAST(op_addr ? "&" : 
                         op_aste ? "*" :
                         op_inc  ? "++":
-                        op_dec  ? "--" : "", expr);
+                        op_dec  ? "--": 
+                        op_minus? "-" : "", expr);
   } else 
     expr = expr_dot();
   return expr_unary_postfix(expr);
