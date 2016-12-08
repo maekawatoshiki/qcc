@@ -118,11 +118,9 @@ AST *Parser::make_function() {
     std::string name = token.next().val;
     std::vector<int> ary = skip_array();
     std::reverse(ary.begin(), ary.end());
-    for(auto e : ary) {
-      if(e == -1)
-        type = type->getPointerTo();
-      else
-        type = llvm::ArrayType::get(type, e); //llvm::Type(TY_ARRAY, e, type);
+    for(auto e = ary.begin(); e != ary.end(); ++e) {
+      if(*e == -1 || e == ary.end() - 1) type = type->getPointerTo();
+      else type = llvm::ArrayType::get(type, *e); //llvm::Type(TY_ARRAY, e, type);
     }
     args.push_back(new argument_t(type, name));
     if(token.skip(")")) break;
@@ -148,9 +146,9 @@ AST *Parser::make_function_proto() {
     if(token.get().type == TOK_TYPE_IDENT) token.skip();
     std::vector<int> ary = skip_array();
     std::reverse(ary.begin(), ary.end());
-    for(auto e : ary) {
-      if(e == -1) type = type->getPointerTo();
-      else type = llvm::ArrayType::get(type, e);
+    for(auto e = ary.begin(); e != ary.end(); ++e) {
+      if(*e == -1 || e == ary.end() - 1) type = type->getPointerTo();
+      else type = llvm::ArrayType::get(type, *e);
     }
     args_type.push_back(type);
     if(token.skip(")")) break;
