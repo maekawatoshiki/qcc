@@ -10,12 +10,15 @@ void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
   { // create function(s) used in such as array initialization
     llvm::FunctionType *llvm_func_type_memcpy = 
       llvm::FunctionType::get(
-          builder.getVoidTy()->getPointerTo(),
+          builder.getVoidTy(),
           std::vector<llvm::Type *>{
-          builder.getVoidTy()->getPointerTo(), 
-          builder.getVoidTy()->getPointerTo(),
-          builder.getInt32Ty()}, /*var arg=*/false);
-    tool_memcpy = llvm::Function::Create(llvm_func_type_memcpy, llvm::Function::ExternalLinkage, "memcpy", mod);
+          builder.getInt8PtrTy(), 
+          builder.getInt8PtrTy(),
+          builder.getInt32Ty(),
+          builder.getInt32Ty(),
+          builder.getInt1Ty()}, /*var arg=*/false);
+    tool_memcpy = llvm::Function::Create(llvm_func_type_memcpy, 
+        llvm::Function::ExternalLinkage, "llvm.memcpy.p0i8.p0i8.i32", mod);
   }
   for(auto st : ast) statement(st);
   if(emit_llvm_ir) mod->dump();
@@ -503,11 +506,14 @@ llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
 
     return builder.CreateCall(tool_memcpy,
         std::vector<llvm::Value *> {
-          type_cast(dst, builder.getVoidTy()->getPointerTo()), type_cast(src, builder.getVoidTy()->getPointerTo()), 
-          llvm::ConstantInt::get(
-              builder.getInt32Ty(), 
-              src->getType()->getPointerElementType()->getArrayElementType()->getScalarSizeInBits() / 8 * 
-              src->getType()->getPointerElementType()->getArrayNumElements())});
+          type_cast(dst, builder.getInt8Ty()->getPointerTo()), type_cast(src, builder.getInt8Ty()->getPointerTo()), 
+          make_int(data_layout->getTypeAllocSize(src->getType()->getPointerElementType())),
+          make_int(data_layout->getTypeAllocSize(
+            [&]() -> llvm::Type * {
+                auto basety = src->getType()->getPointerElementType();
+                while(basety->isArrayTy()) basety = basety->getArrayElementType();
+                return basety;
+            }())), make_int(0, builder.getInt1Ty())});
   } else 
     src = this->type_cast(src, dst->getType()->getPointerElementType());
   return builder.CreateStore(src, dst);
