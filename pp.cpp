@@ -8,6 +8,10 @@ Token Preprocessor::run(Token tok) {
            if(token.skip("include"))             read_include();
       else if(token.skip("define"))              read_define();
       else if(token.skip("undef"))               read_undef();
+      else if(token.skip("ifdef"))               read_ifdef();
+      else if(token.skip("ifndef"))              read_ifndef();
+      else if(token.skip("else"))                read_else();
+      else                                       skip_this_line();
     } else if(define_map.count(token.get().val)) replace_macro();
     else new_token.token.push_back(token.next());
   }
@@ -18,6 +22,7 @@ Token Preprocessor::run(Token tok) {
 void Preprocessor::read_define() {
   std::string macro_name; bool funclike = false;
   std::vector<std::string> args_name;
+  int cur_line = token.get().line;
   if(token.get().type == TOK_TYPE_IDENT)
     macro_name = token.next().val;
   if(token.is("(") && !token.get().space) {
@@ -29,10 +34,11 @@ void Preprocessor::read_define() {
       token.expect_skip(",");
     }
   }
-  int cur_line = token.get().line;
   std::vector<token_t> content;
-  while(cur_line==token.get().line)
-    content.push_back(token.next());
+  if(cur_line == token.get().line) {
+    while(cur_line==token.get().line)
+      content.push_back(token.next());
+  }
   if(funclike) add_define_funclike_macro(macro_name, args_name, content);
   else add_define_macro(macro_name, content);
 }
@@ -44,6 +50,46 @@ void Preprocessor::read_undef() {
   auto it = define_map.find(macro);
   if(it != define_map.end()) // if macro was declared
     define_map.erase(it);
+}
+
+void Preprocessor::read_ifdef() {
+  std::string macro;
+  if(token.get().type != TOK_TYPE_IDENT) error("error: in pp");
+  macro = token.next().val;
+  if(!define_map.count(macro)) {
+    skip_cond_include();
+    cond_stack.push(false);
+  } else cond_stack.push(true);
+}
+
+void Preprocessor::read_ifndef() {
+  std::string macro;
+  if(token.get().type != TOK_TYPE_IDENT) error("error: in pp");
+  macro = token.next().val;
+  if(define_map.count(macro)) {
+    skip_cond_include();
+    cond_stack.push(false);
+  } else cond_stack.push(true);
+}
+
+void Preprocessor::read_else() {
+  if(cond_stack.empty()) error("error: in pp");
+  if(cond_stack.top()) // if immediately before cond is true
+    skip_cond_include();
+}
+
+void Preprocessor::skip_cond_include() {
+  int nest = 0;
+  for(;;) {
+    token.skip();
+    if(!token.skip("#")) continue;
+    if(!nest && (token.skip("else") || token.skip("elif") || token.skip("endif")))
+      return;
+    if(token.skip("if") || token.skip("ifdef") || token.skip("ifndef"))
+      nest++;
+    else if(nest && token.skip("endif"))
+      nest--;
+  }
 }
 
 void Preprocessor::read_include() {
@@ -101,6 +147,11 @@ void Preprocessor::replace_macro() {
     }
   }
   std::copy(rep_to.begin(), rep_to.end(), std::back_inserter(new_token.token));
+}
+
+void Preprocessor::skip_this_line() {
+  int n = token.get().line;
+  while(n == token.get().line) token.skip();
 }
 
 void Preprocessor::add_define_macro(std::string name, std::vector<token_t> rep) {

@@ -1,4 +1,5 @@
-// *** stdio.h ***
+#ifndef __QCC_STDIO__
+#define __QCC_STDIO__ 
 
 #define NULL 0
 
@@ -11,3 +12,5 @@ int getchar();
 int putchar(int);
 void perror(char *);
 char *gets(char *);
+
+#endif
