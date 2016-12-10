@@ -3,7 +3,7 @@
 int QCC::run(std::string source) {
   token = LEX.run(source);
   token = PP.run(token);
-  std::cout << "AFTER PREPROCESS:\n" << source << std::endl;
+  token.add_end_tok();
   std::cout << "AFTER LEXICAL ANALYZE:\n"; token.show();
   auto ast = PARSE.run(token);puts("parser process exited successfully");
   CODEGEN.struct_list = PARSE.struct_list;

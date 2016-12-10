@@ -18,7 +18,7 @@ class Preprocessor {
   private:
     std::string default_include_path = "./include/";
     std::map<std::string, define_t> define_map;
-    Token token;
+    Token token, new_token;
 
     void read_include();
     void read_define();
