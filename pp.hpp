@@ -18,11 +18,18 @@ class Preprocessor {
   private:
     std::string default_include_path = "./include/";
     std::map<std::string, define_t> define_map;
-    Token token;
+    Token token, new_token;
+    std::stack<bool> cond_stack; 
 
     void read_include();
     void read_define();
     void read_undef();
+    void read_ifdef();
+    void read_ifndef();
+    void read_else();
+    void skip_cond_include();
+
+    void skip_this_line();
 
     void replace_macro(); // replace current token to macro
 

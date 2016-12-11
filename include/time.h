@@ -1,3 +1,6 @@
+#ifndef __QCC_TIME__
+#define __QCC_TIME__
+
 struct tm {
   int tm_sec;         
   int tm_min;         
@@ -21,3 +24,4 @@ size_t strftime(char *, size_t, char *, struct tm *);
 char *ctime(time_t *);
 char *asctime(struct tm *);
 
+#endif
