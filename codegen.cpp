@@ -7,7 +7,7 @@ llvm::Module *mod;
 void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
   mod = new llvm::Module("QCC", context);
   data_layout = new llvm::DataLayout(mod);
-  { // create function(s) used in such as array initialization
+  { // create function(s) used in array initialization
     llvm::FunctionType *llvm_func_type_memcpy = 
       llvm::FunctionType::get(
           builder.getVoidTy(),

@@ -15,11 +15,21 @@ class QCC {
     Lexer LEX;
     Parser PARSE;
     Codegen CODEGEN;
+
     std::string out_file_name = "a.bc";
     bool emit_llvm_ir = false;
+
   public:
+    int argc;
+    char **argv;
+    QCC(int _argc, char **_argv):
+      argc(_argc), argv(_argv) {};
+
     void set_out_file_name(std::string);
     void set_emit_llvm_ir(bool);
 
+    int run(); // run following argc and argv
     int run(std::string);
 };
+
+void show_usage();
