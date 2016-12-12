@@ -25,9 +25,9 @@ class Parser {
     AST *make_var_declaration();
     AST *read_declaration();
     llvm::Type *read_declarator(std::string &, llvm::Type *);
-    llvm::Type *read_declarator(std::string &, llvm::Type *, std::vector<argument_t *>);
-    llvm::Type *read_declarator_func(llvm::Type *, std::vector<argument_t *>);
-    llvm::Type *read_declarator_tail(llvm::Type *);
+    llvm::Type *read_declarator(std::string &, llvm::Type *, std::vector<argument_t *> &);
+    llvm::Type *read_declarator_func(llvm::Type *, std::vector<argument_t *> &);
+    llvm::Type *read_declarator_tail(llvm::Type *, std::vector<argument_t *> &);
     llvm::Type *read_declarator_array(llvm::Type *);
     llvm::Type *read_func_param(std::string &);
     std::vector<argument_t *> read_declarator_param();

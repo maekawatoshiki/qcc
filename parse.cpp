@@ -75,19 +75,38 @@ AST *Parser::read_declaration() {
 }
 
 llvm::Type *Parser::read_declarator(std::string &name, llvm::Type *basety) {
+  std::vector<argument_t *> param;
+  return read_declarator(name, basety, param);
+}
+llvm::Type *Parser::read_declarator(std::string &name, llvm::Type *basety, std::vector<argument_t *> &param) {
+  if(token.skip("(")) { // TODO: WHAT A F**K CODE??!! FIXME!!
+    int pos_bgn = token.pos;
+    llvm::Type *s = builder.getVoidTy();
+    llvm::Type *type = read_declarator(name, s);  
+    token.expect_skip(")");
+    auto ft = read_declarator_tail(basety, param);
+    int pos_end = token.pos;
+    token.pos = pos_bgn;
+    type = read_declarator(name, ft);
+    token.expect_skip(")");
+    token.pos = pos_end;
+    return type;
+  }
   if(token.skip("*")) {
     return read_declarator(name, basety->getPointerTo());
   }
   if(token.get().type == TOK_TYPE_IDENT) {
     name = token.next().val;
-    return read_declarator_tail(basety);
+    return read_declarator_tail(basety, param);
   }
-  return read_declarator_tail(basety);
+  return read_declarator_tail(basety, param);
 }
 
-llvm::Type *Parser::read_declarator_tail(llvm::Type *basety) {
-  if(token.skip("[")) {
+llvm::Type *Parser::read_declarator_tail(llvm::Type *basety, std::vector<argument_t *> &param) {
+  if(token.skip("[")) 
     return read_declarator_array(basety);
+  if(token.skip("(")) {
+    return read_declarator_func(basety, param);
   }
   return basety;
 }
@@ -102,9 +121,24 @@ llvm::Type *Parser::read_declarator_array(llvm::Type *basety) {
     len = atoi(token.next().val.c_str());
     token.expect_skip("]");
   }
-  llvm::Type *t = read_declarator_tail(basety);
+  std::vector<argument_t *> _;
+  llvm::Type *t = read_declarator_tail(basety, _);
   if(len == -1) return t->getPointerTo();
   return llvm::ArrayType::get(t, len);
+}
+
+llvm::Type *Parser::read_declarator_func(llvm::Type *basety, std::vector<argument_t *> &param) {
+  param = read_declarator_param();
+
+  bool has_vararg = false;
+  std::vector<llvm::Type *> llvm_param;
+  for(auto a : param) {
+    if(a->type == nullptr) has_vararg = true;
+    else llvm_param.push_back(a->type); 
+  }
+  llvm::FunctionType *llvm_func_type = 
+    llvm::FunctionType::get(basety, llvm_param, has_vararg); 
+  return llvm_func_type;
 }
 
 llvm::Type *Parser::read_func_param(std::string &name) {
