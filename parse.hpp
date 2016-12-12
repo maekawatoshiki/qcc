@@ -29,6 +29,8 @@ class Parser {
     llvm::Type *read_declarator_func(llvm::Type *, std::vector<argument_t *>);
     llvm::Type *read_declarator_tail(llvm::Type *);
     llvm::Type *read_declarator_array(llvm::Type *);
+    llvm::Type *read_func_param(std::string &);
+    std::vector<argument_t *> read_declarator_param();
     // Type_vec read_field();
     StructList struct_list;
     llvm::Type *make_struct_declaration();

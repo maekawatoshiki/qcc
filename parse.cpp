@@ -107,25 +107,40 @@ llvm::Type *Parser::read_declarator_array(llvm::Type *basety) {
   return llvm::ArrayType::get(t, len);
 }
 
+llvm::Type *Parser::read_func_param(std::string &name) {
+  llvm::Type *basety = builder.getInt32Ty();
+  if(is_type()) basety = skip_type_spec();
+  else error("error(%d): expected type specify", token.get().line);
+  if(basety == nullptr) return basety;
+  llvm::Type *type = read_declarator(name, basety);
+  if(type->isArrayTy()) type = type->getArrayElementType()->getPointerTo();
+  return type;
+}
+
+std::vector<argument_t *> Parser::read_declarator_param() {
+  std::vector<argument_t *> args;
+
+  if(token.is("void") && token.get(1).val == ")") { // e.g. int main(void)
+    token.expect_skip("void");
+    token.expect_skip(")");
+    return args;
+  } else if(token.skip(")")) return args; // e.g. int main()
+
+  for(;;) {
+    std::string name;
+    llvm::Type *type = read_func_param(name);
+    args.push_back(new argument_t(type, name));
+    if(token.skip(")")) return args;
+    token.expect_skip(",");
+  }
+  return args;
+}
+
 AST *Parser::make_function() {
-  // puts("MAKE_FUNCTION");
   llvm::Type *ret_type = read_type_declarator();
   std::string name = token.next().val;
   token.expect_skip("(");
-  std::vector<argument_t *> args;
-  while(!token.skip(")")) {
-    llvm::Type *type = read_type_declarator();
-    std::string name = token.next().val;
-    std::vector<int> ary = skip_array();
-    std::reverse(ary.begin(), ary.end());
-    for(auto e = ary.begin(); e != ary.end(); ++e) {
-      if(*e == -1 || e == ary.end() - 1) type = type->getPointerTo();
-      else type = llvm::ArrayType::get(type, *e); //llvm::Type(TY_ARRAY, e, type);
-    }
-    args.push_back(new argument_t(type, name));
-    if(token.skip(")")) break;
-    token.expect_skip(",");
-  }
+  auto args = read_declarator_param();
   AST_vec body;
   token.expect_skip("{");
   while(!token.skip("}")) {
@@ -140,21 +155,8 @@ AST *Parser::make_function_proto() {
   llvm::Type *ret_type = read_type_declarator();
   std::string name = token.next().val;
   token.expect_skip("(");
-  Type_vec args_type;
-  while(token.get().type != TOK_TYPE_END) {
-    llvm::Type *type = read_type_declarator();
-    if(token.get().type == TOK_TYPE_IDENT) token.skip();
-    std::vector<int> ary = skip_array();
-    std::reverse(ary.begin(), ary.end());
-    for(auto e = ary.begin(); e != ary.end(); ++e) {
-      if(*e == -1 || e == ary.end() - 1) type = type->getPointerTo();
-      else type = llvm::ArrayType::get(type, *e);
-    }
-    args_type.push_back(type);
-    if(token.skip(")")) break;
-    token.expect_skip(",");
-  }
-  return new FunctionProtoAST(name, ret_type, args_type);
+  auto args = read_declarator_param();
+  return new FunctionProtoAST(name, ret_type, args);
 }
 
 AST *Parser::make_block() { 
@@ -325,6 +327,7 @@ exit:
 bool Parser::is_type() {
   auto cur = token.get().val;
   if(
+      cur == "void"     ||
       cur == "unsigned" ||
       cur == "signed"   ||
       cur == "int"      ||
@@ -333,7 +336,8 @@ bool Parser::is_type() {
       cur == "double"   ||
       cur == "struct"   ||
       cur == "enum"     ||
-      cur == "union") {
+      cur == "union"    ||
+      cur == "...") {
     return true;
   } else if(typedef_map.count(cur)) {
     return true;

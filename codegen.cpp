@@ -103,10 +103,10 @@ llvm::Value *Codegen::statement(FunctionProtoAST *st) {
   std::vector<std::string>  args_name;
   bool has_vararg = false;
   for(auto arg : st->args) {
-    if(arg == nullptr) { // null means variable arguments
+    if(arg->type == nullptr) { // null means variable arguments
       has_vararg = true;
     } else {
-      func.llvm_args_type.push_back(arg);
+      func.llvm_args_type.push_back(arg->type);
     }
   }
   this->func_list.add(func);

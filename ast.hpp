@@ -35,19 +35,19 @@ class AST {
 
 typedef std::vector<AST *> AST_vec;
 
-class FunctionProtoAST : public AST {
-  public:
-    std::string name;
-    llvm::Type *ret_type;
-    Type_vec args;
-    virtual int get_type() const { return AST_FUNCTION_PROTO; };
-    FunctionProtoAST(std::string func_name, llvm::Type *, Type_vec argments_type);
-};
-
 struct argument_t {
   argument_t(llvm::Type *ty, std::string nm):type(ty), name(nm) {};
   llvm::Type *type;
   std::string name;
+};
+
+class FunctionProtoAST : public AST {
+  public:
+    std::string name;
+    llvm::Type *ret_type;
+    std::vector<argument_t *> args;
+    virtual int get_type() const { return AST_FUNCTION_PROTO; };
+    FunctionProtoAST(std::string func_name, llvm::Type *, std::vector<argument_t *>argments_type);
 };
 
 class FunctionDefAST : public AST {

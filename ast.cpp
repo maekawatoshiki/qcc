@@ -1,6 +1,6 @@
 #include "ast.hpp"
 
-FunctionProtoAST::FunctionProtoAST(std::string _name, llvm::Type *ret, Type_vec _args):
+FunctionProtoAST::FunctionProtoAST(std::string _name, llvm::Type *ret, std::vector<argument_t *> _args):
   name(_name), ret_type(ret), args(_args) {
 }
 
