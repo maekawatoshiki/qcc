@@ -200,7 +200,15 @@ llvm::Value *Codegen::statement(BlockAST *st) {
 
 llvm::Value *Codegen::statement(FunctionCallAST *st) {
   func_t *func = this->func_list.get(st->name);
-  if(func == nullptr) error("error: not found the function \'%s\'", st->name.c_str());
+  if(func == nullptr) {
+    auto var = lookup_var(st->name);
+    if(var == nullptr) error("error: not found the function \'%s\'", st->name.c_str());
+    func = new func_t;
+    int params = var->type->getFunctionNumParams();
+    for(int i = 0; i < params; i++) 
+      func->llvm_args_type.push_back(var->type->getFunctionParamType(i));
+    func->llvm_function = (llvm::Function *)builder.CreateLoad(var->val);
+  }
   std::vector<llvm::Value *> caller_args;
   int i = 0;
   for(auto a : st->args) {
@@ -406,6 +414,9 @@ llvm::Value *Codegen::statement(VariableAST *st) {
       return elem;
     } else 
       return builder.CreateLoad(var->val);
+  } else { // function name?
+    auto f = func_list.get(st->name);
+    if(f) return f->llvm_function;
   }
   error("error: not found variable '%s'", st->name.c_str());
   return nullptr;
