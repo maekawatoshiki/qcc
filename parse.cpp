@@ -331,10 +331,16 @@ void Parser::read_typedef() {
 
 bool Parser::is_function_proto() {
   int pos = token.pos;
+  int nest = 1;
   if(!read_type_declarator()) goto exit;
   token.skip(); // function name
   if(!token.skip("(")) goto exit;
-  while(!token.skip(")")) token.skip();
+  while(1) {
+    if(token.skip("(")) nest++;
+    else if(token.skip(")")) nest--;
+    else token.skip();
+    if(!nest) break;
+  }
   if(!token.skip(";")) goto exit;
   token.pos = pos;
   return true;
@@ -345,11 +351,16 @@ exit:
 
 bool Parser::is_function_def() {
   int pos = token.pos;
+  int nest = 1;
   if(!read_type_declarator()) goto exit;
   token.skip(); // function name
   if(!token.skip("(")) goto exit;
-  while(token.get().val != ")" && token.get().type != TOK_TYPE_END) token.skip();
-  if(!token.skip(")")) goto exit;
+  while(1) {
+    if(token.skip("(")) nest++;
+    else if(token.skip(")")) nest--;
+    else token.skip();
+    if(!nest) break;
+  }
   if(!token.skip("{")) goto exit;
   token.pos = pos;
   return true;
