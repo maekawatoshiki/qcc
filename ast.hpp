@@ -62,10 +62,10 @@ class FunctionDefAST : public AST {
 
 class FunctionCallAST : public AST {
   public:
-    std::string name;
+    AST *callee;
     AST_vec args;
     virtual int get_type() const { return AST_FUNCTION_CALL; };
-    FunctionCallAST(std::string name, AST_vec args);
+    FunctionCallAST(AST *callee, AST_vec args);
 };
 
 class BlockAST : public AST {

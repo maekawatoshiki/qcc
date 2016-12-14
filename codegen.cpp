@@ -199,25 +199,27 @@ llvm::Value *Codegen::statement(BlockAST *st) {
 }
 
 llvm::Value *Codegen::statement(FunctionCallAST *st) {
-  func_t *func = this->func_list.get(st->name);
-  if(func == nullptr) {
-    auto var = lookup_var(st->name);
-    if(var == nullptr) error("error: not found the function \'%s\'", st->name.c_str());
-    func = new func_t;
-    int params = var->type->getFunctionNumParams();
-    for(int i = 0; i < params; i++) 
-      func->llvm_args_type.push_back(var->type->getFunctionParamType(i));
-    func->llvm_function = (llvm::Function *)builder.CreateLoad(var->val);
-  }
+  llvm::Function *f = st->callee->get_type() == AST_VARIABLE ? // function ptr or function name
+    [&]() -> llvm::Function * {
+      VariableAST *va = static_cast<VariableAST *>(st->callee);
+      func_t *func = this->func_list.get(va->name);
+      if(!func) { // not function, it is variable of function pointer
+        auto var = lookup_var(va->name);
+        if(!var) error("error: not found the function \'%s\'", va->name.c_str());
+        return (llvm::Function *)builder.CreateLoad(var->val);
+      } else return func->llvm_function; 
+    }() : reinterpret_cast<llvm::Function *>( statement(st->callee) );
+
+  int params = f->getType()->getPointerElementType()->getFunctionNumParams();
   std::vector<llvm::Value *> caller_args;
   int i = 0;
   for(auto a : st->args) {
     caller_args.push_back(
-        func->llvm_args_type.size() <= i? statement(a) : // varaible argument                                    
-        type_cast(statement(a), func->llvm_args_type[i++])
+        params <= i ? statement(a) : // varaible argument                                    
+        type_cast(statement(a), f->getType()->getPointerElementType()->getFunctionParamType(i++))
         );
   } 
-  auto callee = func->llvm_function;
+  auto callee = (llvm::Function *)f;
   auto ret = builder.CreateCall(callee, caller_args);
   if(!callee->getReturnType()->isVoidTy())
     return ret;

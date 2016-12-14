@@ -8,8 +8,8 @@ FunctionDefAST::FunctionDefAST(std::string _name, llvm::Type *ret, std::vector<a
   name(_name), ret_type(ret), args(_args), body(_body) {
 }
 
-FunctionCallAST::FunctionCallAST(std::string _name, AST_vec _args):
-  name(_name), args(_args) {
+FunctionCallAST::FunctionCallAST(AST *_callee, AST_vec _args):
+  callee(_callee), args(_args) {
 }
 
 BlockAST::BlockAST(AST_vec _body):

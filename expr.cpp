@@ -81,7 +81,7 @@ AST *Parser::expr_unary() {
                         op_dec  ? "--": 
                         op_minus? "-" : "", expr);
   } else 
-    expr = expr_dot();
+    expr = expr_func_call();
   return expr_unary_postfix(expr);
 }
 
@@ -91,6 +91,19 @@ AST *Parser::expr_unary_postfix(AST *expr) {
     token.skip();
     return new UnaryAST(op_inc ? "++" : 
                         op_dec ? "--" : "", expr, /*postfix=*/true);
+  }
+  return expr;
+}
+
+AST *Parser::expr_func_call() {
+  AST *expr = expr_dot();
+  if(token.skip("(")) {
+    AST_vec args;
+    while(!token.skip(")")) {
+      args.push_back(expr_entry());
+      token.skip(",");
+    }
+    return new FunctionCallAST(expr, args);
   }
   return expr;
 }
@@ -154,15 +167,7 @@ AST *Parser::expr_primary() {
     return new SizeofAST(type);
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
-    if(token.skip("(")) { // function?
-      AST_vec args;
-      while(!token.skip(")")) {
-        args.push_back(expr_entry());
-        token.skip(",");
-      }
-      // token.skip(";");
-      return new FunctionCallAST(name, args);
-    } else if(enum_list.count(name)) {
+    if(enum_list.count(name)) {
       return enum_list[name];
     } else { // variable
       return new VariableAST(name);
