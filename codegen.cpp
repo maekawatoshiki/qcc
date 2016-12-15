@@ -441,8 +441,9 @@ llvm::Value *Codegen::get_value(AST *st) {
     return get_element_ptr((IndexAST *)st);
   } else if(st->get_type() == AST_DOT) {
     DotOpAST *da = (DotOpAST *)st;
-    auto parent = get_value(da->lhs);
-    if(da->is_arrow) parent = builder.CreateLoad(parent);
+    auto parent = statement(da->lhs);
+    if(!parent->getType()->isPointerTy())
+      parent = get_value(da->lhs);
     if(!parent) error("error: " __FILE__ "(%d)", __LINE__);
     struct_t *sinfo = this->struct_list.get(
         ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str()
