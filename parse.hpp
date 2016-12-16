@@ -46,7 +46,7 @@ class Parser {
     AST *make_return();
 
     llvm::Type *to_llvm_type(std::string);
-    llvm::Type *skip_type_spec();
+    llvm::Type *read_type_spec();
     llvm::Type *read_primitive_type();
     llvm::Type *read_struct_union_type();
     llvm::Type *read_enum_type();

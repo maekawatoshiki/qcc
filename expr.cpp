@@ -88,7 +88,7 @@ AST *Parser::expr_unary() {
                         op_minus? "-" : "", expr);
   } else if(op_cast) {
     token.expect_skip("(");
-    llvm::Type *cast_to = skip_type_spec();
+    llvm::Type *cast_to = read_type_spec();
     std::string _; cast_to = read_declarator(_, cast_to);
     token.expect_skip(")");
     expr = expr_entry();
@@ -172,7 +172,7 @@ AST *Parser::expr_primary() {
     token.expect_skip("(");
     llvm::Type *type; 
     if(is_type()) {
-      type = skip_type_spec(); // base type
+      type = read_type_spec(); // base type
       std::string _; 
       type = read_declarator(_, type);
     }

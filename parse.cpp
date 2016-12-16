@@ -58,7 +58,7 @@ AST *Parser::statement() {
 }
 
 AST *Parser::read_declaration() {
-  llvm::Type *basety = skip_type_spec();
+  llvm::Type *basety = read_type_spec();
   if(token.skip(";")) return nullptr;
   std::vector<declarator_t *> decls;
   while(1) {
@@ -143,7 +143,7 @@ llvm::Type *Parser::read_declarator_func(llvm::Type *basety, std::vector<argumen
 
 llvm::Type *Parser::read_func_param(std::string &name) {
   llvm::Type *basety = builder.getInt32Ty();
-  if(is_type()) basety = skip_type_spec();
+  if(is_type()) basety = read_type_spec();
   else error("error(%d): expected type specify", token.get().line);
   if(basety == nullptr) return basety;
   llvm::Type *type = read_declarator(name, basety);
@@ -320,7 +320,7 @@ llvm::Type *Parser::make_enum_declaration() {
 }
 
 void Parser::read_typedef() {
-  llvm::Type *from = skip_type_spec();
+  llvm::Type *from = read_type_spec();
   if(token.get().type != TOK_TYPE_IDENT)
     error("error(%d): expected identifier", token.get().line);
   std::string name = token.next().val;
@@ -391,14 +391,15 @@ bool Parser::is_type() {
 }
 
 llvm::Type *Parser::read_type_declarator() {
-  llvm::Type *type = skip_type_spec();
+  if(!is_type()) return nullptr;
+  llvm::Type *type = read_type_spec();
   if(type == nullptr) return nullptr;
   for(int i=skip_pointer(); i > 0; i--)
     type = type->getPointerTo(); //new llvm::Type(TY_PTR, type);
   return type;
 }
 
-llvm::Type *Parser::skip_type_spec() {
+llvm::Type *Parser::read_type_spec() {
   if(token.is("struct") || token.is("union")) return read_struct_union_type();
   else if(token.is("enum")) return read_enum_type();
   else if(token.get().type == TOK_TYPE_IDENT) return read_primitive_type();
