@@ -41,6 +41,8 @@ llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
       return builder.CreateZExtOrBitCast(val, to);
   } else if(val->getType()->isIntegerTy() && to->isDoubleTy()) {
     return builder.CreateSIToFP(val, to);
+  } else if(val->getType()->isDoubleTy() && to->isIntegerTy()) {
+    return builder.CreateFPToSI(val, to);
   }
   return builder.CreateTruncOrBitCast(val, to);
 }
@@ -77,6 +79,8 @@ llvm::Value *Codegen::statement(AST *st) {
       return statement((IndexAST *)st);
     case AST_ARRAY:
       return statement((ArrayAST *)st);
+    case AST_TYPECAST:
+      return statement((TypeCastAST *)st);
     case AST_UNARY:
       return statement((UnaryAST *)st);
     case AST_BINARY:
@@ -683,6 +687,10 @@ llvm::Value *Codegen::op_ge(llvm::Value *lhs, llvm::Value *rhs) {
 
 llvm::Value *Codegen::statement(ArrayAST *st) {
   return create_const_array(st->elems);
+}
+
+llvm::Value *Codegen::statement(TypeCastAST *st) {
+  return type_cast(statement(st->expr), st->cast_to);
 }
 
 llvm::Value *Codegen::statement(UnaryAST *st) {

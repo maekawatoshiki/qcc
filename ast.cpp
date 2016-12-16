@@ -20,6 +20,10 @@ ArrayAST::ArrayAST(AST_vec _elems):
   elems(_elems) {
 }
 
+TypeCastAST::TypeCastAST(AST *_expr, llvm::Type *_cast_to):
+  expr(_expr), cast_to(_cast_to) {
+}
+
 UnaryAST::UnaryAST(std::string _op, AST *_expr, bool _postfix):
   op(_op), expr(_expr), postfix(_postfix) {
 }

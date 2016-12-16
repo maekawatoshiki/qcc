@@ -10,6 +10,7 @@ enum {
   AST_VAR_DECLARATION,
   AST_TYPEDEF,
   AST_ARRAY,
+  AST_TYPECAST,
   AST_UNARY,
   AST_BINARY,
   AST_TERNARY,
@@ -80,6 +81,14 @@ class ArrayAST : public AST {
     AST_vec elems;
     virtual int get_type() const { return AST_ARRAY; };
     ArrayAST(AST_vec);
+};
+
+class TypeCastAST : public AST {
+  public:
+    AST *expr;
+    llvm::Type *cast_to;
+    virtual int get_type() const { return AST_TYPECAST; };
+    TypeCastAST(AST *, llvm::Type *);
 };
 
 class UnaryAST : public AST {

@@ -65,12 +65,18 @@ AST *Parser::expr_unary() {
        op_aste = false, 
        op_inc  = false, 
        op_dec  = false,
-       op_minus= false;
+       op_minus= false,
+       op_cast = false;
   op_addr  = token.is("&");
   op_aste  = token.is("*");
   op_inc   = token.is("++");
   op_dec   = token.is("--");
   op_minus = token.is("-");
+  op_cast  = [&]() -> bool {
+    if(!token.skip("(")) return false;
+    if(!is_type()) { token.prev(); return false; }
+    token.prev(); return true;
+  }();
   AST *expr = nullptr;
   if(op_addr || op_aste || op_inc || op_dec || op_minus) {
     token.skip();
@@ -80,6 +86,13 @@ AST *Parser::expr_unary() {
                         op_inc  ? "++":
                         op_dec  ? "--": 
                         op_minus? "-" : "", expr);
+  } else if(op_cast) {
+    token.expect_skip("(");
+    llvm::Type *cast_to = skip_type_spec();
+    std::string _; cast_to = read_declarator(_, cast_to);
+    token.expect_skip(")");
+    expr = expr_entry();
+    return new TypeCastAST(expr, cast_to);
   } else 
     expr = expr_func_call();
   return expr_unary_postfix(expr);
