@@ -331,22 +331,31 @@ void Parser::read_typedef() {
 
 bool Parser::is_function_proto() {
   int pos = token.pos;
-  int nest = 1;
-  if(!read_type_declarator()) goto exit;
-  token.skip(); // function name
-  if(!token.skip("(")) goto exit;
-  while(1) {
-    if(token.skip("(")) nest++;
-    else if(token.skip(")")) nest--;
-    else token.skip();
-    if(!nest) break;
+  std::function<void()> skip_brackets = [&]() {
+    while(1) {
+      if(token.get().type == TOK_TYPE_END) error("error: program reached EOF");
+      if(token.skip(")")) return;
+      if(token.skip("(")) skip_brackets();
+      else token.skip();
+    }
+  };
+
+  bool f = false;
+  for(;;) {
+    std::cout << token.get().val << std::endl;
+    if(token.skip(";")) break;
+    if(is_type()) { token.skip(); continue; }
+    if(token.skip("(")) { skip_brackets(); continue; }
+    if(token.get().type != TOK_TYPE_IDENT) {
+      token.skip(); continue; }
+    token.skip(); // func name
+    if(!token.skip("(")) break;//;continue;
+    skip_brackets();
+    f = token.skip(";");
+    break;
   }
-  if(!token.skip(";")) goto exit;
   token.pos = pos;
-  return true;
-exit:
-  token.pos = pos;
-  return false;
+  return f;
 }
 
 bool Parser::is_function_def() {
