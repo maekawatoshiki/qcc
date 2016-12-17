@@ -102,22 +102,11 @@ llvm::Value *Codegen::statement(AST *st) {
 llvm::Value *Codegen::statement(FunctionProtoAST *st) {
   func_t func;
   func.name = st->name;
-  func.ret_type = st->ret_type;
-  std::vector<llvm::Type *> llvm_args_type;
-  std::vector<std::string>  args_name;
-  bool has_vararg = false;
-  for(auto arg : st->args) {
-    if(arg->type == nullptr) { // null means variable arguments
-      has_vararg = true;
-    } else {
-      func.llvm_args_type.push_back(arg->type);
-    }
-  }
+  func.ret_type = st->func_type->getReturnType();
   this->func_list.add(func);
   func_t *function = this->func_list.get(func.name);
   
-  llvm::FunctionType *llvm_func_type = 
-    llvm::FunctionType::get(func.ret_type, func.llvm_args_type, has_vararg);
+  llvm::FunctionType *llvm_func_type = st->func_type;
   llvm::Function *llvm_func = 
     llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
   function->llvm_function = llvm_func;
@@ -132,23 +121,21 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
   if(proto) func = *proto;
   else {
     func.name = st->name;
-    func.ret_type = st->ret_type;
+    func.ret_type = st->func_type->getReturnType();
   }
-  std::vector<llvm::Type *> llvm_args_type;
-  std::vector<std::string>  args_name;
+  func.args_name = st->args_name;
 
   func.block_list.create_new_block();
-  for(auto arg : st->args) {
-    func.args_name.push_back(arg->name);
-    func.block_list.get_varlist()->add(var_t(arg->name, arg->type));
-    func.llvm_args_type.push_back(arg->type);
+  int i = 0;
+  for(auto arg : st->args_name) {
+    func.block_list.get_varlist()->add(var_t(
+          arg, st->func_type->getFunctionParamType(i++)));
   }
   this->func_list.add(func);
   func_t *function = this->func_list.get(func.name);
 
   if(!proto) {
-    llvm::FunctionType *llvm_func_type = 
-      llvm::FunctionType::get(func.ret_type, func.llvm_args_type, false);
+    llvm::FunctionType *llvm_func_type = st->func_type;
     llvm::Function *llvm_func = llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
     function->llvm_function = llvm_func;
   }
@@ -158,16 +145,17 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
     builder.SetInsertPoint(entry);
     
     cur_func = function;
-    auto llvm_args_type_it = function->llvm_args_type.begin();
-    auto      args_name_it = function->args_name.begin();
+    // auto llvm_args_type_it = function->llvm_function->arg_begin();
+    auto args_name_it = function->args_name.begin();
     for(auto arg_it = function->llvm_function->arg_begin(); arg_it != function->llvm_function->arg_end(); ++arg_it) {
       arg_it->setName(*args_name_it);
-      llvm::AllocaInst *ainst = create_entry_alloca(function->llvm_function, *args_name_it, *llvm_args_type_it);
+      llvm::AllocaInst *ainst = create_entry_alloca(function->llvm_function, *args_name_it, arg_it->getType());
       builder.CreateStore(arg_it, ainst);
       var_t *v = lookup_var(*args_name_it);
       if(v) v->val = ainst;
-      llvm_args_type_it++; args_name_it++;
+      args_name_it++;
     }
+
 
     for(auto stmt : st->body)
       statement(stmt);

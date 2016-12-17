@@ -93,7 +93,7 @@ llvm::Type *Parser::read_declarator(std::string &name, llvm::Type *basety, std::
     return type;
   }
   if(token.skip("*")) {
-    return read_declarator(name, basety->getPointerTo());
+    return read_declarator(name, basety->getPointerTo(), param);
   }
   if(token.get().type == TOK_TYPE_IDENT) {
     name = token.next().val;
@@ -171,10 +171,17 @@ std::vector<argument_t *> Parser::read_declarator_param() {
 }
 
 AST *Parser::make_function() {
-  llvm::Type *ret_type = read_type_declarator();
-  std::string name = token.next().val;
-  token.expect_skip("(");
-  auto args = read_declarator_param();
+  llvm::Type *ret_type = read_type_spec();
+  std::string name;// = token.next().val;
+  std::vector<argument_t *> args;
+  auto fty = static_cast<llvm::FunctionType *>(read_declarator(name, ret_type, args));
+  std::vector<std::string> args_name = [&]() {
+    std::vector<std::string> a;
+    for(auto arg : args) {
+      a.push_back(arg->name); 
+    }
+    return a;
+  }();
   AST_vec body;
   token.expect_skip("{");
   while(!token.skip("}")) {
@@ -182,15 +189,14 @@ AST *Parser::make_function() {
     if(st) body.push_back(st);
     while(token.skip(";"));
   }
-  return new FunctionDefAST(name, ret_type, args, body);
+  return new FunctionDefAST(name, fty, args_name, body);
 }
 
 AST *Parser::make_function_proto() {
-  llvm::Type *ret_type = read_type_declarator();
-  std::string name = token.next().val;
-  token.expect_skip("(");
-  auto args = read_declarator_param();
-  return new FunctionProtoAST(name, ret_type, args);
+  llvm::Type *ret_type = read_type_spec();
+  std::string name;
+  llvm::FunctionType *fty = static_cast<llvm::FunctionType *>(read_declarator(name, ret_type));
+  return new FunctionProtoAST(name, fty);
 }
 
 AST *Parser::make_block() { 
@@ -342,7 +348,6 @@ bool Parser::is_function_proto() {
 
   bool f = false;
   for(;;) {
-    std::cout << token.get().val << std::endl;
     if(token.skip(";")) break;
     if(is_type()) { token.skip(); continue; }
     if(token.skip("(")) { skip_brackets(); continue; }
@@ -360,22 +365,30 @@ bool Parser::is_function_proto() {
 
 bool Parser::is_function_def() {
   int pos = token.pos;
-  int nest = 1;
-  if(!read_type_declarator()) goto exit;
-  token.skip(); // function name
-  if(!token.skip("(")) goto exit;
-  while(1) {
-    if(token.skip("(")) nest++;
-    else if(token.skip(")")) nest--;
-    else token.skip();
-    if(!nest) break;
+  std::function<void()> skip_brackets = [&]() {
+    while(1) {
+      if(token.get().type == TOK_TYPE_END) error("error: program reached EOF");
+      if(token.skip(")")) return;
+      if(token.skip("(")) skip_brackets();
+      else token.skip();
+    }
+  };
+
+  bool f = false;
+  for(;;) {
+    if(token.skip(";")) break;
+    if(is_type()) { token.skip(); continue; }
+    if(token.skip("(")) { skip_brackets(); continue; }
+    if(token.get().type != TOK_TYPE_IDENT) {
+      token.skip(); continue; }
+    token.skip(); // func name
+    if(!token.skip("(")) break;//;continue;
+    skip_brackets();
+    f = token.skip("{");
+    break;
   }
-  if(!token.skip("{")) goto exit;
   token.pos = pos;
-  return true;
-exit:
-  token.pos = pos;
-  return false;
+  return f;
 }
 
 bool Parser::is_type() {

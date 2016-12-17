@@ -45,20 +45,19 @@ struct argument_t {
 class FunctionProtoAST : public AST {
   public:
     std::string name;
-    llvm::Type *ret_type;
-    std::vector<argument_t *> args;
+    llvm::FunctionType *func_type;
     virtual int get_type() const { return AST_FUNCTION_PROTO; };
-    FunctionProtoAST(std::string func_name, llvm::Type *, std::vector<argument_t *>argments_type);
+    FunctionProtoAST(std::string func_name, llvm::FunctionType *);
 };
 
 class FunctionDefAST : public AST {
   public:
     std::string name;
-    llvm::Type *ret_type;
-    std::vector<argument_t *> args;
+    llvm::FunctionType *func_type;
+    std::vector<std::string> args_name;
     AST_vec body;
     virtual int get_type() const { return AST_FUNCTION_DEF; };
-    FunctionDefAST(std::string, llvm::Type *, std::vector<argument_t *>, AST_vec);
+    FunctionDefAST(std::string, llvm::FunctionType *, std::vector<std::string>, AST_vec);
 };
 
 class FunctionCallAST : public AST {

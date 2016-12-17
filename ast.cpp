@@ -1,11 +1,11 @@
 #include "ast.hpp"
 
-FunctionProtoAST::FunctionProtoAST(std::string _name, llvm::Type *ret, std::vector<argument_t *> _args):
-  name(_name), ret_type(ret), args(_args) {
+FunctionProtoAST::FunctionProtoAST(std::string _name, llvm::FunctionType *fty):
+  name(_name), func_type(fty) {
 }
 
-FunctionDefAST::FunctionDefAST(std::string _name, llvm::Type *ret, std::vector<argument_t *> _args, AST_vec _body):
-  name(_name), ret_type(ret), args(_args), body(_body) {
+FunctionDefAST::FunctionDefAST(std::string _name, llvm::FunctionType *fty, std::vector<std::string> _args, AST_vec _body):
+  name(_name), func_type(fty), args_name(_args), body(_body) {
 }
 
 FunctionCallAST::FunctionCallAST(AST *_callee, AST_vec _args):

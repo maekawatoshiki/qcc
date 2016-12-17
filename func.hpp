@@ -24,7 +24,6 @@ struct func_t {
   std::string name;
   llvm::Type *ret_type;
   // std::vector<Type *> args_type;
-  std::vector<llvm::Type *> llvm_args_type;
   std::vector<std::string> args_name;
   std::stack<bool> br_list;
   std::stack<llvm::BasicBlock *> 
