@@ -131,8 +131,9 @@ struct declarator_t {
 class VarDeclarationAST : public AST {
   public: 
     std::vector<declarator_t *> decls;
+    int stg;
     virtual int get_type() const { return AST_VAR_DECLARATION; };
-    VarDeclarationAST(std::vector<declarator_t *>);
+    VarDeclarationAST(std::vector<declarator_t *>, int);
 };
 
 class TypedefAST : public AST {

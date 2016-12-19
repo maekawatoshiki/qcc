@@ -58,7 +58,8 @@ AST *Parser::statement() {
 }
 
 AST *Parser::read_declaration() {
-  llvm::Type *basety = read_type_spec();
+  int stg = STG_NONE;
+  llvm::Type *basety = read_type_spec(stg);
   if(token.skip(";")) return nullptr;
   std::vector<declarator_t *> decls;
   while(1) {
@@ -71,7 +72,7 @@ AST *Parser::read_declaration() {
     if(token.skip(";")) break;
     token.expect_skip(",");
   }
-  return new VarDeclarationAST(decls);
+  return new VarDeclarationAST(decls, stg);
 }
 
 llvm::Type *Parser::read_declarator(std::string &name, llvm::Type *basety) {
@@ -394,6 +395,8 @@ bool Parser::is_function_def() {
 bool Parser::is_type() {
   auto cur = token.get().val;
   if(
+      cur == "static"   ||
+      cur == "extern"   ||
       cur == "void"     ||
       cur == "unsigned" ||
       cur == "signed"   ||
@@ -422,6 +425,13 @@ llvm::Type *Parser::read_type_declarator() {
 }
 
 llvm::Type *Parser::read_type_spec() {
+  int d;
+  return read_type_spec(d);
+}
+
+llvm::Type *Parser::read_type_spec(int &stg) {
+  if(token.skip("extern")) stg = STG_EXTERN;
+  else if(token.skip("static")) stg = STG_STATIC;
   if(token.is("struct") || token.is("union")) return read_struct_union_type();
   else if(token.is("enum")) return read_enum_type();
   else if(token.get().type == TOK_TYPE_IDENT) return read_primitive_type();

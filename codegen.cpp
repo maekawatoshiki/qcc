@@ -1,4 +1,5 @@
 #include "codegen.hpp"
+#include "parse.hpp"
 
 llvm::LLVMContext &context(llvm::getGlobalContext());
 llvm::IRBuilder<> builder(context);
@@ -238,12 +239,16 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
             c = create_const_array(ar->elems, gv->getType()->getPointerElementType()->getArrayNumElements());
           }
           gv->setInitializer(c);
-          gv->setLinkage(llvm::GlobalVariable::ExternalLinkage);
+          gv->setLinkage(
+              st->stg == STG_STATIC ? llvm::GlobalVariable::InternalLinkage : llvm::GlobalVariable::ExternalLinkage);
         } else error("error: initialization of global variables must be constant");
       } else {
-        gv->setLinkage(llvm::GlobalVariable::CommonLinkage);
-        llvm::ConstantAggregateZero *zeroinit = llvm::ConstantAggregateZero::get(gv->getType()->getElementType());
-        gv->setInitializer(zeroinit);
+        gv->setLinkage(st->stg == STG_STATIC ? llvm::GlobalVariable::InternalLinkage :
+                       st->stg == STG_EXTERN ? llvm::GlobalVariable::ExternalLinkage : llvm::GlobalVariable::CommonLinkage);
+        if(st->stg != STG_EXTERN) {
+          llvm::ConstantAggregateZero *zeroinit = llvm::ConstantAggregateZero::get(gv->getType()->getElementType());
+          gv->setInitializer(zeroinit);
+        }
       }
       cur_var->val = gv;
     } else {

@@ -5,6 +5,11 @@
 #include "ast.hpp"
 #include "struct.hpp"
 
+enum StorageType {
+  STG_NONE,
+  STG_STATIC,
+  STG_EXTERN,
+};
 
 class Parser {
   private:
@@ -47,6 +52,7 @@ class Parser {
 
     llvm::Type *to_llvm_type(std::string);
     llvm::Type *read_type_spec();
+    llvm::Type *read_type_spec(int &);
     llvm::Type *read_primitive_type();
     llvm::Type *read_struct_union_type();
     llvm::Type *read_enum_type();

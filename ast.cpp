@@ -40,8 +40,8 @@ DotOpAST::DotOpAST(AST *_lhs, AST *_rhs, bool _arrow):
   lhs(_lhs), rhs(_rhs), is_arrow(_arrow) {
 }
 
-VarDeclarationAST::VarDeclarationAST(std::vector<declarator_t *> _decls):
-  decls(_decls) {
+VarDeclarationAST::VarDeclarationAST(std::vector<declarator_t *> _decls, int _stg):
+  decls(_decls), stg(_stg) {
 }
 
 TypedefAST::TypedefAST(llvm::Type *_from, std::string _to):
