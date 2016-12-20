@@ -133,7 +133,7 @@ class VarDeclarationAST : public AST {
     std::vector<declarator_t *> decls;
     int stg;
     virtual int get_type() const { return AST_VAR_DECLARATION; };
-    VarDeclarationAST(std::vector<declarator_t *>, int);
+    VarDeclarationAST(std::vector<declarator_t *>, int = STG_NONE);
 };
 
 class TypedefAST : public AST {

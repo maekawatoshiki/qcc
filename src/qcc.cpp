@@ -52,3 +52,11 @@ void show_usage() {
   puts("  -emit-ir   : output LLVM-IR to stdout");
   exit(0);
 }
+
+void error(const char *errs, ...) {
+  va_list args;
+  va_start(args, errs);
+    vprintf(errs, args); puts("");
+  va_end(args);
+  exit(0);
+}

@@ -80,12 +80,6 @@
 #include <dlfcn.h>
 
 // void error(const char *errs, ...);
-static void error(const char *errs, ...) {
-  va_list args;
-  va_start(args, errs);
-    vprintf(errs, args); puts("");
-  va_end(args);
-  exit(0);
-}
+void error(const char *errs, ...);
 
 typedef std::vector<llvm::Type *> Type_vec;
