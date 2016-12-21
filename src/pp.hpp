@@ -21,9 +21,12 @@ class Preprocessor {
     Token token, new_token;
     std::stack<bool> cond_stack; 
 
+    bool read_expr_line();
     void read_include();
     void read_define();
     void read_undef();
+    void do_read_if(bool);
+    void read_if();
     void read_ifdef();
     void read_ifndef();
     void read_else();

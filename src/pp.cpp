@@ -8,6 +8,7 @@ Token Preprocessor::run(Token tok) {
            if(token.skip("include"))             read_include();
       else if(token.skip("define"))              read_define();
       else if(token.skip("undef"))               read_undef();
+      else if(token.skip("if"))                  read_if();
       else if(token.skip("ifdef"))               read_ifdef();
       else if(token.skip("ifndef"))              read_ifndef();
       else if(token.skip("else"))                read_else();
@@ -52,24 +53,28 @@ void Preprocessor::read_undef() {
     define_map.erase(it);
 }
 
+bool read_expr_line() {
+  return false;
+}
+
+void Preprocessor::do_read_if(bool m) {
+  cond_stack.push(m);
+  if(m) skip_cond_include();
+}
+
+void Preprocessor::read_if() {
+}
+
 void Preprocessor::read_ifdef() {
-  std::string macro;
   if(token.get().type != TOK_TYPE_IDENT) error("error: in pp");
-  macro = token.next().val;
-  if(!define_map.count(macro)) {
-    skip_cond_include();
-    cond_stack.push(false);
-  } else cond_stack.push(true);
+  std::string macro = token.next().val;
+  do_read_if( !define_map.count(macro) );
 }
 
 void Preprocessor::read_ifndef() {
-  std::string macro;
   if(token.get().type != TOK_TYPE_IDENT) error("error: in pp");
-  macro = token.next().val;
-  if(define_map.count(macro)) {
-    skip_cond_include();
-    cond_stack.push(false);
-  } else cond_stack.push(true);
+  std::string macro = token.next().val;
+  do_read_if( define_map.count(macro) );
 }
 
 void Preprocessor::read_else() {
