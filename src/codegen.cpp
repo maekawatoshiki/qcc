@@ -109,7 +109,8 @@ llvm::Value *Codegen::statement(FunctionProtoAST *st) {
   
   llvm::FunctionType *llvm_func_type = st->func_type;
   llvm::Function *llvm_func = 
-    llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
+    llvm::Function::Create(llvm_func_type, 
+        st->stg == STG_STATIC ? llvm::Function::InternalLinkage : llvm::Function::ExternalLinkage, func.name, mod);
   function->llvm_function = llvm_func;
 
   return nullptr;
@@ -137,7 +138,8 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
 
   if(!proto) {
     llvm::FunctionType *llvm_func_type = st->func_type;
-    llvm::Function *llvm_func = llvm::Function::Create(llvm_func_type, llvm::Function::ExternalLinkage, func.name, mod);
+    llvm::Function *llvm_func = llvm::Function::Create(llvm_func_type, 
+        st->stg == STG_STATIC ? llvm::Function::InternalLinkage : llvm::Function::ExternalLinkage, func.name, mod);
     function->llvm_function = llvm_func;
   }
 

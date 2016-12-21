@@ -172,7 +172,8 @@ std::vector<argument_t *> Parser::read_declarator_param() {
 }
 
 AST *Parser::make_function() {
-  llvm::Type *ret_type = read_type_spec();
+  int stg;
+  llvm::Type *ret_type = read_type_spec(stg);
   std::string name;// = token.next().val;
   std::vector<argument_t *> args;
   auto fty = static_cast<llvm::FunctionType *>(read_declarator(name, ret_type, args));
@@ -190,14 +191,15 @@ AST *Parser::make_function() {
     if(st) body.push_back(st);
     while(token.skip(";"));
   }
-  return new FunctionDefAST(name, fty, args_name, body);
+  return new FunctionDefAST(name, fty, args_name, body, stg);
 }
 
 AST *Parser::make_function_proto() {
-  llvm::Type *ret_type = read_type_spec();
+  int stg;
+  llvm::Type *ret_type = read_type_spec(stg);
   std::string name;
   llvm::FunctionType *fty = static_cast<llvm::FunctionType *>(read_declarator(name, ret_type));
-  return new FunctionProtoAST(name, fty);
+  return new FunctionProtoAST(name, fty, stg);
 }
 
 AST *Parser::make_block() { 
