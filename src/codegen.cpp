@@ -221,6 +221,55 @@ llvm::Value *Codegen::statement(FunctionCallAST *st) {
   return nullptr;
 }
 
+void Codegen::create_var(var_t v, llvm::Value *init_val) {
+  cur_func->block_list.get_varlist()->add(v);
+  auto cur_var = lookup_var(v.name);
+  if(!cur_var) error("error: not found variable '%s'", v.name.c_str());
+  // get begin of current basic block
+  llvm::IRBuilder<> B = [&]() -> llvm::IRBuilder<> {
+    if(cur_func->llvm_function->begin()->empty())
+      return llvm::IRBuilder<>(cur_func->llvm_function->begin());
+    else return llvm::IRBuilder<>(cur_func->llvm_function->begin()->begin());
+  }();
+  cur_var->val = B.CreateAlloca(cur_var->type, nullptr, cur_var->name);
+  if(init_val) 
+    asgmt_value(cur_var->val, init_val);
+}
+
+void Codegen::create_global_var(var_t v, int stg, AST *init_val) {
+  global_var.add(v);
+  auto cur_var = lookup_var(v.name);
+  mod->getOrInsertGlobal(v.name, v.type);
+  llvm::GlobalVariable *gv = mod->getNamedGlobal(v.name);
+  if(init_val) {
+    auto expr = statement(init_val);
+    if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(expr)) {
+      if(c->getType()->isArrayTy() && 
+          c->getType()->getArrayNumElements() != gv->getType()->getPointerElementType()->getArrayNumElements()) {
+        llvm::ConstantArray *const_arr = static_cast<llvm::ConstantArray *>(c);
+        ArrayAST *ar = (ArrayAST *)init_val;
+        c = create_const_array([&]() -> std::vector<llvm::Constant *> {
+              std::vector<llvm::Constant *> const_elems;
+              for(int i = 0; i < c->getType()->getArrayNumElements(); i++)
+                const_elems.push_back( const_arr->getAggregateElement(i) );
+              return const_elems;
+            }(), gv->getType()->getPointerElementType()->getArrayNumElements());
+      }
+      gv->setInitializer(c);
+      gv->setLinkage(
+          stg == STG_STATIC ? llvm::GlobalVariable::InternalLinkage : llvm::GlobalVariable::ExternalLinkage);
+    } else error("error: initialization of global variables must be constant");
+  } else {
+    gv->setLinkage(stg == STG_STATIC ? llvm::GlobalVariable::InternalLinkage :
+        stg == STG_EXTERN ? llvm::GlobalVariable::ExternalLinkage : llvm::GlobalVariable::CommonLinkage);
+    if(stg != STG_EXTERN) {
+      llvm::ConstantAggregateZero *zeroinit = llvm::ConstantAggregateZero::get(gv->getType()->getElementType());
+      gv->setInitializer(zeroinit);
+    }
+  }
+  cur_var->val = gv;
+}
+
 llvm::Value *Codegen::statement(VarDeclarationAST *st) {
   for(auto v : st->decls) {
     llvm::Value *init_val = nullptr;
@@ -228,43 +277,9 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
     // int a[] = {1, 2}; -->> int a[2] = {1, 2};
     if(v->type->isPointerTy() && init_val && init_val->getType()->isArrayTy()) v->type = init_val->getType();
     if(cur_func == nullptr) { // global 
-      global_var.add(var_t(v->name, v->type));
-      auto cur_var = lookup_var(v->name);
-      mod->getOrInsertGlobal(v->name, v->type);
-      llvm::GlobalVariable *gv = mod->getNamedGlobal(v->name);
-      if(v->init_expr) {
-        auto expr = statement(v->init_expr);
-        if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(expr)) {
-          if(c->getType()->isArrayTy() && 
-              c->getType()->getArrayNumElements() != gv->getType()->getPointerElementType()->getArrayNumElements()) {
-            ArrayAST *ar = (ArrayAST *)v->init_expr;
-            c = create_const_array(ar->elems, gv->getType()->getPointerElementType()->getArrayNumElements());
-          }
-          gv->setInitializer(c);
-          gv->setLinkage(
-              st->stg == STG_STATIC ? llvm::GlobalVariable::InternalLinkage : llvm::GlobalVariable::ExternalLinkage);
-        } else error("error: initialization of global variables must be constant");
-      } else {
-        gv->setLinkage(st->stg == STG_STATIC ? llvm::GlobalVariable::InternalLinkage :
-                       st->stg == STG_EXTERN ? llvm::GlobalVariable::ExternalLinkage : llvm::GlobalVariable::CommonLinkage);
-        if(st->stg != STG_EXTERN) {
-          llvm::ConstantAggregateZero *zeroinit = llvm::ConstantAggregateZero::get(gv->getType()->getElementType());
-          gv->setInitializer(zeroinit);
-        }
-      }
-      cur_var->val = gv;
+      create_global_var(var_t(v->name, v->type), st->stg, v->init_expr);
     } else {
-      cur_func->block_list.get_varlist()->add(var_t(v->name, v->type));
-      auto cur_var = lookup_var(v->name);
-      if(!cur_var) error("error: not found variable '%s'", v->name.c_str());
-      llvm::IRBuilder<> B = [&]() -> llvm::IRBuilder<> {
-        if(cur_func->llvm_function->begin()->empty())
-          return llvm::IRBuilder<>(cur_func->llvm_function->begin());
-        else return llvm::IRBuilder<>(cur_func->llvm_function->begin()->begin());
-      }();
-      cur_var->val = B.CreateAlloca(cur_var->type, nullptr, cur_var->name);
-      if(init_val) 
-        asgmt_value(cur_var->val, init_val);
+      create_var(var_t(v->name, v->type), init_val);
     }
   }
   return nullptr;
@@ -460,11 +475,11 @@ llvm::Value *Codegen::get_value(AST *st) {
   return nullptr;
 }
 
-llvm::Constant *Codegen::create_const_array(std::vector<AST *> ast_elems, int size) {
-  std::vector<llvm::Constant *> elems;
-  for(auto elem : ast_elems) {
-    elems.push_back( (llvm::Constant *)statement(elem) );
-  }
+llvm::Constant *Codegen::create_const_array(std::vector<llvm::Constant *> elems, int size) {
+  // std::vector<llvm::Constant *> elems;
+  // for(auto elem : ast_elems) {
+  //   elems.push_back( (llvm::Constant *)statement(elem) );
+  // }
   for(int i = elems.size(); i < size; i++)
     elems.push_back(llvm::ConstantInt::get(elems[0]->getType(), 0));
   auto ary_type = llvm::ArrayType::get(elems[0]->getType(), elems.size());
@@ -681,7 +696,10 @@ llvm::Value *Codegen::op_ge(llvm::Value *lhs, llvm::Value *rhs) {
 #undef IMPLICIT_CAST
 
 llvm::Value *Codegen::statement(ArrayAST *st) {
-  return create_const_array(st->elems);
+  std::vector<llvm::Constant *> const_elems;
+  for(auto e : st->elems) 
+    const_elems.push_back(static_cast<llvm::Constant *>(statement(e)));
+  return create_const_array(const_elems);
 }
 
 llvm::Value *Codegen::statement(TypeCastAST *st) {

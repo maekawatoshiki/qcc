@@ -61,7 +61,10 @@ class Codegen {
     llvm::Value *statement(StringAST *           ); 
     llvm::Value *statement(NumberAST *           ); 
     llvm::Value *statement(SizeofAST *           );
-    llvm::Constant *create_const_array(std::vector<AST *>, int = 0);
+
+    void create_var(var_t v, llvm::Value * = nullptr);
+    void create_global_var(var_t v, int /*storage ty*/, AST * = nullptr);
+    llvm::Constant *create_const_array(std::vector<llvm::Constant *>, int = 0);
     llvm::Value *get_element_ptr(IndexAST *      ); 
     llvm::Value *get_value(AST *                 ); 
     llvm::Value *asgmt_value(llvm::Value *, llvm::Value *src);
