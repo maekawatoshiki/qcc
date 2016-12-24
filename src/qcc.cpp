@@ -15,6 +15,7 @@ int QCC::run() {
   // TODO: FIXME: Here is a simple option parser.
   std::string ofile, infile; 
   bool emit_llvm_ir = false;
+  if(argc < 2) show_usage();
   for(int i = 0; i < argc; i++) {
     if(!strcmp(argv[i], "-o")) {
       ofile = argv[++i]; 
@@ -22,6 +23,8 @@ int QCC::run() {
       emit_llvm_ir = true;
     } else if(!strcmp(argv[i], "-h")) {
       show_usage();
+    } else if(!strcmp(argv[i], "-v")) {
+      show_version(); exit(0);
     } else infile = argv[i];
   }
 
@@ -43,13 +46,18 @@ void QCC::set_out_file_name(std::string name) { out_file_name = name; }
 
 void QCC::set_emit_llvm_ir(bool e) { emit_llvm_ir = e; }
 
-
-void show_usage() {
+void QCC::show_version() {
   puts("qcc - a small toy compiler for C langauge (v" QCC_VERSION ", BUILD " __DATE__ " " __TIME__ ")");
+}
+
+void QCC::show_usage() {
+  show_version();
   puts("./qcc [options] file...");
   puts("options:");
   puts("  -o <name>  : place the output into <name> (default is 'a.bc')");
   puts("  -emit-ir   : output LLVM-IR to stdout");
+  puts("  -h         : show this help");
+  puts("  -v         : show version info");
   exit(0);
 }
 

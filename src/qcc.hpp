@@ -28,8 +28,10 @@ class QCC {
     void set_out_file_name(std::string);
     void set_emit_llvm_ir(bool);
 
+    void show_usage();
+    void show_version();
+
     int run(); // run following argc and argv
     int run(std::string);
 };
 
-void show_usage();
