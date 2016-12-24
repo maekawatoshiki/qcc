@@ -244,7 +244,7 @@ void Codegen::create_global_var(var_t v, int stg, AST *init_val) {
   if(init_val) {
     auto expr = statement(init_val);
     if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(expr)) {
-      if(c->getType()->isArrayTy() && 
+      if(c->getType()->isArrayTy() && c->getType()->getPointerElementType()->isArrayTy() &&
           c->getType()->getArrayNumElements() != gv->getType()->getPointerElementType()->getArrayNumElements()) {
         llvm::ConstantArray *const_arr = static_cast<llvm::ConstantArray *>(c);
         ArrayAST *ar = (ArrayAST *)init_val;
@@ -254,7 +254,34 @@ void Codegen::create_global_var(var_t v, int stg, AST *init_val) {
                 const_elems.push_back( const_arr->getAggregateElement(i) );
               return const_elems;
             }(), gv->getType()->getPointerElementType()->getArrayNumElements());
-      }
+      } /*else if(c->getType()->isArrayTy() &&
+          gv->getType()->getPointerElementType()->isStructTy()) {
+        puts("ahe");
+        llvm::ConstantArray *const_arr = static_cast<llvm::ConstantArray *>(c);
+        llvm::ConstantStruct *const_s = (llvm::ConstantStruct *)llvm::ConstantStruct::get(
+            static_cast<llvm::StructType *>(gv->getType()->getPointerElementType()),
+            [&]() -> std::vector<llvm::Constant *> {
+              std::vector<llvm::Constant *> const_elems;
+              for(int i = 0; i < c->getType()->getArrayNumElements(); i++)
+                const_elems.push_back( const_arr->getAggregateElement(i) );
+              return const_elems;
+            }());
+        c = const_s;
+      } else if(c->getType()->isArrayTy() &&
+          gv->getType()->getPointerElementType()->isArrayTy() &&
+          gv->getType()->getPointerElementType()->getArrayElementType()->isStructTy()) {
+        puts("here");
+        llvm::ConstantArray *const_arr = static_cast<llvm::ConstantArray *>(c);
+        llvm::ConstantStruct *const_s = (llvm::ConstantStruct *)llvm::ConstantStruct::get(
+            static_cast<llvm::StructType *>(gv->getType()->getPointerElementType()->getArrayElementType()),
+            [&]() -> std::vector<llvm::Constant *> {
+              std::vector<llvm::Constant *> const_elems;
+              for(int i = 0; i < c->getType()->getArrayNumElements(); i++)
+                const_elems.push_back( const_arr->getAggregateElement(i) );
+              return const_elems;
+            }());
+        c = const_s;
+      }*/
       gv->setInitializer(c);
       gv->setLinkage(
           stg == STG_STATIC ? llvm::GlobalVariable::InternalLinkage : llvm::GlobalVariable::ExternalLinkage);
