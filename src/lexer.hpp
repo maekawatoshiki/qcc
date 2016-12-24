@@ -15,6 +15,8 @@ class Lexer {
     void tok_char  (std::string::iterator &);
     void tok_symbol(std::string::iterator &);
     void skip_line (std::string::iterator &);
+
+    char replace_escape(std::string::iterator &);
   public:
     Token run(std::string);
 };

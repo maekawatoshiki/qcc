@@ -43,11 +43,9 @@ void Lexer::tok_ident(std::string::iterator &pos) {
 }
 void Lexer::tok_string(std::string::iterator &pos) {
   std::string content;
-  for(pos++; *pos != '\"'; pos++) {
-    content += *pos;
-    if(*pos == '\\') 
-      content += *++pos;
-  }
+  for(pos++; *pos != '\"'; pos++) 
+    content += (*pos == '\\') ? replace_escape(pos) : *pos;
+
   token.add_string_tok(content, cur_line, space);
   space = false;
 }
@@ -77,4 +75,20 @@ void Lexer::tok_symbol(std::string::iterator &pos) {
 
 void Lexer::skip_line(std::string::iterator &pos) {
   while(*pos != '\n') pos++;
+}
+
+char Lexer::replace_escape(std::string::iterator &pos) {
+  char c = *++pos;
+  switch(c) {
+    case '\'': case '"': case '?': case '\\':
+      return c;
+    case 'a': return '\a';
+    case 'b': return '\b';
+    case 'f': return '\f';
+    case 'n': return '\n';
+    case 'r': return '\r';
+    case 't': return '\t';
+    case 'v': return '\v';
+  }
+  return c;
 }
