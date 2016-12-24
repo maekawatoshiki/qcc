@@ -128,15 +128,17 @@ void Preprocessor::replace_macro() {
   // funclike macro
   token.skip(); // IDENT
   token.expect_skip("(");
+  int nest = 1;
   std::vector< std::vector<token_t> > args;
   while(token.get().type != TOK_TYPE_END) {
     std::vector<token_t> arg;
     while(1) {
+      if(token.is("(")) nest++; if(token.is(")")) nest--;
+      if((token.is(")") && !nest) || token.is(",")) break;
       arg.push_back(token.next());
-      if(token.is(")") || token.is(",")) break;
     }
     args.push_back(arg);
-    if(token.skip(")")) break;
+    if(token.skip(")") && !nest) break;
     token.expect_skip(",");
   }
   auto repd_end = token.pos;
