@@ -266,8 +266,10 @@ AST *Parser::make_return() {
 llvm::Type *Parser::make_struct_declaration() {
   if(!token.skip("struct")) return nullptr;
   std::string name;
+
   if(token.get().type == TOK_TYPE_IDENT) 
     name = token.next().val;
+
   if(name.empty()) [](std::string &str) { // if name is empty, generate random name
     int len = 8; while(len--)
       str += (rand() % 26) + 65;
@@ -275,7 +277,8 @@ llvm::Type *Parser::make_struct_declaration() {
 
   llvm::StructType *new_struct = nullptr;
   auto t_strct = this->struct_list.get("struct." + name);
-  if(!t_strct) {
+  if(!t_strct) { // if not declared
+    // create empty struct
     new_struct = llvm::StructType::create(context, "struct." + name);
     this->struct_list.add("struct." + name, std::vector<std::string>(), new_struct);
     t_strct = this->struct_list.get("struct." + name);
@@ -310,7 +313,6 @@ llvm::Type *Parser::make_struct_declaration() {
 }
 
 llvm::Type *Parser::make_enum_declaration() {
-  if(!token.skip("enum")) return nullptr;
   std::string name;
   if(token.get().type == TOK_TYPE_IDENT) 
     name = token.next().val;
@@ -405,6 +407,7 @@ bool Parser::is_type() {
       cur == "int"      ||
       cur == "char"     ||
       cur == "short"    ||
+      cur == "long"     ||
       cur == "double"   ||
       cur == "struct"   ||
       cur == "enum"     ||
@@ -417,27 +420,58 @@ bool Parser::is_type() {
   return false;
 }
 
-llvm::Type *Parser::read_type_declarator() {
-  if(!is_type()) return nullptr;
-  llvm::Type *type = read_type_spec();
-  if(type == nullptr) return nullptr;
-  for(int i=skip_pointer(); i > 0; i--)
-    type = type->getPointerTo(); //new llvm::Type(TY_PTR, type);
-  return type;
-}
-
 llvm::Type *Parser::read_type_spec() {
   int d;
   return read_type_spec(d);
 }
 
 llvm::Type *Parser::read_type_spec(int &stg) {
-  if(token.skip("extern")) stg = STG_EXTERN;
-  else if(token.skip("static")) stg = STG_STATIC;
-  if(token.is("struct") || token.is("union")) return read_struct_union_type();
-  else if(token.is("enum")) return read_enum_type();
-  else if(token.get().type == TOK_TYPE_IDENT) return read_primitive_type();
-  else if(token.skip("...")) return nullptr; // null is variable argument
+  enum { tsigned, tunsigned } sign = tsigned;
+  enum { tvoid, tchar, tint, tdouble } type = tint;
+  enum { tshort, tdefault, tlong, tllong } size = tdefault;
+
+  for(;;) {
+    if(typedef_map.count(token.get().val)) {
+      std::string t = token.next().val; return typedef_map[t];
+    }
+         if(token.skip("extern")) stg = STG_EXTERN;
+    else if(token.skip("static")) stg = STG_STATIC;
+
+    // TODO: wanna use skip(), not is().
+    else if(token.is("struct") ||
+            token.is("union"))    return read_struct_union_type();
+    else if(token.skip("enum"))   return read_enum_type();
+
+    else if(token.skip("..."))    return nullptr;
+
+    else if(token.skip("signed")) sign = tsigned;
+    else if(token.skip("unsigned")) sign = tunsigned;
+
+    else if(token.skip("void"))   type = tvoid;
+    else if(token.skip("int"))    type = tint;
+    else if(token.skip("char"))   type = tchar;
+    else if(token.skip("double")) type = tdouble;
+    else if(token.skip("short"))  size = tshort;
+    else if(token.skip("long"))   {
+      if(size == tlong) size = tllong;
+      else size = tlong; 
+    } else break;
+  }
+
+  switch(type) {
+    case tvoid:   return builder.getVoidTy();
+    case tchar:   return builder.getInt8Ty();
+    case tdouble: return builder.getDoubleTy();
+    default: break;
+  }
+
+  switch(size) {
+    case tshort: return builder.getInt16Ty();
+    case tlong:  return builder.getInt32Ty();
+    case tllong: return builder.getInt64Ty();
+    default:     return builder.getInt32Ty();
+  }
+
   return nullptr;
 }
 
@@ -458,54 +492,11 @@ llvm::Type *Parser::read_struct_union_type() {
 }
 
 llvm::Type *Parser::read_enum_type() {
-  if( token.get(1).val == "{" || // struct { ... }
-      token.get(2).val == "{") // struct NAME { ... }
+  if( token.get().val == "{" || // enum { ... }
+      token.get(1).val == "{") // enum NAME { ... }
     return make_enum_declaration();
-  token.skip("enum");
   if(token.get().type == TOK_TYPE_IDENT)
     token.skip();
   return builder.getInt32Ty();
 }
 
-llvm::Type *Parser::read_primitive_type() {
-  std::string name = token.next().val;
-  if(name == "signed" || name == "unsigned") 
-    name = token.next().val;
-  return to_llvm_type(name);
-}
-
-int Parser::skip_pointer() {
-  int count = 0;
-  while(token.get().type == TOK_TYPE_SYMBOL && token.get().val == "*")
-    count++, token.skip();
-  return count;
-}
-
-std::vector<int> Parser::skip_array() {
-  std::vector<int> ary;
-  while(token.skip("[")) {
-    int ary_size = -1;
-    if(token.get().type == TOK_TYPE_NUMBER) 
-      ary_size = atoi(token.next().val.c_str());
-    token.expect_skip("]");
-    ary.push_back(ary_size);
-  }
-  return ary;
-}
-
-llvm::Type *Parser::to_llvm_type(std::string ty) {
-  if(ty == "int") {
-    return builder.getInt32Ty();
-  } else if(ty == "short") {
-    return builder.getInt16Ty();
-  } else if(ty == "void") {
-    return builder.getVoidTy();
-  } else if(ty == "char") {
-    return builder.getInt8Ty();
-  } else if(ty == "double") {
-    return builder.getDoubleTy();
-  } else { // typedef
-    if(!typedef_map.count(ty)) return nullptr;
-    return typedef_map[ty];
-  }
-}
