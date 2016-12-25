@@ -1,6 +1,6 @@
 # QCC
 [![Build Status](https://img.shields.io/travis/maekawatoshiki/qcc.svg?style=flat-square)](https://travis-ci.org/maekawatoshiki/qcc)
-[![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)]()
+[![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
 
 - qcc is a small toy compiler for C language.
 - waiting for pull-req!
