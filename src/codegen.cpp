@@ -833,7 +833,13 @@ llvm::Value *Codegen::statement(DotOpAST *st) {
 }
 
 llvm::Value *Codegen::statement(SizeofAST *st) {
-  return make_int(data_layout->getTypeAllocSize(st->type));
+  llvm::Type *t;
+  if(st->is_expr) {
+    auto s = statement(st->ast);
+    t = s->getType();
+  } else t = st->type;
+
+  return make_int(data_layout->getTypeAllocSize(t));
 }
 
 llvm::Value *Codegen::statement(StringAST *st) {

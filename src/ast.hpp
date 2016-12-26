@@ -208,8 +208,11 @@ class ReturnAST : public AST {
 class SizeofAST : public AST {
   public:
     llvm::Type *type;
+    AST *ast;
+    bool is_expr = false;
     virtual int get_type() const { return AST_SIZEOF; };
     SizeofAST(llvm::Type *);
+    SizeofAST(AST *);
 };
 
 class NumberAST : public AST {

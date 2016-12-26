@@ -80,6 +80,10 @@ SizeofAST::SizeofAST(llvm::Type *_type):
   type(_type) {
 }
 
+SizeofAST::SizeofAST(AST *_ast):
+  ast(_ast), is_expr(true) {
+}
+
 NumberAST::NumberAST(int num):
   i_number(num) {
 }

@@ -170,14 +170,17 @@ AST *Parser::expr_primary() {
     return new NumberAST(token.next().val[0]);
   } else if(token.skip("sizeof")) {
     token.expect_skip("(");
-    llvm::Type *type; 
     if(is_type()) {
-      type = read_type_spec(); // base type
+      llvm::Type *type = read_type_spec(); // base type
       std::string _; 
       type = read_declarator(_, type);
+      token.expect_skip(")");
+      return new SizeofAST(type);
+    } else {
+      AST *expr = expr_entry();
+      token.expect_skip(")");
+      return new SizeofAST(expr);
     }
-    token.expect_skip(")");
-    return new SizeofAST(type);
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
     if(enum_list.count(name)) {
