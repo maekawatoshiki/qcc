@@ -16,12 +16,15 @@ $(PROG): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ -rdynamic $(OBJS) $(LIBS)
 
 test: $(PROG)
+	@for t in $$(ls example); do \
+		./qcc example/$$t > /dev/null || exit; \
+  done
 	@for t in $(TESTS); do \
 		./test/test.sh $$t; \
-	done
+  done
 	@for t in $(TESTS); do \
 		$$t.bin || exit; \
-	done
+  done
 
 clean:
 	-$(RM) $(PROG) $(OBJS) $(DEPS) $(TESTS:%=%.bc) $(TESTS:%=%.s) $(TESTS:%=%.bin)
