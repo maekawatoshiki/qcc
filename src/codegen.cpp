@@ -835,7 +835,12 @@ llvm::Value *Codegen::statement(DotOpAST *st) {
 llvm::Value *Codegen::statement(SizeofAST *st) {
   llvm::Type *t;
   if(st->is_expr) {
+    // TODO: fix this..
+    auto bgn = builder.GetInsertBlock()->getInstList().size();
     auto s = statement(st->ast);
+    auto end = builder.GetInsertBlock()->getInstList().size();
+    for(int i = 0; i < (end-bgn); i++)
+      builder.GetInsertBlock()->getInstList().back().eraseFromParent();
     t = s->getType();
   } else t = st->type;
 
