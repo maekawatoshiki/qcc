@@ -406,17 +406,19 @@ llvm::Value *Codegen::statement(ForAST *st) {
   llvm::BasicBlock *bb_step = llvm::BasicBlock::Create(context, "loop_step", func);
   llvm::BasicBlock *bb_after_loop = llvm::BasicBlock::Create(context, "after_loop", func);
 
-  statement(st->init);
+  if(st->init) statement(st->init);
 
   builder.CreateBr(bb_before_loop);
   builder.SetInsertPoint(bb_before_loop);
-  auto val_cond = statement(st->cond);
-  llvm::Value *first_val_cond = builder.CreateICmpNE(
-      val_cond, 
-      val_cond->getType()->isPointerTy() ?
-      llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
-      llvm::ConstantInt::get(val_cond->getType(), 0, true));
-  builder.CreateCondBr(first_val_cond, bb_loop, bb_after_loop);
+  if(st->cond) {
+    auto val_cond = statement(st->cond);
+    llvm::Value *first_val_cond = builder.CreateICmpNE(
+        val_cond, 
+        val_cond->getType()->isPointerTy() ?
+        llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
+        llvm::ConstantInt::get(val_cond->getType(), 0, true));
+    builder.CreateCondBr(first_val_cond, bb_loop, bb_after_loop);
+  } else builder.CreateBr(bb_loop);
   builder.SetInsertPoint(bb_loop);
 
   cur_func->break_list.push(bb_after_loop);
@@ -427,7 +429,7 @@ llvm::Value *Codegen::statement(ForAST *st) {
   builder.CreateBr(bb_step);
 
   builder.SetInsertPoint(bb_step);
-  statement(st->reinit);
+  if(st->reinit) statement(st->reinit);
 
   builder.CreateBr(bb_before_loop);
 

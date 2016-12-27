@@ -28,8 +28,12 @@ Token Lexer::run(std::string source) {
 
 void Lexer::tok_number(std::string::iterator &pos) {
   std::string number;
-  for(; isdigit(*pos) || *pos == '.'; pos++)
-    number += *pos;
+  for(;;) {
+    char c = *pos;
+    bool is_float = strchr("eEpP", *(pos-1)) && strchr("+-", c);
+    if(!isdigit(c) && !isalpha(c) && c != '.' && !is_float) break;
+    number += *pos++;
+  }
   --pos; token.add_number_tok(number, cur_line, space);
   space = false;
 }
