@@ -4,7 +4,7 @@
 
 struct var_t {
   var_t(std::string _name, llvm::Type *_type):
-    name(_name), type(_type) {};
+    type(_type), name(_name) {};
   llvm::Type *type;
   llvm::Value *val;
   std::string name;

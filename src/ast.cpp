@@ -1,11 +1,11 @@
 #include "ast.hpp"
 
 FunctionProtoAST::FunctionProtoAST(std::string _name, llvm::FunctionType *fty, int _stg):
-  name(_name), func_type(fty), stg(_stg) {
+  stg(_stg), name(_name), func_type(fty) {
 }
 
 FunctionDefAST::FunctionDefAST(std::string _name, llvm::FunctionType *fty, std::vector<std::string> _args, AST_vec _body, int _stg):
-  name(_name), func_type(fty), args_name(_args), body(_body), stg(_stg) {
+  stg(_stg), name(_name), func_type(fty), args_name(_args), body(_body) {
 }
 
 FunctionCallAST::FunctionCallAST(AST *_callee, AST_vec _args):
@@ -25,7 +25,7 @@ TypeCastAST::TypeCastAST(AST *_expr, llvm::Type *_cast_to):
 }
 
 UnaryAST::UnaryAST(std::string _op, AST *_expr, bool _postfix):
-  op(_op), expr(_expr), postfix(_postfix) {
+  expr(_expr), op(_op), postfix(_postfix) {
 }
 
 BinaryAST::BinaryAST(std::string _op, AST *_lhs, AST *_rhs):
@@ -89,7 +89,7 @@ NumberAST::NumberAST(int num):
 }
 
 NumberAST::NumberAST(double num):
-  f_number(num), is_float(true) {
+  is_float(true), f_number(num) {
 }
 
 StringAST::StringAST(std::string _str):
