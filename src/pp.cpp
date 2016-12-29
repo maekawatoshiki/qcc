@@ -53,28 +53,62 @@ void Preprocessor::read_undef() {
     define_map.erase(it);
 }
 
-bool read_expr_line() {
-  return false;
+token_t Preprocessor::read_defined_op() {
+  std::string macro_name;
+  if(token.skip("(")) {
+    macro_name = token.next().val;
+    token.expect_skip(")");
+  } else {
+    macro_name = token.next().val;
+  }
+  std::cout << this->define_map.count(macro_name) << std::endl;;
+  return this->define_map.count(macro_name) ? 
+    token_t(TOK_TYPE_NUMBER, "1", token.get().line) : 
+    token_t(TOK_TYPE_NUMBER, "0", token.get().line);
+}
+
+Token Preprocessor::read_expr_line() {
+  Token expr_line;
+  int cur_line = token.get().line;
+  for(;;) {
+    puts("HERE");
+    if(cur_line != token.get().line) break;
+    if(token.skip("defined")) {
+      expr_line.token.push_back(read_defined_op());
+    } else {
+      expr_line.token.push_back(token.next());
+    }
+  }
+  return expr_line;
+}
+
+bool Preprocessor::read_constexpr() {
+  // TODO: implement processing of const expression
+  auto tok = read_expr_line();
+  if(tok.get().type != TOK_TYPE_NUMBER) error("error: ???");
+  if(tok.skip("1")) return true;
+  return false; // tok.skip("0")
 }
 
 void Preprocessor::do_read_if(bool m) {
   cond_stack.push(m);
-  if(m) skip_cond_include();
+  if(!m) skip_cond_include();
 }
 
 void Preprocessor::read_if() {
+  do_read_if(read_constexpr());
 }
 
 void Preprocessor::read_ifdef() {
   if(token.get().type != TOK_TYPE_IDENT) error("error: in pp");
   std::string macro = token.next().val;
-  do_read_if( !define_map.count(macro) );
+  do_read_if( define_map.count(macro) );
 }
 
 void Preprocessor::read_ifndef() {
   if(token.get().type != TOK_TYPE_IDENT) error("error: in pp");
   std::string macro = token.next().val;
-  do_read_if( define_map.count(macro) );
+  do_read_if( !define_map.count(macro) );
 }
 
 void Preprocessor::read_else() {

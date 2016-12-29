@@ -12,6 +12,8 @@ enum {
 };
 
 struct token_t {
+  token_t(int _type, std::string _val = "", int _line = 0, bool _space = false):
+    type(_type), val(_val), line(_line), space(_space) { };
   int type;
   std::string val;
   int line;

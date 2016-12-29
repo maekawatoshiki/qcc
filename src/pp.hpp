@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include "token.hpp"
+#include "ast.hpp"
 
 
 enum {
@@ -21,7 +22,6 @@ class Preprocessor {
     Token token, new_token;
     std::stack<bool> cond_stack; 
 
-    bool read_expr_line();
     void read_include();
     void read_define();
     void read_undef();
@@ -31,6 +31,10 @@ class Preprocessor {
     void read_ifndef();
     void read_else();
     void skip_cond_include();
+
+    bool read_constexpr();
+    Token read_expr_line();
+    token_t read_defined_op();
 
     void skip_this_line();
 
