@@ -8,13 +8,13 @@
 extern llvm::LLVMContext &context;
 extern llvm::IRBuilder<> builder;
 extern llvm::Module *mod;
+extern llvm::DataLayout *data_layout;
 
 class Codegen {
   private:
     FunctionList func_list;
     std::map<std::string, llvm::Type *> typedef_map;
     VariableList global_var;
-    llvm::DataLayout *data_layout;
     func_t *cur_func = nullptr;
 
     llvm::Function *tool_memcpy;
@@ -73,5 +73,6 @@ class Codegen {
     var_t *lookup_var(std::string);
   public:
     StructList struct_list;
+    UnionList   union_list;
     void run(AST_vec, std::string = "a.bc", bool emit_llvm_ir = false);    
 };

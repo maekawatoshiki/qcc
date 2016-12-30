@@ -38,7 +38,9 @@ class Parser {
     std::vector<argument_t *> read_declarator_param();
     // Type_vec read_field();
     StructList struct_list;
+    UnionList   union_list;
     llvm::Type *make_struct_declaration();
+    llvm::Type *make_union_declaration();
     std::map<std::string, NumberAST *> enum_list;
     llvm::Type *make_enum_declaration();
     void read_typedef();

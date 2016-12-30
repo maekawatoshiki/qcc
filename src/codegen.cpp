@@ -4,10 +4,9 @@
 llvm::LLVMContext &context(llvm::getGlobalContext());
 llvm::IRBuilder<> builder(context);
 llvm::Module *mod;
+llvm::DataLayout *data_layout;
 
 void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
-  mod = new llvm::Module("QCC", context);
-  data_layout = new llvm::DataLayout(mod);
   { // create function(s) used in array initialization
     llvm::FunctionType *llvm_func_type_memcpy = 
       llvm::FunctionType::get(
@@ -491,15 +490,34 @@ llvm::Value *Codegen::get_value(AST *st) {
     struct_t *sinfo = this->struct_list.get(
         ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str()
         );
-    if(!sinfo) error("error: not found struct");
-    auto strct = sinfo->llvm_struct;
-    int member_count = 0;
-    std::string expected_name = ((VariableAST *)da->rhs)->name;
-    for(auto m : sinfo->members_name) {
-      if(m == expected_name) break;
-      member_count++;
+    if(sinfo) {
+      auto strct = sinfo->llvm_struct;
+      int member_count = 0;
+      std::string expected_name = ((VariableAST *)da->rhs)->name;
+      for(auto m : sinfo->members_name) {
+        if(m == expected_name) break;
+        member_count++;
+      }
+      return builder.CreateStructGEP(parent, member_count);
+    } else {
+      union_t *uinfo = this->union_list.get(
+          ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str()
+          );
+      if(!uinfo) error("error: not found union or struct");
+      auto union_ = uinfo->llvm_union;
+      llvm::Type *member_type = nullptr;
+      std::string expected_name = ((VariableAST *)da->rhs)->name;
+      for(auto m : uinfo->members) {
+        if(m.name == expected_name) {
+          member_type = m.type;
+          break;
+        }
+      } if(member_type == nullptr) error("error: not found element '%s' in union '%s'", 
+          expected_name.c_str(), uinfo->name.c_str());
+      return type_cast(parent, member_type->getPointerTo());
+      // return builder.CreateStructGEP(parent, member_count);
+
     }
-    return builder.CreateStructGEP(parent, member_count);
   }
   return nullptr;
 }

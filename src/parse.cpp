@@ -312,6 +312,56 @@ llvm::Type *Parser::make_struct_declaration() {
   return new_struct;
 }
 
+llvm::Type *Parser::make_union_declaration() {
+  if(!token.skip("union")) return nullptr;
+  std::string name;
+
+  if(token.get().type == TOK_TYPE_IDENT) 
+    name = token.next().val;
+
+  if(name.empty()) [](std::string &str) { // if name is empty, generate random name
+    int len = 8; while(len--)
+      str += (rand() % 26) + 65;
+  }(name);
+
+  llvm::StructType *new_union = nullptr;
+  auto t_strct = this->union_list.get("union." + name);
+  if(!t_strct) { // if not declared
+    // create empty union
+    new_union = llvm::StructType::create(context, "union." + name);
+    this->union_list.add("union." + name, std::vector<union_elem_t>(), new_union);
+    t_strct = this->union_list.get("union." + name);
+  } else new_union = t_strct->llvm_union;
+  // this if block should be function. not beautiful
+  if(token.is("{")) {
+    BlockAST *decls = (BlockAST *)statement();
+    std::vector<union_elem_t> members;
+    for(auto a : decls->body) {
+      if(a->get_type() != AST_VAR_DECLARATION) error("error: union fields must be varaible declaration");
+      VarDeclarationAST *decl = (VarDeclarationAST *)a;
+      for(auto v : decl->decls)
+        members.push_back(union_elem_t(v->name, v->type));
+    }
+    t_strct = this->union_list.get("union." + name);
+    t_strct->members = members;
+
+    Type_vec field;
+    llvm::Type *last = nullptr;
+    for(auto a : decls->body) {
+      VarDeclarationAST *decl = (VarDeclarationAST *)a;
+      for(auto v : decl->decls)
+        if(last == nullptr) last = v->type;
+        else if(data_layout->getTypeAllocSize(last) < data_layout->getTypeAllocSize(v->type))
+          last = v->type;
+    }
+    field.push_back(last);
+    if(new_union->isOpaque())
+      new_union->setBody(field, false);
+  } else if(token.is(";")) { // prototype (e.g. union A;)
+  }
+  return new_union;
+}
+
 llvm::Type *Parser::make_enum_declaration() {
   std::string name;
   if(token.get().type == TOK_TYPE_IDENT) 
@@ -331,10 +381,9 @@ llvm::Type *Parser::make_enum_declaration() {
 }
 
 void Parser::read_typedef() {
-  llvm::Type *from = read_type_spec();
-  if(token.get().type != TOK_TYPE_IDENT)
-    error("error(%d): expected identifier", token.get().line);
-  std::string name = token.next().val;
+  llvm::Type *basety = read_type_spec();
+  std::string name; auto from = read_declarator(name, basety); 
+  if(name.empty()) error("error(%d): expected identifier", token.get().line);
   typedef_map[name] = from;
   return;
 }
@@ -400,6 +449,8 @@ bool Parser::is_type() {
   auto cur = token.get().val;
   if(
       cur == "static"   ||
+      cur == "const"    ||
+      cur == "register" ||
       cur == "extern"   ||
       cur == "void"     ||
       cur == "unsigned" ||
@@ -436,6 +487,8 @@ llvm::Type *Parser::read_type_spec(int &stg) {
     }
          if(token.skip("extern")) stg = STG_EXTERN;
     else if(token.skip("static")) stg = STG_STATIC;
+    else if(token.skip("const")) ;//stg = STG_EXTERN;
+    else if(token.skip("register")) ;// stg = STG_STATIC;
 
     // TODO: wanna use skip(), not is().
     else if(token.is("struct") ||
@@ -482,13 +535,16 @@ llvm::Type *Parser::read_struct_union_type() {
       token.get(2).val == ";") {//   struct NAME; (prototype?)
     if(is_struct)
       return make_struct_declaration(); // TODO: union implement
+    else return make_union_declaration();
   }
   token.skip();
   std::string name;
   if(token.get().type == TOK_TYPE_IDENT) 
     name = token.next().val; 
   else puts("err"); // TODO: add err check
-  return this->struct_list.get("struct." + name)->llvm_struct;
+  if(is_struct)
+    return this->struct_list.get("struct." + name)->llvm_struct;
+  else return this->union_list.get("union." + name)->llvm_union;
 }
 
 llvm::Type *Parser::read_enum_type() {

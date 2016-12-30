@@ -20,3 +20,24 @@ struct_t *StructList::get(std::string name) {
   }
   return nullptr;
 }
+
+void UnionList::add(union_t unon) {
+  union_list.push_back(unon);
+}
+
+void UnionList::add(std::string name, std::vector<union_elem_t> members, llvm::StructType *llvm_union) {
+  union_list.push_back(
+      (union_t) {
+        name,
+        members,
+        llvm_union
+        });
+}
+
+union_t *UnionList::get(std::string name) {
+  for(auto &s : union_list) {
+    if(s.name == name)
+      return &s;
+  }
+  return nullptr;
+}

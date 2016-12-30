@@ -91,7 +91,7 @@ AST *Parser::expr_unary() {
     llvm::Type *cast_to = read_type_spec();
     std::string _; cast_to = read_declarator(_, cast_to);
     token.expect_skip(")");
-    expr = expr_entry();
+    expr = expr_unary();
     return new TypeCastAST(expr, cast_to);
   } else 
     expr = expr_func_call();
