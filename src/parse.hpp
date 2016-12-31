@@ -70,4 +70,8 @@ class Parser {
     AST *expr_primary();
     AST *expr_array();
     AST *expr_rhs(int, AST *);
+
+    AST *read_number();
+    AST *read_int(token_t &);
+    AST *read_float(token_t &);
 };

@@ -160,11 +160,7 @@ AST *Parser::expr_index() {
 
 AST *Parser::expr_primary() {
   if(token.get().type == TOK_TYPE_NUMBER) {
-    std::string num = token.next().val;
-    if(strstr(num.c_str(), ".")) { // float
-      return new NumberAST(atof(num.c_str()));
-    } else 
-      return new NumberAST(atoi(num.c_str()));
+    return read_number();
   } else if(token.get().type == TOK_TYPE_STRING) {
     return new StringAST(token.next().val);
   } else if(token.get().type == TOK_TYPE_CHAR) {
@@ -203,4 +199,22 @@ AST *Parser::expr_primary() {
     return e;
   }
   return nullptr;
+}
+
+AST *Parser::read_number() {
+  token_t tok = token.next();
+  bool is_float = strpbrk(tok.val.c_str(), "eEpP.");
+  if(is_float) return read_float(tok);
+  return read_int(tok);
+}
+
+AST *Parser::read_int(token_t &tok) {
+  char *end;
+  auto ast = new NumberAST((int)strtoul(tok.val.c_str(), &end, 0));
+  if(*end != '\0') error("error(%d): invalid char '%c'", tok.line, *end);
+  return ast;
+}
+
+AST *Parser::read_float(token_t &tok) {
+  return new NumberAST(atof(tok.val.c_str()));
 }
