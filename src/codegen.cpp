@@ -853,16 +853,14 @@ llvm::Value *Codegen::statement(DotOpAST *st) {
 }
 
 llvm::Value *Codegen::statement(SizeofAST *st) {
+  // sizeof(EXPR), EXPR is not evaluated
   llvm::Type *t;
-  if(st->is_expr) {
-    // TODO: fix this..
-    auto bgn = builder.GetInsertBlock()->getInstList().size();
-    auto s = statement(st->ast);
-    auto end = builder.GetInsertBlock()->getInstList().size();
-    for(int i = 0; i < (end-bgn); i++)
-      builder.GetInsertBlock()->getInstList().back().eraseFromParent();
-    t = s->getType();
-  } else t = st->type;
+  auto bgn = builder.GetInsertBlock()->getInstList().size();
+  auto s = statement(st->expr);
+  auto end = builder.GetInsertBlock()->getInstList().size();
+  for(int i = 0; i < (end-bgn); i++)
+    builder.GetInsertBlock()->getInstList().back().eraseFromParent();
+  t = s->getType();
 
   return make_int(data_layout->getTypeAllocSize(t));
 }

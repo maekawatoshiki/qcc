@@ -76,12 +76,8 @@ ReturnAST::ReturnAST(AST *_expr):
   expr(_expr) {
 }
 
-SizeofAST::SizeofAST(llvm::Type *_type):
-  type(_type) {
-}
-
-SizeofAST::SizeofAST(AST *_ast):
-  ast(_ast), is_expr(true) {
+SizeofAST::SizeofAST(AST *_expr):
+  expr(_expr) {
 }
 
 NumberAST::NumberAST(int num):
