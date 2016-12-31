@@ -175,7 +175,7 @@ AST *Parser::expr_primary() {
       std::string _; 
       type = read_declarator(_, type);
       token.expect_skip(")");
-      return new SizeofAST(type);
+      return new NumberAST(data_layout->getTypeAllocSize(type));
     } else {
       AST *expr = expr_entry();
       token.expect_skip(")");
