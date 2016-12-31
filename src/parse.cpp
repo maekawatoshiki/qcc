@@ -94,6 +94,7 @@ llvm::Type *Parser::read_declarator(std::string &name, llvm::Type *basety, std::
     return type;
   }
   if(token.skip("*")) {
+    while(token.skip("const") || token.skip("volatile"));
     return read_declarator(name, basety->getPointerTo(), param);
   }
   if(token.get().type == TOK_TYPE_IDENT) {
