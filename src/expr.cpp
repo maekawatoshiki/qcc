@@ -1,4 +1,5 @@
 #include "expr.hpp"
+#include "codegen.hpp"
 
 AST *Parser::expr_entry() {
   return expr_rhs(0, expr_asgmt());
