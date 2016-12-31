@@ -174,7 +174,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
           if(ret_type->isDoubleTy())
             builder.CreateRet(llvm::ConstantFP::get(builder.getDoubleTy(), 0.0));
           else // ptr, int ...
-            builder.CreateRet(make_int(0, function->llvm_function->getReturnType()));
+            builder.CreateRet(make_int(0, ret_type));
         }
       }
     }
@@ -608,6 +608,8 @@ llvm::Value *Codegen::statement(IndexAST *st) {
 }
 
 llvm::Value *Codegen::make_int(int n, llvm::Type *ty) {
+  if(ty->isPointerTy()) 
+    return llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(ty));
   return llvm::ConstantInt::get(ty, n);
 }
 
