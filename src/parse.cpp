@@ -512,7 +512,7 @@ llvm::Type *Parser::read_type_spec(int &stg) {
   }
 
   switch(type) {
-    case tvoid: 
+    case tvoid:   return builder.getVoidTy();
     case tchar:   return builder.getInt8Ty();
     case tdouble: return builder.getDoubleTy();
     default: break;
