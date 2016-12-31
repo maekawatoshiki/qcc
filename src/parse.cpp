@@ -533,11 +533,10 @@ llvm::Type *Parser::read_struct_union_type() {
   if( token.get(1).val == "{" || // struct { ... }
       token.get(2).val == "{" || // struct NAME { ... }
       token.get(2).val == ";") {//   struct NAME; (prototype?)
-    if(is_struct)
-      return make_struct_declaration(); // TODO: union implement
+    if(is_struct) return make_struct_declaration();
     else return make_union_declaration();
   }
-  token.skip();
+  token.skip(); // 'struct' or 'union'
   std::string name;
   if(token.get().type == TOK_TYPE_IDENT) 
     name = token.next().val; 

@@ -483,53 +483,49 @@ llvm::Value *Codegen::get_value(AST *st) {
     return get_element_ptr((IndexAST *)st);
   } else if(st->get_type() == AST_DOT) {
     DotOpAST *da = (DotOpAST *)st;
+    std::string expected_name = ((VariableAST *)da->rhs)->name;
     auto parent = statement(da->lhs);
     if(!parent->getType()->isPointerTy())
       parent = get_value(da->lhs);
     if(!parent) error("error: " __FILE__ "(%d)", __LINE__);
-    struct_t *sinfo = this->struct_list.get(
-        ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str()
-        );
+    std::string name = ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str();
+    struct_t *sinfo = this->struct_list.get(name);
     if(sinfo) {
-      auto strct = sinfo->llvm_struct;
-      int member_count = 0;
-      std::string expected_name = ((VariableAST *)da->rhs)->name;
-      for(auto m : sinfo->members_name) {
-        if(m == expected_name) break;
-        member_count++;
-      }
-      return builder.CreateStructGEP(parent, member_count);
+      return get_value_struct(parent, sinfo, expected_name);
     } else {
-      union_t *uinfo = this->union_list.get(
-          ((llvm::StructType *)parent->getType())->getPointerElementType()->getStructName().str()
-          );
-      if(!uinfo) error("error: not found union or struct");
-      auto union_ = uinfo->llvm_union;
-      llvm::Type *member_type = nullptr;
-      std::string expected_name = ((VariableAST *)da->rhs)->name;
-      for(auto m : uinfo->members) {
-        if(m.name == expected_name) {
-          member_type = m.type;
-          break;
-        }
-      } if(member_type == nullptr) error("error: not found element '%s' in union '%s'", 
-          expected_name.c_str(), uinfo->name.c_str());
-      return type_cast(parent, member_type->getPointerTo());
-      // return builder.CreateStructGEP(parent, member_count);
-
+      union_t *uinfo = this->union_list.get(name);
+      if(!uinfo) error("error: not found union or struct '%s'", name.c_str());
+      return get_value_union(parent, uinfo, expected_name);
     }
   }
   return nullptr;
 }
 
+llvm::Value *Codegen::get_value_struct(llvm::Value *parent, struct_t *sinfo, std::string elem_name) {
+  int member_count = 0;
+  for(auto m : sinfo->members_name) {
+    if(m == elem_name) break;
+    member_count++;
+  }
+  return builder.CreateStructGEP(parent, member_count);
+}
+llvm::Value *Codegen::get_value_union(llvm::Value *parent, union_t *uinfo, std::string elem_name) {
+  llvm::Type *member_type = nullptr;
+  for(auto m : uinfo->members) {
+    if(m.name == elem_name) {
+      member_type = m.type;
+      break;
+    }
+  } if(member_type == nullptr) error("error: not found element '%s' in union '%s'", 
+      elem_name.c_str(), uinfo->name.c_str());
+  return type_cast(parent, member_type->getPointerTo());
+}
+
 llvm::Constant *Codegen::create_const_array(std::vector<llvm::Constant *> elems, int size) {
-  // std::vector<llvm::Constant *> elems;
-  // for(auto elem : ast_elems) {
-  //   elems.push_back( (llvm::Constant *)statement(elem) );
-  // }
+  auto array_elem_type = elems[0]->getType();
   for(int i = elems.size(); i < size; i++)
-    elems.push_back(llvm::ConstantInt::get(elems[0]->getType(), 0));
-  auto ary_type = llvm::ArrayType::get(elems[0]->getType(), elems.size());
+    elems.push_back(llvm::ConstantInt::get(array_elem_type, 0));
+  auto ary_type = llvm::ArrayType::get(array_elem_type, elems.size());
   return llvm::ConstantArray::get(ary_type, elems);
 }
 
