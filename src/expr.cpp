@@ -66,27 +66,33 @@ AST *Parser::expr_unary() {
        op_aste = false, 
        op_inc  = false, 
        op_dec  = false,
+       op_not  = false,
        op_minus= false,
-       op_cast = false;
+       op_cast = false,
+       op_flip = false;
   op_addr  = token.is("&");
   op_aste  = token.is("*");
   op_inc   = token.is("++");
   op_dec   = token.is("--");
   op_minus = token.is("-");
+  op_not   = token.is("!");
+  op_flip  = token.is("~");
   op_cast  = [&]() -> bool {
     if(!token.skip("(")) return false;
     if(!is_type()) { token.prev(); return false; }
     token.prev(); return true;
   }();
   AST *expr = nullptr;
-  if(op_addr || op_aste || op_inc || op_dec || op_minus) {
+  if(op_addr || op_aste || op_inc || op_dec || op_minus || op_not || op_flip) {
     token.skip();
     expr = expr_unary();
     return new UnaryAST(op_addr ? "&" : 
                         op_aste ? "*" :
                         op_inc  ? "++":
                         op_dec  ? "--": 
-                        op_minus? "-" : "", expr);
+                        op_minus? "-" : 
+                        op_not  ? "!" : 
+                        op_flip ? "~" : "", expr);
   } else if(op_cast) {
     token.expect_skip("(");
     llvm::Type *cast_to = read_type_spec();
@@ -159,6 +165,7 @@ AST *Parser::expr_index() {
 
 
 AST *Parser::expr_primary() {
+  puts("HREE");
   if(token.get().type == TOK_TYPE_NUMBER) {
     return read_number();
   } else if(token.get().type == TOK_TYPE_STRING) {

@@ -771,6 +771,16 @@ llvm::Value *Codegen::statement(UnaryAST *st) {
     auto vv = op_sub(v, make_int(1));
     asgmt_value(v1, vv);
     return st->postfix ? v : vv;
+  } else if(st->op == "!") {
+    auto v = statement(st->expr);
+    return type_cast(
+        builder.CreateXor(
+          builder.CreateICmpNE(v, make_int(0, v->getType())),
+          make_int(1, builder.getInt1Ty())), 
+        v->getType());
+  } else if(st->op == "~") {
+    auto v = statement(st->expr);
+    return builder.CreateXor(v, make_int(-1, v->getType()));
   }
   return nullptr;
 }

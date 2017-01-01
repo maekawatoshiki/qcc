@@ -15,7 +15,7 @@ class Parser {
   private:
     Token token;
   public:
-    AST_vec run(Token);
+    AST_vec run(Token, bool isexpr = false);
 
     AST_vec eval();
     AST *statement_top();
@@ -75,3 +75,5 @@ class Parser {
     AST *read_int(token_t &);
     AST *read_float(token_t &);
 };
+
+int eval_constexpr(AST *);

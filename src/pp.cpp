@@ -1,5 +1,6 @@
 #include "pp.hpp"
 #include "lexer.hpp"
+#include "parse.hpp"
 
 Token Preprocessor::run(Token tok) {
   token = tok;
@@ -71,7 +72,6 @@ Token Preprocessor::read_expr_line() {
   Token expr_line;
   int cur_line = token.get().line;
   for(;;) {
-    puts("HERE");
     if(cur_line != token.get().line) break;
     if(token.skip("defined")) {
       expr_line.token.push_back(read_defined_op());
@@ -85,9 +85,14 @@ Token Preprocessor::read_expr_line() {
 bool Preprocessor::read_constexpr() {
   // TODO: implement processing of const expression
   auto tok = read_expr_line();
-  if(tok.get().type != TOK_TYPE_NUMBER) error("error: ???");
-  if(tok.skip("1")) return true;
-  return false; // tok.skip("0")
+  tok.add_symbol_tok(";", 0);
+  tok.add_end_tok();
+  tok.show();
+  tok.pos = 0;
+  Parser parser;
+  auto expr = parser.run(tok, true)[0];
+  bool cond = eval_constexpr(expr);
+  return cond;
 }
 
 void Preprocessor::do_read_if(bool m) {
@@ -120,8 +125,7 @@ void Preprocessor::read_else() {
 void Preprocessor::skip_cond_include() {
   int nest = 0;
   for(;;) {
-    token.skip();
-    if(!token.skip("#")) continue;
+    if(!token.skip("#")) { token.skip(); continue; }
     if(!nest && (token.skip("else") || token.skip("elif") || token.skip("endif")))
       return;
     if(token.skip("if") || token.skip("ifdef") || token.skip("ifndef"))

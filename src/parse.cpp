@@ -1,7 +1,7 @@
 #include "parse.hpp"
 #include "codegen.hpp"
 
-AST_vec Parser::run(Token tok) {
+AST_vec Parser::run(Token tok, bool isexpr) {
   token = tok;
   op_prec["."] =  600;  
   op_prec["*"] =  500;
@@ -21,12 +21,14 @@ AST_vec Parser::run(Token tok) {
   op_prec["&&"] = 200;
   op_prec["||"] = 200;
   op_prec["?"] =  100;
+  if(isexpr) return AST_vec{expr_entry()};
   return eval();
 }
 
 AST_vec Parser::eval() {
   AST_vec program;
   while(token.get().type != TOK_TYPE_END) {
+    std::cout << token.get().val << std::endl;
     auto st = statement_top();
     if(st) program.push_back(st);
     while(token.skip(";"));
@@ -118,9 +120,8 @@ llvm::Type *Parser::read_declarator_array(llvm::Type *basety) {
   if(token.skip("]")) {
     len = -1;
   } else {
-    if(token.get().type != TOK_TYPE_NUMBER)
-      error("error(%d): expected number literal", token.get().line);
-    len = atoi(token.next().val.c_str());
+    auto size = expr_entry();
+    len = eval_constexpr(size);
     token.expect_skip("]");
   }
   std::vector<argument_t *> _;
@@ -556,3 +557,30 @@ llvm::Type *Parser::read_enum_type() {
   return builder.getInt32Ty();
 }
 
+int eval_constexpr(AST *expr) {
+  if(expr->get_type() == AST_UNARY) {
+    UnaryAST *una = static_cast<UnaryAST *>(expr);
+    const std::string op = una->op;
+    const int expr = eval_constexpr(una->expr);
+    if(op == "!") return !expr;
+    if(op == "~") return ~expr;
+  } else if(expr->get_type() == AST_BINARY) {
+    BinaryAST *bin = static_cast<BinaryAST *>(expr);
+    const std::string op = bin->op;
+    const int lhs = eval_constexpr(bin->lhs),
+              rhs = eval_constexpr(bin->rhs);
+    if(op == "+") return lhs + rhs;
+    if(op == "-") return lhs - rhs;
+    if(op == "*") return lhs * rhs;
+    if(op == "/") return lhs / rhs;
+    if(op == "&") return lhs & rhs;
+    if(op == "|") return lhs | rhs;
+    if(op == "&&")return lhs&& rhs;
+    if(op == "||")return lhs|| rhs;
+  } else if(expr->get_type() == AST_NUMBER) {
+    NumberAST *num = static_cast<NumberAST *>(expr);
+    if(num->is_float) error("error: const expr int only");
+    std::cout << "NUM = " << num->i_number << std::endl;
+    return num->i_number;
+  } else error("error: in 'eval_constexpr': unknown instruction");
+}
