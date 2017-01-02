@@ -36,10 +36,16 @@ void Preprocessor::read_define() {
       token.expect_skip(",");
     }
   }
-  std::vector<token_t> content;
+  std::vector<macro_token_t> content;
   if(cur_line == token.get().line) {
-    while(cur_line==token.get().line)
-      content.push_back(token.next());
+    while(cur_line == token.get().line) {
+      if(token.get().val == "#") {
+        token.skip();
+        content.push_back(macro_token_t(token.next(), true));
+      } else 
+        content.push_back(macro_token_t(token.next()));
+    }
+
   }
   if(funclike) add_define_funclike_macro(macro_name, args_name, content);
   else add_define_macro(macro_name, content);
@@ -160,7 +166,10 @@ void Preprocessor::replace_macro() {
   auto macro = define_map[token.get().val];
   // normal macro
   if(macro.type == DEFINE_MACRO) {
-    std::copy(macro.rep.begin(), macro.rep.end(), std::back_inserter(new_token.token));
+    std::vector<token_t> body;
+    for(auto t : macro.rep)
+      body.push_back(t.token);
+    std::copy(body.begin(), body.end(), std::back_inserter(new_token.token));
     token.skip();
     return; 
   }
@@ -181,26 +190,24 @@ void Preprocessor::replace_macro() {
     if(token.skip(")") && !nest) break;
     token.expect_skip(",");
   }
-  auto repd_end = token.pos;
-  std::vector<token_t> rep_to = macro.rep;
+
+  std::vector<token_t> rep_to;
   for(int i = 0; i < macro.args.size(); i++) {
-    auto it = std::find_if(rep_to.begin(), rep_to.end(), [&](token_t &t) {
-        return t.val == macro.args[i]; });
-    while(it != rep_to.end()) {
-      
-      if(it != rep_to.begin() && (it-1)->val == "#") { 
-        rep_to.erase(it-1); rep_to.erase(it);
-        std::string str;
-        for(auto s : args[i]) 
-          str += s.val;
-        auto new_str = token_t(TOK_TYPE_STRING, str); 
-        rep_to.insert(it-1, new_str);
-      } else {
-        rep_to.erase(it);
-        rep_to.insert(it, args[i].begin(), args[i].end());
-      }
-      it = std::find_if(rep_to.begin(), rep_to.end(), [&](token_t &t) {
-          return t.val == macro.args[i]; });
+    for(auto it = macro.rep.begin(); it != macro.rep.end(); ++it) {
+      if(it->token.val == macro.args[i]) {
+        if(it->stringify) {
+          std::string str;
+          for(auto s : args[i]) 
+            str += s.type == TOK_TYPE_STRING ? 
+                      "\"" + s.val + "\"" : 
+                   s.type == TOK_TYPE_CHAR   ?
+                      "\'" + s.val + "\'" : s.val;
+          rep_to.push_back(token_t(TOK_TYPE_STRING, str));
+        } else {
+          for(auto a : args[i])
+            rep_to.push_back(a);
+        }
+      } else rep_to.push_back(it->token);
     }
   }
   std::copy(rep_to.begin(), rep_to.end(), std::back_inserter(new_token.token));
@@ -211,13 +218,13 @@ void Preprocessor::skip_this_line() {
   while(n == token.get().line) token.skip();
 }
 
-void Preprocessor::add_define_macro(std::string name, std::vector<token_t> rep) {
+void Preprocessor::add_define_macro(std::string name, std::vector<macro_token_t> rep) {
   define_t def;
   def.type = DEFINE_MACRO;
   def.rep = rep;
   define_map[name] = def;
 }
-void Preprocessor::add_define_funclike_macro(std::string name, std::vector<std::string> args_name, std::vector<token_t> rep) {
+void Preprocessor::add_define_funclike_macro(std::string name, std::vector<std::string> args_name, std::vector<macro_token_t> rep) {
   define_t def;
   def.type = DEFINE_FUNCLIKE_MACRO;
   def.args = args_name;

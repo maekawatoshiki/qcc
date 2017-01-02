@@ -9,9 +9,17 @@ enum {
   DEFINE_MACRO,
   DEFINE_FUNCLIKE_MACRO
 };
+
+struct macro_token_t {
+  macro_token_t(token_t _token, bool _stringify = false):
+    token(_token), stringify(_stringify) {};
+  token_t token;
+  bool stringify;
+};
+
 struct define_t {
   int type;
-  std::vector<token_t> rep;
+  std::vector<macro_token_t> rep;
   std::vector<std::string> args; // for function like macro
 };
 
@@ -40,9 +48,9 @@ class Preprocessor {
 
     void replace_macro(); // replace current token to macro
 
-    void add_define_macro(std::string macro_name, std::vector<token_t> rep);
+    void add_define_macro(std::string macro_name, std::vector<macro_token_t> rep);
     void add_define_funclike_macro(std::string macro_name, 
-        std::vector<std::string> args_name, std::vector<token_t> rep);
+        std::vector<std::string> args_name, std::vector<macro_token_t> rep);
   public:
     Token run(Token);
 };
