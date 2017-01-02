@@ -188,7 +188,7 @@ void Preprocessor::replace_macro() {
         return t.val == macro.args[i]; });
     while(it != rep_to.end()) {
       
-      if(*(it-1) && (it-1)->val == "#") { 
+      if(it != rep_to.begin() && (it-1)->val == "#") { 
         rep_to.erase(it-1); rep_to.erase(it);
         std::string str;
         for(auto s : args[i]) 
