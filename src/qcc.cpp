@@ -5,10 +5,20 @@ int QCC::run(std::string source) {
   data_layout = new llvm::DataLayout(mod);
 
   token = LEX.run(source);
+
+  std::ifstream ifs_src("./include/qcc.h");
+  std::istreambuf_iterator<char> it(ifs_src), last;
+  std::string src_all(it, last);
+  Lexer lex; Token include_tok = lex.run(src_all);
+  Preprocessor pp; 
+  include_tok = pp.run(include_tok);
+  for(auto incl_macro : pp.define_map)
+    PP.define_map[incl_macro.first] = incl_macro.second;
   token = PP.run(token);
   token.add_end_tok();
-  std::cout << "AFTER LEXICAL ANALYZE:\n"; token.show();
-  auto ast = PARSE.run(token);puts("parser process exited successfully");
+  // puts("after preprocess:");
+  // token.show(); getchar();
+  auto ast = PARSE.run(token); puts("parser process exited successfully");
   CODEGEN.struct_list = PARSE.struct_list;
   CODEGEN. union_list = PARSE. union_list;
   CODEGEN.run(ast, out_file_name, emit_llvm_ir);

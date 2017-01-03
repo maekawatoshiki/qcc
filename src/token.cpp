@@ -27,6 +27,9 @@ void Token::add_string_tok (std::string val, int line, bool space) {
 void Token::add_char_tok   (std::string val, int line, bool space) {
   token.push_back((token_t) { TOK_TYPE_CHAR, val, line, space });
 }
+void Token::add_newline_tok () {
+  token.push_back((token_t) { TOK_TYPE_NEWLINE });
+}
 void Token::add_end_tok    () {
   token.push_back((token_t) { TOK_TYPE_END });
 }

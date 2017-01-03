@@ -266,7 +266,6 @@ AST *Parser::make_return() {
 }
 
 llvm::Type *Parser::make_struct_declaration() {
-  if(!token.skip("struct")) return nullptr;
   std::string name;
 
   if(token.get().type == TOK_TYPE_IDENT) 
@@ -309,13 +308,11 @@ llvm::Type *Parser::make_struct_declaration() {
     }
     if(new_struct->isOpaque())
       new_struct->setBody(field, false);
-  } else if(token.is(";")) { // prototype (e.g. struct A;)
-  }
+  } 
   return new_struct;
 }
 
 llvm::Type *Parser::make_union_declaration() {
-  if(!token.skip("union")) return nullptr;
   std::string name;
 
   if(token.get().type == TOK_TYPE_IDENT) 
@@ -359,8 +356,7 @@ llvm::Type *Parser::make_union_declaration() {
     field.push_back(last);
     if(new_union->isOpaque())
       new_union->setBody(field, false);
-  } else if(token.is(";")) { // prototype (e.g. union A;)
-  }
+  } 
   return new_union;
 }
 
@@ -370,14 +366,21 @@ llvm::Type *Parser::make_enum_declaration() {
     name = token.next().val;
   if(token.skip("{")) {
     std::vector<std::string> consts;
+    int enum_n = 0;
     while(!token.skip("}")) {
-      if(token.get().type != TOK_TYPE_IDENT) error("ERR");
+      if(token.get().type != TOK_TYPE_IDENT) 
+        error("error(%d): enum field must contain only identifiers", token.get().line);
       consts.push_back(token.next().val);
+      if(token.skip("=")) {
+        auto n = new NumberAST(eval_constexpr(expr_entry()));
+        enum_list[ consts.back() ] = n;
+        enum_n = n->i_number;
+      } else {
+        enum_list[ consts.back() ] = new NumberAST(enum_n);
+      } enum_n++;
       if(token.skip("}")) break;
       token.expect_skip(",");
     }
-    for(int i = 0; i < consts.size(); i++) 
-      enum_list[ consts[i] ] = new NumberAST(i);
   }
   return builder.getInt32Ty();
 }
@@ -531,21 +534,10 @@ llvm::Type *Parser::read_type_spec(int &stg) {
 }
 
 llvm::Type *Parser::read_struct_union_type() {
-  bool is_struct = token.is("struct");
-  if( token.get(1).val == "{" || // struct { ... }
-      token.get(2).val == "{" || // struct NAME { ... }
-      token.get(2).val == ";") {//   struct NAME; (prototype?)
-    if(is_struct) return make_struct_declaration();
-    else return make_union_declaration();
-  }
-  token.skip(); // 'struct' or 'union'
-  std::string name;
-  if(token.get().type == TOK_TYPE_IDENT) 
-    name = token.next().val; 
-  else puts("err"); // TODO: add err check
-  if(is_struct)
-    return this->struct_list.get("struct." + name)->llvm_struct;
-  else return this->union_list.get("union." + name)->llvm_union;
+       if(token.skip("struct")) return make_struct_declaration();
+  else if(token.skip("union"))  return make_union_declaration();
+  assert(0);
+  return nullptr;
 }
 
 llvm::Type *Parser::read_enum_type() {
@@ -577,10 +569,18 @@ int eval_constexpr(AST *expr) {
     if(op == "|") return lhs | rhs;
     if(op == "&&")return lhs&& rhs;
     if(op == "||")return lhs|| rhs;
+    if(op == "<" )return lhs < rhs;
+    if(op == ">") return lhs > rhs;
+    if(op == "<=")return lhs <=rhs;
+    if(op == ">=")return lhs >=rhs;
+  } else if(expr->get_type() == AST_TERNARY) {
+    TernaryAST *tern = static_cast<TernaryAST *>(expr);
+    int cond = eval_constexpr(tern->cond);
+    return cond ? eval_constexpr(tern->then_expr) : eval_constexpr(tern->else_expr);
   } else if(expr->get_type() == AST_NUMBER) {
     NumberAST *num = static_cast<NumberAST *>(expr);
     if(num->is_float) error("error: const expr int only");
-    std::cout << "NUM = " << num->i_number << std::endl;
     return num->i_number;
-  } else error("error: in 'eval_constexpr': unknown instruction");
+  } else error("error: in 'eval_constexpr': unknown instruction %d", expr->get_type());
+  return 0;
 }

@@ -11,14 +11,19 @@ Token Lexer::run(std::string source) {
     else if(isblank(*pos))                space = true; // skip
     else if(*pos == '\\')                 skip_line(pos);
     else if(*pos == '/' && *(pos+1) == '/') {
-      for(; *pos != '\n'; pos++) {};
+      for(; *pos != '\n'; pos++) {}; cur_line++;
     } else if(*pos == '/' && *(pos+1) == '*') {
-      for(; !(*pos == '*' && *(pos+1) == '/'); pos++) { ; }
-      pos++;
+      for(; !(*pos == '*' && *(pos+1) == '/'); pos++) { 
+        if(*pos == '\n') cur_line++;
+      }
+      pos++; 
     } else if(*pos == '\"')               tok_string(pos);
     else if(*pos == '\'')                 tok_char(pos);
-    else if(*pos == '\n')                 skip_line(pos), cur_line++;
-    else                                  tok_symbol(pos);
+    else if(*pos == '\n') { 
+      skip_line(pos);
+      cur_line++;
+      token.add_newline_tok();
+    } else                                tok_symbol(pos);
   } 
 
   token.add_end_tok();

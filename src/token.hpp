@@ -8,6 +8,7 @@ enum {
   TOK_TYPE_NUMBER,
   TOK_TYPE_STRING,
   TOK_TYPE_CHAR,
+  TOK_TYPE_NEWLINE,
   TOK_TYPE_END,
 };
 
@@ -30,6 +31,7 @@ class Token {
     void add_number_tok (std::string, int, bool = false);
     void add_string_tok (std::string, int, bool = false);
     void add_char_tok   (std::string, int, bool = false);
+    void add_newline_tok();
     void add_end_tok    ();
 
     token_t get();

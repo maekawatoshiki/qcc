@@ -165,7 +165,6 @@ AST *Parser::expr_index() {
 
 
 AST *Parser::expr_primary() {
-  puts("HREE");
   if(token.get().type == TOK_TYPE_NUMBER) {
     return read_number();
   } else if(token.get().type == TOK_TYPE_STRING) {
@@ -215,13 +214,14 @@ AST *Parser::read_number() {
   return read_int(tok);
 }
 
-AST *Parser::read_int(token_t &tok) {
+NumberAST *Parser::read_int(token_t tok) {
   char *end;
   auto ast = new NumberAST((int)strtoul(tok.val.c_str(), &end, 0));
-  if(*end != '\0') error("error(%d): invalid char '%c'", tok.line, *end);
+  // INQCC: suffix?
+  // if(*end != '\0') error("error(%d): invalid char '%c'", tok.line, *end);
   return ast;
 }
 
-AST *Parser::read_float(token_t &tok) {
+NumberAST *Parser::read_float(token_t tok) {
   return new NumberAST(atof(tok.val.c_str()));
 }
