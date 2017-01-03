@@ -1,3 +1,8 @@
+# DEVELOP BRANCH
+- qcc on this branch(develop) can include **real standard header files**. (/usr/include/stdio.h ...etc)
+- **but this runs on only linux**(no macOS)
+
+
 # QCC
 
 [![](https://img.shields.io/travis/maekawatoshiki/qcc.svg?style=flat-square)](https://travis-ci.org/maekawatoshiki/qcc)
@@ -5,6 +10,7 @@
 
 - qcc is a small toy compiler for C language.
 - waiting for pull-req!
+
 
 # FEATURES
 - qcc generates bitcode from C source code with LLVM. so we have to convert bitcode to native.
