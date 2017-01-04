@@ -95,7 +95,6 @@ Token Preprocessor::read_expr_line() {
         auto q = replace_macro();
         for(auto a : q)
           expr_line.token.push_back(a);
-      // token.skip();
       } else if(tok.type == TOK_TYPE_IDENT) {
         // INQCC: identifiers are replaced by 0
         token.skip();
@@ -161,8 +160,11 @@ void Preprocessor::skip_cond_include() {
   int nest = 0;
   for(;;) {
     if(!token.skip("#")) { token.skip(); continue; }
-    if(!nest && (token.skip("else") || token.skip("elif") || token.skip("endif")))
+    if(!nest && (token.skip("else") || token.skip("elif") || token.skip("endif"))) {
+      token.prev(); // else elif endif
+      token.prev(); // #
       return;
+    }
     if(token.skip("if") || token.skip("ifdef") || token.skip("ifndef"))
       nest++;
     else if(nest && token.skip("endif"))
