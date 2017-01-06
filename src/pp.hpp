@@ -19,7 +19,7 @@ struct macro_token_t {
 
 struct define_t {
   int type;
-  std::vector<macro_token_t> rep;
+  Token rep;
   std::vector<std::string> args; // for function like macro
 };
 
@@ -52,11 +52,11 @@ class Preprocessor {
 
     void skip_this_line();
 
-    std::vector<token_t> replace_macro(); // replace current token to macro
+    std::vector<token_t> replace_macro(Token &); // replace current token to macro
 
-    void add_define_macro(std::string macro_name, std::vector<macro_token_t> rep);
+    void add_define_macro(std::string macro_name, std::vector<token_t> rep);
     void add_define_funclike_macro(std::string macro_name, 
-        std::vector<std::string> args_name, std::vector<macro_token_t> rep);
+        std::vector<std::string> args_name, std::vector<token_t> rep);
   public:
     std::map<std::string, define_t> define_map;
     Token run(Token);

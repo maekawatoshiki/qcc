@@ -23,6 +23,9 @@ struct token_t {
 
 class Token {
   public:
+    Token(std::vector<token_t> _token):token(_token) {};
+    Token() {};
+
     std::vector<token_t> token;
     int pos = 0;
 
