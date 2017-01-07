@@ -21,6 +21,7 @@ class Parser {
     AST *statement_top();
     AST *statement();
 
+    std::string cur_func;
     std::map<std::string, llvm::Type *> typedef_map;
     bool is_function_def();
     bool is_function_proto();
@@ -70,6 +71,7 @@ class Parser {
     AST *expr_primary();
     AST *expr_array();
     AST *expr_rhs(int, AST *);
+    AST *read_predefined_macro();
 
     AST *read_number();
     NumberAST *read_int(token_t);

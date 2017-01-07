@@ -43,7 +43,7 @@ llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
     return builder.CreateSIToFP(val, to);
   } else if(val->getType()->isDoubleTy() && to->isIntegerTy()) {
     return builder.CreateFPToSI(val, to);
-  }
+  } else if(to->isVoidTy()) return val;
   return builder.CreateTruncOrBitCast(val, to);
 }
 
@@ -339,7 +339,7 @@ llvm::Value *Codegen::statement(IfAST *st) {
 
   bool necessary_merge = false, has_br;
   cur_func->br_list.push(false);
-  statement(st->b_then);
+  if(st->b_then) statement(st->b_then);
   if(cur_func->br_list.top());
   else builder.CreateBr(bb_merge), necessary_merge = true;
   has_br = cur_func->br_list.top();
@@ -748,7 +748,8 @@ llvm::Value *Codegen::statement(ArrayAST *st) {
 }
 
 llvm::Value *Codegen::statement(TypeCastAST *st) {
-  return type_cast(statement(st->expr), st->cast_to);
+  if(!st->cast_to->isVoidTy())
+    return type_cast(statement(st->expr), st->cast_to);
 }
 
 llvm::Value *Codegen::statement(UnaryAST *st) {
@@ -838,22 +839,29 @@ llvm::Value *Codegen::statement(TernaryAST *st) {
   builder.CreateCondBr(val_cond, bb_then, bb_else);
   builder.SetInsertPoint(bb_then);
 
+  bool ret_void = false;
+
   auto val_then = statement(st->then_expr);
+  if(!val_then) ret_void = true;
   builder.CreateBr(bb_merge);
   bb_then = builder.GetInsertBlock();
 
   builder.SetInsertPoint(bb_else);
 
   auto val_else = statement(st->else_expr);
+  if(!val_else) ret_void = true;
   builder.CreateBr(bb_merge);
   bb_else = builder.GetInsertBlock();
 
   builder.SetInsertPoint(bb_merge);
 
-  llvm::PHINode *pnode = builder.CreatePHI(val_then->getType(), 2);
-  pnode->addIncoming(val_then, bb_then);
-  pnode->addIncoming(val_else, bb_else);
-  return pnode;
+  if(!ret_void) {
+    llvm::PHINode *pnode = builder.CreatePHI(val_then->getType(), 2);
+    pnode->addIncoming(val_then, bb_then);
+    pnode->addIncoming(val_else, bb_else);
+    return pnode;
+  } 
+  return nullptr;
 }
 
 llvm::Value *Codegen::statement(DotOpAST *st) {

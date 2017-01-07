@@ -165,6 +165,7 @@ AST *Parser::expr_index() {
 
 
 AST *Parser::expr_primary() {
+    std::cout << token.get().val << std::endl;
   if(token.get().type == TOK_TYPE_NUMBER) {
     return read_number();
   } else if(token.get().type == TOK_TYPE_STRING) {
@@ -184,6 +185,8 @@ AST *Parser::expr_primary() {
       token.expect_skip(")");
       return new SizeofAST(expr);
     }
+  } else if(token.is("__FILE__") || token.is("__LINE__") || token.is("__func__")) {
+    return read_predefined_macro();
   } else if(token.get().type == TOK_TYPE_IDENT) {
     std::string name = token.next().val;
     if(enum_list.count(name)) {
@@ -204,6 +207,17 @@ AST *Parser::expr_primary() {
     token.skip(")");
     return e;
   }
+  return nullptr;
+}
+
+AST *Parser::read_predefined_macro() {
+  if(token.skip("__FILE__")) {
+    return new StringAST("file name"); // TODO: fix
+  } else if(token.skip("__LINE__")) {
+    return new NumberAST(token.get().line);
+  } else if(token.skip("__func__")) {
+    return new StringAST(cur_func);
+  } else error("unknown predefined macro");
   return nullptr;
 }
 

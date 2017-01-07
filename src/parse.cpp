@@ -28,7 +28,6 @@ AST_vec Parser::run(Token tok, bool isexpr) {
 AST_vec Parser::eval() {
   AST_vec program;
   while(token.get().type != TOK_TYPE_END) {
-    std::cout << token.get().val << std::endl;
     auto st = statement_top();
     if(st) program.push_back(st);
     while(token.skip(";"));
@@ -97,7 +96,7 @@ llvm::Type *Parser::read_declarator(std::string &name, llvm::Type *basety, std::
   }
   if(token.skip("*")) {
     while(token.skip("const") || token.skip("volatile"));
-    return read_declarator(name, basety->getPointerTo(), param);
+    return read_declarator(name, basety->isVoidTy() ? builder.getInt8PtrTy() : basety->getPointerTo(), param);
   }
   if(token.get().type == TOK_TYPE_IDENT) {
     name = token.next().val;
@@ -186,6 +185,7 @@ AST *Parser::make_function() {
     }
     return a;
   }();
+  cur_func = name;
   AST_vec body;
   token.expect_skip("{");
   while(!token.skip("}")) {
