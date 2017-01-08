@@ -22,7 +22,7 @@ void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
   }
   for(auto st : ast) statement(st);
   if(emit_llvm_ir) mod->dump();
-  std::string EC;
+  std::error_code EC;
   llvm::raw_fd_ostream out(out_file_name.c_str(), EC, llvm::sys::fs::OpenFlags::F_RW);
   llvm::WriteBitcodeToFile(mod, out);
 }

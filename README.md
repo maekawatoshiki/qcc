@@ -11,12 +11,12 @@
 - the shell script './qcc.sh' does it. or do yourself such as below:
 ```
 $ ./qcc c.c -o c.bc # qcc generates c.bc
-$ llc-3.5 c.bc # c.bc -> c.s
+$ llc-3.6 c.bc # c.bc -> c.s
 $ clang c.s # c.s -> a.out
 ```
 
 # BUILD
-- used tools: clang, llvm-3.5
+- used tools: clang, llvm-3.6
 - if you are using Ubuntu or Debian, maybe you can see what you have to apt-get install if you look at Dockerfile.
 ```
 $ make

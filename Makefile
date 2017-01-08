@@ -1,5 +1,5 @@
-CXX := clang++-3.5
-LLVM_CONFIG := llvm-config-3.5
+CXX := clang++-3.6
+LLVM_CONFIG := llvm-config-3.6
 CXXFLAGS := -O3 -std=c++11 -MMD -MP $(shell $(LLVM_CONFIG) --cxxflags)
 LIBS := -lm $(shell $(LLVM_CONFIG) --system-libs --ldflags --libs all)
 
