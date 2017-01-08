@@ -10,8 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-int isdigit(char);
+#include <ctype.h>
 
 enum NODE_KIND {
   KIND_NUM,
