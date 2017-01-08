@@ -7,6 +7,8 @@ AST_vec Parser::run(Token tok, bool isexpr) {
   op_prec["*"] =  500;
   op_prec["/"] =  500;
   op_prec["%"] =  500;  
+  op_prec["<<"] =  500;  
+  op_prec[">>"] =  500;  
   op_prec["+"] =  400;
   op_prec["-"] =  400;
   op_prec["=="] = 300;
@@ -106,6 +108,8 @@ llvm::Type *Parser::read_declarator(std::string &name, llvm::Type *basety, std::
 }
 
 llvm::Type *Parser::read_declarator_tail(llvm::Type *basety, std::vector<argument_t *> &param) {
+  if(token.skip(":")) 
+    return builder.getIntNTy(static_cast<NumberAST *>(read_number())->i_number);
   if(token.skip("[")) 
     return read_declarator_array(basety);
   if(token.skip("(")) {
@@ -465,6 +469,7 @@ bool Parser::is_type() {
       cur == "short"    ||
       cur == "long"     ||
       cur == "double"   ||
+      cur == "float"    ||
       cur == "struct"   ||
       cur == "enum"     ||
       cur == "union"    ||
@@ -509,6 +514,7 @@ llvm::Type *Parser::read_type_spec(int &stg) {
     else if(token.skip("int"))    type = tint;
     else if(token.skip("char"))   type = tchar;
     else if(token.skip("double")) type = tdouble;
+    else if(token.skip("float"))  type = tdouble;
     else if(token.skip("short"))  size = tshort;
     else if(token.skip("long"))   {
       if(size == tlong) size = tllong;
@@ -556,6 +562,9 @@ int eval_constexpr(AST *expr) {
     const int expr = eval_constexpr(una->expr);
     if(op == "!") return !expr;
     if(op == "~") return ~expr;
+  } else if(expr->get_type() == AST_TYPECAST) {
+    TypeCastAST *tc = static_cast<TypeCastAST *>(expr);
+    return eval_constexpr(tc->expr);
   } else if(expr->get_type() == AST_BINARY) {
     BinaryAST *bin = static_cast<BinaryAST *>(expr);
     const std::string op = bin->op;
@@ -575,6 +584,8 @@ int eval_constexpr(AST *expr) {
     if(op == ">=")return lhs >=rhs;
     if(op == "==")return lhs ==rhs;
     if(op == "!=")return lhs !=rhs;
+    if(op == "<<")return lhs <<rhs;
+    if(op == ">>")return lhs >>rhs;
     std::cout << op << std::endl;getchar();
   } else if(expr->get_type() == AST_TERNARY) {
     TernaryAST *tern = static_cast<TernaryAST *>(expr);

@@ -157,7 +157,7 @@ AST *Parser::expr_index() {
   lhs = expr_primary();
   while(token.skip("[")) {
     rhs = expr_entry();
-    token.skip("]");
+    token.expect_skip("]");
     lhs = new IndexAST(lhs, rhs);
   }
   return lhs;
@@ -165,7 +165,7 @@ AST *Parser::expr_index() {
 
 
 AST *Parser::expr_primary() {
-    std::cout << token.get().val << std::endl;
+  std::cout << token.get().type << " : " << token.get().line << " " << token.get().val << std::endl;
   if(token.get().type == TOK_TYPE_NUMBER) {
     return read_number();
   } else if(token.get().type == TOK_TYPE_STRING) {

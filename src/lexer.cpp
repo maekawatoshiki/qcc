@@ -74,6 +74,8 @@ void Lexer::tok_symbol(std::string::iterator &pos) {
       (*pos == '&' && *(pos+1) == '&') ||
       (*pos == '|' && *(pos+1) == '|') ||
       (*pos == '-' && *(pos+1) == '>') ||
+      (*pos == '<' && *(pos+1) == '<') ||
+      (*pos == '>' && *(pos+1) == '>') ||
       (*pos == '.' && *(pos+1) == '.') )
     op += *++pos;
   if(*pos == '.' && *(pos+1) == '.') op += *++pos; // variable arguments '...'

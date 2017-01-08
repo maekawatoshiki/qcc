@@ -543,6 +543,9 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
       ptr = true;
       a = builder.CreateLoad(a);
     }
+  } else {
+    a = statement(st->ary);
+    ptr = a->getType()->isPointerTy();
   }
   llvm::Value *elem;
   if(ptr) {
@@ -750,6 +753,7 @@ llvm::Value *Codegen::statement(ArrayAST *st) {
 llvm::Value *Codegen::statement(TypeCastAST *st) {
   if(!st->cast_to->isVoidTy())
     return type_cast(statement(st->expr), st->cast_to);
+  return nullptr;
 }
 
 llvm::Value *Codegen::statement(UnaryAST *st) {
@@ -800,6 +804,10 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
     ret = op_div(lhs, rhs);
   } else if(st->op == "%") {
     ret = op_rem(lhs, rhs);
+  } else if(st->op == "<<") {
+    ret = builder.CreateShl(lhs, type_cast(rhs, lhs->getType()));
+  } else if(st->op == (">>")) {
+    ret = builder.CreateAShr(lhs, type_cast(rhs, lhs->getType()));
   } else if(st->op == "==") {
     ret = op_eq(lhs, rhs);
   } else if(st->op == "!=") {

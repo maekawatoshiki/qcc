@@ -240,10 +240,12 @@ std::vector<token_t> Preprocessor::replace_macro_func(Token &token, define_t &ma
   for(; tok.pos < tok.token.size();) {
     bool expand = false;
     bool stringize = false;
+    bool cat = false;
     stringize = tok.skip("#");
+    cat = stringize && tok.skip("#");
     for(int i = 0; i < macro.args.size(); i++) {
       if(tok.skip(macro.args[i])) { //it->token.val == macro.args[i]) {
-        if(stringize) {
+        if(!cat && stringize) {
           std::string str;
           for(auto s : args[i]) 
             str += (s.space && !str.empty() ? " " : "") + 
@@ -262,6 +264,11 @@ std::vector<token_t> Preprocessor::replace_macro_func(Token &token, define_t &ma
     }
     if(!expand) 
       body.push_back(tok.next());
+    if(cat) {
+      auto b = body.back().val;
+      body.pop_back();
+      body.back().val += b;
+    }
   }
   tok.token = body;
   tok.pos = 0;
