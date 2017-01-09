@@ -686,6 +686,18 @@ llvm::Value *Codegen::op_xor(llvm::Value *lhs, llvm::Value *rhs) {
   } else error("error: unknown operation");
   return nullptr;
 } 
+llvm::Value *Codegen::op_shl(llvm::Value *lhs, llvm::Value *rhs) {
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateShl(lhs, type_cast(rhs, lhs->getType()));
+  } else error("error: unknown operation");
+  return nullptr;
+} 
+llvm::Value *Codegen::op_shr(llvm::Value *lhs, llvm::Value *rhs) {
+  if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
+    return builder.CreateAShr(lhs, type_cast(rhs, lhs->getType()));
+  } else error("error: unknown operation");
+  return nullptr;
+} 
 llvm::Value *Codegen::op_eq(llvm::Value *lhs, llvm::Value *rhs) {
   IMPLICIT_CAST;
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
@@ -795,39 +807,39 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
        rhs = statement(st->rhs);
   llvm::Value *ret = nullptr;
   if(st->op == "+") {
-    ret = op_add(lhs, rhs);
+    return op_add(lhs, rhs);
   } else if(st->op == "-") {
-    ret = op_sub(lhs, rhs);
+    return op_sub(lhs, rhs);
   } else if(st->op == "*") {
-    ret = op_mul(lhs, rhs);
+    return op_mul(lhs, rhs);
   } else if(st->op == "/") {
-    ret = op_div(lhs, rhs);
+    return op_div(lhs, rhs);
   } else if(st->op == "%") {
-    ret = op_rem(lhs, rhs);
+    return op_rem(lhs, rhs);
   } else if(st->op == "<<") {
-    ret = builder.CreateShl(lhs, type_cast(rhs, lhs->getType()));
+    return op_shl(lhs, rhs);
   } else if(st->op == (">>")) {
-    ret = builder.CreateAShr(lhs, type_cast(rhs, lhs->getType()));
+    return op_shr(lhs, rhs);
   } else if(st->op == "==") {
-    ret = op_eq(lhs, rhs);
+    return op_eq(lhs, rhs);
   } else if(st->op == "!=") {
-    ret = op_ne(lhs, rhs);
+    return op_ne(lhs, rhs);
   } else if(st->op == "<=") {
-    ret = op_le(lhs, rhs);
+    return op_le(lhs, rhs);
   } else if(st->op == (">=")) {
-    ret = op_ge(lhs, rhs);
+    return op_ge(lhs, rhs);
   } else if(st->op == "<") {
-    ret = op_lt(lhs, rhs);
+    return op_lt(lhs, rhs);
   } else if(st->op == (">")) {
-    ret = op_gt(lhs, rhs);
+    return op_gt(lhs, rhs);
   } else if(st->op == "&" || st->op == "&&") {
-    ret = op_and(lhs, rhs);
+    return op_and(lhs, rhs);
   } else if(st->op == "|" || st->op == "||") {
-    ret = op_or(lhs, rhs);
+    return op_or(lhs, rhs);
   } else if(st->op == "^") {
-    ret = op_xor(lhs, rhs);
-  }
-  return ret;
+    return op_xor(lhs, rhs);
+  } else error("error: in codegen: unknown binary op");
+  return nullptr;
 }
 
 llvm::Value *Codegen::statement(TernaryAST *st) {

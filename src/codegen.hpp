@@ -27,6 +27,8 @@ class Codegen {
     llvm::Value *op_and(llvm::Value *, llvm::Value *);
     llvm::Value *op_or (llvm::Value *, llvm::Value *);
     llvm::Value *op_xor(llvm::Value *, llvm::Value *);
+    llvm::Value *op_shl(llvm::Value *, llvm::Value *);
+    llvm::Value *op_shr(llvm::Value *, llvm::Value *);
     llvm::Value *op_eq (llvm::Value *, llvm::Value *);
     llvm::Value *op_ne (llvm::Value *, llvm::Value *);
     llvm::Value *op_lt (llvm::Value *, llvm::Value *);

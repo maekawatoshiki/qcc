@@ -190,6 +190,17 @@ void Preprocessor::read_include() {
     new_token.token.push_back(t);
 }
 
+std::string Preprocessor::stringize(std::vector<token_t> &tok) {
+  std::string str;
+  for(auto s : tok) 
+    str += (s.space && !str.empty() ? " " : "") + 
+      (s.type == TOK_TYPE_STRING ? 
+       "\"" + s.val + "\"" : 
+       s.type == TOK_TYPE_CHAR   ?
+       "\'" + s.val + "\'" : s.val);
+  return str;
+}
+
 bool Preprocessor::is_defined(std::string name) {
   return define_map.count(name);
 }
@@ -239,20 +250,15 @@ std::vector<token_t> Preprocessor::replace_macro_func(Token &token, define_t &ma
     
   for(; tok.pos < tok.token.size();) {
     bool expand = false;
-    bool stringize = false;
+    bool stringify = false;
     bool cat = false;
-    stringize = tok.skip("#");
-    cat = stringize && tok.skip("#");
+    stringify = tok.skip("#");
+    cat = stringify && tok.skip("#");
+    if(cat) stringify = false;
     for(int i = 0; i < macro.args.size(); i++) {
       if(tok.skip(macro.args[i])) { //it->token.val == macro.args[i]) {
-        if(!cat && stringize) {
-          std::string str;
-          for(auto s : args[i]) 
-            str += (s.space && !str.empty() ? " " : "") + 
-              (s.type == TOK_TYPE_STRING ? 
-               "\"" + s.val + "\"" : 
-               s.type == TOK_TYPE_CHAR   ?
-               "\'" + s.val + "\'" : s.val);
+        if(stringify) {
+          std::string str = stringize(args[i]);
           body.push_back(token_t(TOK_TYPE_STRING, str));
         } else {
           for(auto a : args[i])

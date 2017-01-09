@@ -488,11 +488,11 @@ llvm::Type *Parser::read_type_spec() {
 
 llvm::Type *Parser::read_type_spec(int &stg) {
   enum { tsigned, tunsigned } sign = tsigned;
-  enum { tvoid, tchar, tint, tdouble } type = tint;
+  enum { tnon, tvoid, tchar, tint, tdouble } type = tnon;
   enum { tshort, tdefault, tlong, tllong } size = tdefault;
 
   for(;;) {
-    if(typedef_map.count(token.get().val)) {
+    if(type == tnon && typedef_map.count(token.get().val)) {
       std::string t = token.next().val; return typedef_map[t];
     }
          if(token.skip("extern")) stg = STG_EXTERN;

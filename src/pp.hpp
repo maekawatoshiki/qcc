@@ -53,6 +53,7 @@ class Preprocessor {
     void skip_this_line();
 
     bool is_defined(std::string);
+    std::string stringize(std::vector<token_t> &);
     std::vector<token_t> replace_macro(Token &); // replace current token to macro
     std::vector<token_t> &replace_macro(Token &, std::vector<token_t> &);
     std::vector<token_t> replace_macro_obj(Token &, define_t &);
