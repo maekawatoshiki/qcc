@@ -6,10 +6,7 @@ int QCC::run(std::string source) {
 
   token = LEX.run(source);
 
-  std::ifstream ifs_src("./include/qcc.h");
-  std::istreambuf_iterator<char> it(ifs_src), last;
-  std::string src_all(it, last);
-  Lexer lex; Token include_tok = lex.run(src_all);
+  Lexer lex; Token include_tok = lex.run("./include/qcc.h");
   Preprocessor pp; 
   include_tok = pp.run(include_tok);
   for(auto incl_macro : pp.define_map)
@@ -42,17 +39,17 @@ int QCC::run() {
     } else infile = argv[i];
   }
 
-  std::string source = [&]() -> std::string {
-    std::ifstream ifs_src(infile);
-    if(!ifs_src) { printf("file not found '%s'\n", argv[1]); exit(0); }
-    std::istreambuf_iterator<char> it(ifs_src), last;
-    std::string src_all(it, last);
-    return src_all;
-  }();
+  // std::string source = [&]() -> std::string {
+  //   std::ifstream ifs_src(infile);
+  //   if(!ifs_src) { printf("file not found '%s'\n", argv[1]); exit(0); }
+  //   std::istreambuf_iterator<char> it(ifs_src), last;
+  //   std::string src_all(it, last);
+  //   return src_all;
+  // }();
 
   if(!ofile.empty()) set_out_file_name(ofile);
   set_emit_llvm_ir(emit_llvm_ir);
-  run(source);
+  run(infile);
   return 0;
 }
 

@@ -3,7 +3,6 @@
 
 #define MAX 4
 
-void qsort(void *base, size_t num, size_t size, int (*compare)(void*, void*));
 
 typedef struct {
   int width, height;

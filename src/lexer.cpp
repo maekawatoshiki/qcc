@@ -1,30 +1,37 @@
 #include "lexer.hpp"
 #include "token.hpp"
 
-Token Lexer::run(std::string source) {
+Token Lexer::run(std::string file_name) {
+  std::ifstream ifs_src(file_name);
+  if(ifs_src.fail()) error("file not found %s", file_name.c_str());
+
   cur_line = 1;
   space = false;
 
-  for(auto pos = source.begin(); pos != source.end(); ++pos) {
-    if(isdigit(*pos))                     tok_number(pos);
-    else if(*pos == '_' || isalpha(*pos)) tok_ident(pos);
-    else if(isblank(*pos))                space = true; // skip
-    else if(*pos == '\\')                 skip_line(pos);
-    else if(*pos == '/' && *(pos+1) == '/') {
-      for(; *pos != '\n'; pos++) {}; cur_line++;
-    } else if(*pos == '/' && *(pos+1) == '*') {
-      for(; !(*pos == '*' && *(pos+1) == '/'); pos++) { 
-        if(*pos == '\n') cur_line++;
-      }
-      pos++; 
-    } else if(*pos == '\"')               tok_string(pos);
-    else if(*pos == '\'')                 tok_char(pos);
-    else if(*pos == '\n') { 
-      skip_line(pos);
-      cur_line++;
-      token.add_newline_tok();
-    } else                                tok_symbol(pos);
-  } 
+  bool comment = false;
+  while(std::getline(ifs_src, line)) {
+    bool nl = false;
+    for(auto pos = line.begin(); pos < line.end(); ++pos) {
+      if(comment || (*pos == '/' && *(pos+1) == '*')) {
+        for(; pos != line.end() && !(*pos == '*' && *(pos+1) == '/'); pos++) {};
+        if(pos!=line.end() && *pos == '*') {
+          pos++; // '/'
+          comment = false;
+        } else comment = true;
+      } else if(isdigit(*pos))              tok_number(pos);
+      else if(*pos == '_' || isalpha(*pos)) tok_ident(pos);
+      else if(isblank(*pos))                space = true; // skip
+      else if(*pos == '\\') {               skip_line(pos); nl = true; }
+      else if(*pos == '/' && *(pos+1) == '/') {
+        for(; pos != line.end(); pos++) {}; 
+      } else if(*pos == '\"')               tok_string(pos);
+      else if(*pos == '\'')                 tok_char(pos);
+      else                                  tok_symbol(pos);
+    }
+    cur_line++;
+    if(!nl) token.add_newline_tok();
+  }
+  ifs_src.close();
 
   token.add_end_tok();
 
@@ -85,7 +92,8 @@ void Lexer::tok_symbol(std::string::iterator &pos) {
 }
 
 void Lexer::skip_line(std::string::iterator &pos) {
-  while(*pos != '\n') pos++;
+  puts("HRE");
+  while(pos != line.end()) pos++;
 }
 
 char Lexer::replace_escape(std::string::iterator &pos) {

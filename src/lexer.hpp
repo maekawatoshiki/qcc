@@ -8,6 +8,8 @@ class Lexer {
     int cur_line = 1;
     bool space = false; // means a leading space
     Token token;
+    std::string line;
+    std::ifstream ifs_src;
 
     void tok_number(std::string::iterator &);
     void tok_ident (std::string::iterator &);

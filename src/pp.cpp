@@ -175,9 +175,7 @@ void Preprocessor::read_include() {
     std::ifstream ifs_src(default_include_path[incl_n] + file_name);
     // std::cout << "NOW INCLUDING " << default_include_path[incl_n] + file_name << std::endl;
     if(!ifs_src) { return include_content(incl_n+1); }
-    std::istreambuf_iterator<char> it(ifs_src), last;
-    std::string src_all(it, last);
-    return src_all;
+    return default_include_path[incl_n] + file_name;
   };
   Lexer lex; Token include_tok = lex.run(include_content(0));
   Preprocessor pp; 
