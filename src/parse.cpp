@@ -552,7 +552,7 @@ llvm::Type *Parser::read_enum_type() {
     return make_enum_declaration();
   if(token.get().type == TOK_TYPE_IDENT)
     token.skip();
-  return builder.getInt32Ty();
+  return builder.getInt32Ty(); // INQCC: enum is integer
 }
 
 int eval_constexpr(AST *expr) {

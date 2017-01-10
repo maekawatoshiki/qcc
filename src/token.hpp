@@ -37,6 +37,8 @@ class Token {
     void add_newline_tok();
     void add_end_tok    ();
 
+    void seek(int);
+    bool is_end();
     token_t get();
     token_t get(int skip); // pos + skip
     token_t next();

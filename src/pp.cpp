@@ -2,8 +2,10 @@
 #include "lexer.hpp"
 #include "parse.hpp"
 
+std::map<std::string, define_t> define_map;
 Token Preprocessor::run(Token tok) {
   token = tok;
+  new_token.token.reserve(token.token.size()*2);
 
   while(token.get().type != TOK_TYPE_END) {
     if(token.skip("#")) {
@@ -19,13 +21,12 @@ Token Preprocessor::run(Token tok) {
       else if(token.skip("error"))               skip_this_line();
       else error("error in preprocessor(%d): #%s", token.get().line, token.get().val.c_str());
     } else if(is_defined(token.get().val)) { 
-      auto m = replace_macro(token);
-      std::copy(m.begin(), m.end(), std::back_inserter(new_token.token));
+      auto m = replace_macro(token, new_token.token);
     } else if(token.get().type != TOK_TYPE_NEWLINE) {
       new_token.token.push_back(token.next());
     } else token.skip();
   }
-  token.pos = 0;
+  token.seek(0);
   return new_token;
 }
 
@@ -68,7 +69,7 @@ token_t Preprocessor::read_defined_op() {
   } else {
     macro_name = token.next().val;
   }
-  std::cout << "MACRO " << macro_name << "DEFINED? " << this->define_map.count(macro_name) << std::endl;;
+  std::cout << "MACRO " << macro_name << "DEFINED? " << define_map.count(macro_name) << std::endl;;
   return is_defined(macro_name) ? 
     token_t(TOK_TYPE_NUMBER, "1", token.get().line) : 
     token_t(TOK_TYPE_NUMBER, "0", token.get().line);
@@ -105,7 +106,7 @@ bool Preprocessor::read_constexpr() {
   tok.add_symbol_tok(";", 0);
   tok.add_end_tok();
   tok.show();
-  tok.pos = 0;
+  tok.seek(0);
   Parser parser;
   auto expr = parser.run(tok, true)[0];
   bool cond = eval_constexpr(expr);
@@ -179,11 +180,7 @@ void Preprocessor::read_include() {
   };
   Lexer lex; Token include_tok = lex.run(include_content(0));
   Preprocessor pp; 
-  for(auto incl_def : define_map)
-    pp.define_map[incl_def.first] = incl_def.second;
   include_tok = pp.run(include_tok);
-  for(auto incl_def : pp.define_map) 
-    define_map[incl_def.first] = incl_def.second;
   for(auto t : include_tok.token)
     new_token.token.push_back(t);
 }
@@ -213,7 +210,7 @@ std::vector<token_t> Preprocessor::replace_macro_obj(Token &token, define_t &mac
   std::vector<token_t> body;
 
   auto tok = macro.rep;
-  while(tok.pos < tok.token.size()) {
+  while(!tok.is_end()) {
     if(is_defined(tok.get().val)) {
       replace_macro(tok, body);
     } else body.push_back(tok.next());
@@ -228,7 +225,7 @@ std::vector<token_t> Preprocessor::replace_macro_func(Token &token, define_t &ma
   token.expect_skip("(");
   std::vector< std::vector<token_t> > args;
   int nest = 1;
-  while(token.pos < token.token.size()) {
+  while(!token.is_end()) {
     std::vector<token_t> arg;
     while(1) {
       if(token.is("(")) nest++; if(token.is(")")) nest--;
@@ -246,7 +243,7 @@ std::vector<token_t> Preprocessor::replace_macro_func(Token &token, define_t &ma
   macro.rep.pos = 0;
   Token tok = macro.rep;
     
-  for(; tok.pos < tok.token.size();) {
+  for(; !tok.is_end();) {
     bool expand = false;
     bool stringify = false;
     bool cat = false;
@@ -275,9 +272,9 @@ std::vector<token_t> Preprocessor::replace_macro_func(Token &token, define_t &ma
     }
   }
   tok.token = body;
-  tok.pos = 0;
+  tok.seek(0);
   body.clear();
-  for(; tok.pos < tok.token.size();) {
+  for(; !tok.is_end();) {
     if(define_map.count(tok.get().val)) {
       auto m = replace_macro(tok, body);
     } else 

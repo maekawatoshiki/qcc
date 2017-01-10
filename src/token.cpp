@@ -12,6 +12,14 @@ token_t Token::next() {
   return token[pos++];
 }
 
+void Token::seek(int pos) {
+  this->pos = pos;
+}
+
+bool Token::is_end() {
+  return !(pos < token.size());
+}
+
 void Token::add_ident_tok  (std::string val, int line, bool space) {
   token.push_back((token_t) { TOK_TYPE_IDENT, val, line, space });
 }

@@ -63,6 +63,5 @@ class Preprocessor {
     void add_define_funclike_macro(std::string macro_name, 
         std::vector<std::string> args_name, std::vector<token_t> rep);
   public:
-    std::map<std::string, define_t> define_map;
     Token run(Token);
 };

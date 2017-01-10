@@ -8,10 +8,11 @@ int QCC::run(std::string source) {
 
   Lexer lex; Token include_tok = lex.run("./include/qcc.h");
   Preprocessor pp; 
+  // clock_t b = clock();
   include_tok = pp.run(include_tok);
-  for(auto incl_macro : pp.define_map)
-    PP.define_map[incl_macro.first] = incl_macro.second;
   token = PP.run(token);
+  // clock_t e = clock();
+  // std::cout << ((double)(e-b)/CLOCKS_PER_SEC) << std::endl;getchar();
   token.add_end_tok();
   // puts("after preprocess:");
   // token.show(); getchar();
