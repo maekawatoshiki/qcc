@@ -220,16 +220,18 @@ std::vector<token_t> Preprocessor::replace_macro_obj(Token &token, define_t &mac
 }
 std::vector<token_t> Preprocessor::replace_macro_func(Token &token, define_t &macro) {
   std::vector<token_t> body;
+  std::vector< std::vector<token_t> > args;
+  int nest = 1;
   // funclike macro
   token.skip(); // IDENT
   token.expect_skip("(");
-  std::vector< std::vector<token_t> > args;
-  int nest = 1;
+  // TODO: this method should be a function
   while(!token.is_end()) {
     std::vector<token_t> arg;
     while(1) {
       if(token.is("(")) nest++; if(token.is(")")) nest--;
-      if((token.is(")") && !nest) || token.is(",")) break;
+      if((token.is(")") && !nest) || 
+         (nest == 1 && token.is(","))) break;
       if(is_defined(token.get().val)) {
         replace_macro(token, arg);
       } else 
@@ -268,7 +270,10 @@ std::vector<token_t> Preprocessor::replace_macro_func(Token &token, define_t &ma
     if(cat) {
       auto b = body.back().val;
       body.pop_back();
-      body.back().val += b;
+      if(body.empty()) {
+        body.push_back(token_t(TOK_TYPE_IDENT, b));
+      } else 
+        body.back().val += b;
     }
   }
   tok.token = body;
