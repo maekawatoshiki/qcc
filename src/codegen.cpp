@@ -291,7 +291,7 @@ llvm::Constant *Codegen::constinit_global_var(llvm::GlobalVariable *gv, AST *ini
     } else 
       error("error: initialization of global variables must be constant");
   } else {
-    auto expr = statement(init_expr);
+    auto expr = type_cast(statement(init_expr), varty);
     if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(expr)) 
       return c;
     else 
