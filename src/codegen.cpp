@@ -262,8 +262,13 @@ llvm::ConstantStruct *Codegen::to_rectype_initializer(AST *ary, llvm::StructType
     std::vector<llvm::Constant *> vals;
     if(ary_ast->elems.size() > recty->getNumElements()) 
       error("error: excess elements");
-    for(auto e : ary_ast->elems)
-      vals.push_back((llvm::Constant *)statement(e));
+    int i = 0;
+    for(auto e : ary_ast->elems) {
+      if(recty->getStructElementType(i++)->isStructTy()) {
+        vals.push_back(to_rectype_initializer(e, (llvm::StructType *)recty->getStructElementType(i-1)));
+      } else 
+        vals.push_back((llvm::Constant *)statement(e));
+    }
       
     return (llvm::ConstantStruct *)llvm::ConstantStruct::get(recty, vals);
   }
@@ -271,25 +276,45 @@ llvm::ConstantStruct *Codegen::to_rectype_initializer(AST *ary, llvm::StructType
   return nullptr;
 }
 
+// this(int [2]) -> int, this(Struct *[]) -> Struct
+llvm::Type *Codegen::get_base_type(llvm::Type *ty) {
+  bool aryty;
+  llvm::Type *basety = ty;
+  while((aryty = ty->isArrayTy()) || ty->isPointerTy()) {
+    ty = aryty ? ty->getArrayElementType() : ty->getPointerElementType();
+  }
+  return ty;
+}
+
 llvm::Constant *Codegen::constinit_global_var(llvm::GlobalVariable *gv, AST *init_expr) {
   const auto varty = gv->getType()->getPointerElementType();
   if(varty->isStructTy()) {
     return to_rectype_initializer(init_expr, (llvm::StructType *)varty);
   } else if(varty->isArrayTy()) {
-    auto ary = statement(init_expr);
-    if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(ary)) {
-      if(c->getType()->getArrayNumElements() != gv->getType()->getPointerElementType()->getArrayNumElements()) {
-        llvm::ConstantArray *const_arr = static_cast<llvm::ConstantArray *>(c);
-        c = create_const_array([&]() -> std::vector<llvm::Constant *> {
-            std::vector<llvm::Constant *> const_elems;
-            for(int i = 0; i < c->getType()->getArrayNumElements(); i++)
-            const_elems.push_back( const_arr->getAggregateElement(i) );
-            return const_elems;
-            }(), gv->getType()->getPointerElementType()->getArrayNumElements());
+    auto basety = get_base_type(varty);
+    if(basety->isStructTy()) { // Record s[];
+      ArrayAST *aryast = static_cast<ArrayAST *>(init_expr);
+      std::vector<llvm::Constant *> vals;
+      for(auto elem : aryast->elems) {
+        vals.push_back(to_rectype_initializer(elem, (llvm::StructType *)basety));
       }
-      return c;
-    } else 
-      error("error: initialization of global variables must be constant");
+      return llvm::ConstantArray::get((llvm::ArrayType *)varty, vals);
+    } else { // <primitive> a[];
+      auto ary = statement(init_expr);
+      if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(ary)) {
+        if(c->getType()->getArrayNumElements() != gv->getType()->getPointerElementType()->getArrayNumElements()) {
+          llvm::ConstantArray *const_arr = static_cast<llvm::ConstantArray *>(c);
+          c = create_const_array([&]() -> std::vector<llvm::Constant *> {
+              std::vector<llvm::Constant *> const_elems;
+              for(int i = 0; i < c->getType()->getArrayNumElements(); i++)
+              const_elems.push_back( const_arr->getAggregateElement(i) );
+              return const_elems;
+              }(), gv->getType()->getPointerElementType()->getArrayNumElements());
+        }
+        return c;
+      } else 
+        error("error: initialization of global variables must be constant");
+    }
   } else {
     auto expr = type_cast(statement(init_expr), varty);
     if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(expr)) 

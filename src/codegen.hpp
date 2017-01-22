@@ -64,6 +64,7 @@ class Codegen {
     llvm::Value *statement(NumberAST *           ); 
     llvm::Value *statement(SizeofAST *           );
 
+    llvm::Type *get_base_type(llvm::Type *);
     llvm::Constant *constinit_global_var(llvm::GlobalVariable *gv, AST *init_expr);
     llvm::ConstantStruct *to_rectype_initializer(AST *ary, llvm::StructType *);
     llvm::Value *get_value_struct(llvm::Value *, struct_t *, std::string);
