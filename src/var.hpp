@@ -14,6 +14,6 @@ class VariableList {
   private:
     std::vector<var_t> var_list;
   public:
-    void add(var_t);
+    var_t *add(var_t);
     var_t *get(std::string name);
 };

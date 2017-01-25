@@ -56,7 +56,13 @@ bool Token::expect_skip(std::string str) {
     pos++; 
     if(pos > token.size()) error("error: program is reached EOF");
     return true;
-  } else error("error(%d): expected '%s'", get().line, str.c_str());
+  } else {
+    puts("surrounding tokens:");
+    for(int p = pos > 3 ? -3 : 0; p < 3 && !is_end(); p++) 
+      printf("%s", ((get(p).space ? " " : "") + get(p).val).c_str());
+    puts("");
+    error("error(%d): expected '%s'", get().line, str.c_str());
+  }
   return false;
 }
 void Token::prev() { pos--; }
