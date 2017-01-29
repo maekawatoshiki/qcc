@@ -15,4 +15,3 @@ addons:
 
 script:
   - make
-  - make test
