@@ -10,15 +10,18 @@ class Lexer {
     Token token;
     std::string line;
     std::ifstream ifs_src;
+    bool comment = false;
 
-    void tok_number(std::string::iterator &);
-    void tok_ident (std::string::iterator &);
-    void tok_string(std::string::iterator &);
-    void tok_char  (std::string::iterator &);
-    void tok_symbol(std::string::iterator &);
+    token_t read_token();
+
+    token_t tok_number();
+    token_t tok_ident ();
+    token_t tok_string();
+    token_t tok_char  ();
+    token_t tok_symbol();
     void skip_line (std::string::iterator &);
 
-    char replace_escape(std::string::iterator &);
+    char replace_escape();
   public:
     Token run(std::string);
 };

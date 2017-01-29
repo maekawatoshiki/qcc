@@ -2,92 +2,110 @@
 #include "token.hpp"
 
 Token Lexer::run(std::string file_name) {
-  std::ifstream ifs_src(file_name);
+  ifs_src.open(file_name);
   if(ifs_src.fail()) error("file not found %s", file_name.c_str());
+  while(1) {
+    auto t = read_token();
+    if(t.type == TOK_TYPE_END) break;
+    std::cout << t.val << std::endl;
+  }
+  puts("END");
 
   cur_line = 1;
-  space = false;
-
-  bool comment = false;
-  while(std::getline(ifs_src, line)) {
-    bool nl = false;
-    for(auto pos = line.begin(); pos < line.end(); ++pos) {
-      if(comment || (*pos == '/' && *(pos+1) == '*')) {
-        for(; pos != line.end() && !(*pos == '*' && *(pos+1) == '/'); pos++) {};
-        if(pos!=line.end() && *pos == '*') {
-          pos++; // '/'
-          comment = false;
-        } else comment = true;
-      } else if(isdigit(*pos))              tok_number(pos);
-      else if(*pos == '_' || isalpha(*pos)) tok_ident(pos);
-      else if(isblank(*pos))                space = true; // skip
-      else if(*pos == '\\') {               skip_line(pos); nl = true; }
-      else if(*pos == '/' && *(pos+1) == '/') {
-        for(; pos != line.end(); pos++) {}; 
-      } else if(*pos == '\"')               tok_string(pos);
-      else if(*pos == '\'')                 tok_char(pos);
-      else                                  tok_symbol(pos);
-    }
-    cur_line++;
-    if(!nl) token.add_newline_tok();
-  }
   ifs_src.close();
 
-  token.add_end_tok();
 
   return token;
 }
 
-void Lexer::tok_number(std::string::iterator &pos) {
-  std::string number;
-  for(;;) {
-    char c = *pos;
-    bool is_float = strchr("eEpP", *(pos-1)) && strchr("+-", c);
-    if(!isdigit(c) && !isalpha(c) && c != '.' && !is_float) break;
-    number += *pos++;
+token_t Lexer::read_token() {
+  char c = ifs_src.get();
+  if(ifs_src.eof()) return token_t(TOK_TYPE_END);
+  if(c == '/') {
+    c = ifs_src.get();
+    if(c == '*') {
+      for(; !ifs_src.eof();) {
+        if(c == '*' && (c = ifs_src.get()) == '/') 
+          break;
+        else c = ifs_src.get();
+      }
+    } else if(c == '/') {
+      for(; c != '\n' && !ifs_src.eof(); c = ifs_src.get()) {};
+    }
+    return read_token();
+  } else {
+    ifs_src.unget();
+    if(isdigit(c)) {                                  return tok_number();
+    } else if(c == '_' || isalpha(c)) {               return tok_ident();
+    } else if(isblank(c)) { ifs_src.get();            return read_token();
+    } else if(c == '\n') { cur_line++; ifs_src.get(); return read_token();
+    } else if(c == '\\') { ifs_src.get();             return read_token();
+    } else if(c == '\"') {                            return tok_string();
+    } else if(c == '\'') {                            return tok_char();
+    } else                                            return tok_symbol();
   }
-  --pos; token.add_number_tok(number, cur_line, space);
-  space = false;
 }
-void Lexer::tok_ident(std::string::iterator &pos) {
-  std::string ident;
-  for(; isalpha(*pos) || isdigit(*pos) || 
-      *pos == '_'; pos++)
-    ident += *pos;
-  --pos; token.add_ident_tok(ident, cur_line, space);
-  space = false;
-}
-void Lexer::tok_string(std::string::iterator &pos) {
-  std::string content;
-  for(pos++; *pos != '\"'; pos++) 
-    content += (*pos == '\\') ? replace_escape(pos) : *pos;
 
-  token.add_string_tok(content, cur_line, space);
-  space = false;
+token_t Lexer::tok_number() {
+  std::string number;
+  char last = 0;
+  for(;;) {
+    char c = ifs_src.get();
+    bool is_float = strchr("eEpP", last) && strchr("+-", c);
+    if(!isdigit(c) && !isalpha(c) && c != '.' && !is_float) break;
+    number += c;
+    last = c;
+  }
+  ifs_src.unget();
+  return token_t(TOK_TYPE_NUMBER, number, cur_line);
 }
-void Lexer::tok_char(std::string::iterator &pos) {
-  pos++; std::string ch;
-  ch = (*pos == '\\') ? replace_escape(pos) : *pos;
-  pos++;
-  token.add_char_tok(ch, cur_line, space);
-  space = false;
+token_t Lexer::tok_ident() {
+  std::string ident;
+  char c = ifs_src.get();
+  for(; isalpha(c) || isdigit(c) || 
+      c == '_'; c = ifs_src.get())
+    ident += c;
+  ifs_src.unget();
+  return token_t(TOK_TYPE_IDENT, ident, cur_line);
 }
-void Lexer::tok_symbol(std::string::iterator &pos) {
-  std::string op; op = *pos;
+token_t Lexer::tok_string() {
+  std::string content;
+  ifs_src.get(); // "
+  for(char c = ifs_src.get(); c != '\"'; c = ifs_src.get()) 
+    content += (c == '\\') ? replace_escape() : c;
+  return token_t(TOK_TYPE_STRING, content, cur_line);
+}
+token_t Lexer::tok_char() {
+  ifs_src.get(); std::string ch;
+  char c = ifs_src.get();
+  ch = (c == '\\') ? replace_escape() : c;
+  ifs_src.get();
+  return token_t(TOK_TYPE_CHAR, ch, cur_line);
+}
+token_t Lexer::tok_symbol() {
+  char c = ifs_src.get();
+  std::string op; op = c;
+  char cn = ifs_src.get();
   if(               
-      (*pos == '+' && *(pos+1) == '+') ||
-      (*pos == '-' && *(pos+1) == '-') ||
-      (*pos == '&' && *(pos+1) == '&') ||
-      (*pos == '|' && *(pos+1) == '|') ||
-      (*pos == '-' && *(pos+1) == '>') ||
-      (*pos == '<' && *(pos+1) == '<') ||
-      (*pos == '>' && *(pos+1) == '>') ||
-      (*pos == '.' && *(pos+1) == '.') )
-    op += *++pos;
-  if(*pos == '.' && *(pos+1) == '.') op += *++pos; // variable arguments '...'
-  else if(/*TODO: fix=*/*pos != ']' && /*TODO: fix*/*(pos+1) == '=') op += *++pos; // compare 'X=' e.g. <= ==
-  token.add_symbol_tok(op, cur_line, space);
-  space = false;
+      (c == '+' && cn == '+') ||
+      (c == '-' && cn == '-') ||
+      (c == '&' && cn == '&') ||
+      (c == '|' && cn == '|') ||
+      (c == '-' && cn == '>') ||
+      (c == '<' && cn == '<') ||
+      (c == '>' && cn == '>') ||
+      (c == '.' && cn == '.') )
+    op += cn;
+  else {
+    ifs_src.unget();
+    c = cn;
+  }
+
+  cn = ifs_src.get();
+  if(c == '.' && cn == '.') op += cn; // variable arguments '...'
+  else if(/*TODO: fix=*/c != ']' && /*TODO: fix*/cn == '=') op += cn; // compare 'X=' e.g. <= ==
+  else ifs_src.unget();
+  return token_t(TOK_TYPE_SYMBOL, op, cur_line);
 }
 
 void Lexer::skip_line(std::string::iterator &pos) {
@@ -95,8 +113,8 @@ void Lexer::skip_line(std::string::iterator &pos) {
   while(pos != line.end()) pos++;
 }
 
-char Lexer::replace_escape(std::string::iterator &pos) {
-  char c = *++pos;
+char Lexer::replace_escape() {
+  char c = ifs_src.get();
   switch(c) {
     case '\'': case '"': case '?': case '\\':
       return c;
