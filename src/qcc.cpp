@@ -4,16 +4,16 @@ int QCC::run(std::string source) {
   mod = new llvm::Module("QCC", context);
   data_layout = new llvm::DataLayout(mod);
 
-  token = LEX.run(source);
+  // token = LEX.run(source);
 
   Lexer lex; Token include_tok = lex.run("./include/qcc.h");
-  Preprocessor pp; 
+  token = LEX.run(source);
   // clock_t b = clock();
-  include_tok = pp.run(include_tok);
-  token = PP.run(token);
+  // include_tok = pp.run(include_tok);
+  // token = PP.run(token);
   // clock_t e = clock();
   // std::cout << ((double)(e-b)/CLOCKS_PER_SEC) << std::endl;getchar();
-  token.add_end_tok();
+  // token.add_end_tok();
   // puts("after preprocess:");
   // token.show(); getchar();
   auto ast = PARSE.run(token); puts("parser process exited successfully");
