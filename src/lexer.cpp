@@ -24,14 +24,12 @@ Token Lexer::run(std::string file_name) {
       else if(s == "endif"  ) skip_line();
       else if(s == "error"  ) skip_line();
       else error("PREPROCESSOR ERR '%s'", t.val.c_str());
-    } else if(t.type != TOK_TYPE_STRING && is_defined(t.val)) {
-      std::cout << t.val << " " << t.type << std::endl;
+    } else if(t.type == TOK_TYPE_IDENT && is_defined(t.val)) {
       replace_macro(t.val);
     } else if(t.type != TOK_TYPE_NEWLINE)
       token.token.push_back(t);
     std::cout << t.val << std::endl;
   }
-  puts("END");
 
   token.add_end_tok();
   cur_line = 1;
@@ -384,7 +382,7 @@ void Lexer::replace_macro_funclike(define_t macro) {
   if(t.val != "(") error("error(%d): expected '('", t.line); //token.expect_skip("(");
   // TODO: this method should be a function
   t = read_token();
-  puts("BEGIN_ARG");
+  // puts("BEGIN_ARG");
   while(1) {
     std::vector<token_t> arg;
     while(1) {
@@ -399,11 +397,11 @@ void Lexer::replace_macro_funclike(define_t macro) {
     if(t.val != ",") error("error(%d): expected ','", t.line);
     t = read_token();
   }
-  puts("END_ARG");
+  // puts("END_ARG");
 
   auto &tok = macro.rep;
     
-  // TODO: implement subst 
+  // TODO: implement subst and remove this redundancy code!
   for(; !tok.is_end();) {
     bool expand = false;
     bool stringify = false;
