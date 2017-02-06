@@ -1,6 +1,8 @@
-# DEVELOP BRANCH
-- qcc on this branch(develop) can include **real standard header files**. (/usr/include/stdio.h ...etc)
+# FAST-CPP BRANCH
+- qcc on this branch(fast-cpp) can include **real standard header files**. (/usr/include/stdio.h ...etc)
 - **but this runs on only linux**(no macOS)
+
+- in this branch, I develop a faster c preprocessor
 
 
 # QCC
