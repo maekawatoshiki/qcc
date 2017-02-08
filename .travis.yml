@@ -6,12 +6,15 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-      - llvm-toolchain-precise-3.6
+      - llvm-toolchain-precise-3.8
     packages:
-      - llvm-3.6
-      - llvm-3.6-dev
-      - clang-3.6
+      - llvm-3.8
+      - llvm-3.8-dev
+      - clang-3.8
       - libedit-dev
+
+env:
+  - ASAN_OPTIONS="detect_leaks=0"
 
 script:
   - make
