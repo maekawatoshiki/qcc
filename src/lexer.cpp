@@ -24,7 +24,7 @@ Token Lexer::run(std::string file_name) {
       else if(s == "endif"  ) skip_line();
       else if(s == "error"  ) skip_line();
       else error("PREPROCESSOR ERR '%s'", t.val.c_str());
-    } else if(t.type == TOK_TYPE_IDENT && is_defined(t.val)) {
+    } else if(t.type == TOK_TYPE_IDENT && !t.hideset.count(t.val) && is_defined(t.val)) {
       replace_macro(t.val);
     } else if(t.type != TOK_TYPE_NEWLINE)
       token.token.push_back(t);
@@ -368,8 +368,12 @@ void Lexer::replace_macro_object(define_t macro) {
   auto rep_tok = macro.rep;
   puts("macro-object");
   rep_tok.show();
+  auto push_to_buffer = [&](token_t t) {
+    t.hideset[macro.name] = true;
+    buffer.push_back(t);
+  };
   while(!rep_tok.is_end()) {
-    buffer.push_back(rep_tok.get());
+    push_to_buffer(rep_tok.get());
     rep_tok.next();
   }
 }
@@ -402,6 +406,10 @@ void Lexer::replace_macro_funclike(define_t macro) {
   auto &tok = macro.rep;
     
   // TODO: implement subst and remove this redundancy code!
+  auto push_to_buffer = [&](token_t t) {
+    t.hideset[macro.name] = true;
+    buffer.push_back(t);
+  };
   for(; !tok.is_end();) {
     bool expand = false;
     bool stringify = false;
@@ -413,13 +421,13 @@ void Lexer::replace_macro_funclike(define_t macro) {
       if(tok.skip(macro.args[i])) { //it->token.val == macro.args[i]) {
         if(stringify) {
           std::string str = stringize(args[i]);
-          buffer.push_back(token_t(TOK_TYPE_STRING, str));
+          push_to_buffer(token_t(TOK_TYPE_STRING, str));
         } else {
           for(auto a : args[i]) {
-            if(!cat &&is_defined(a.val)) // TODO: WTF?!
+            if(!cat && !a.hideset.count(macro.name) && is_defined(a.val)) // TODO: WTF?!
               replace_macro(a.val);
             else
-              buffer.push_back(a);
+              push_to_buffer(a);
           }
         }
         expand = true;
@@ -427,13 +435,13 @@ void Lexer::replace_macro_funclike(define_t macro) {
       } 
     }
     if(!expand) {
-      buffer.push_back(tok.next());
+      push_to_buffer(tok.next());
     }
     if(cat) {
       auto b = buffer.back().val;
       buffer.pop_back();
       if(buffer.empty()) {
-        buffer.push_back(token_t(TOK_TYPE_IDENT, b));
+        push_to_buffer(token_t(TOK_TYPE_IDENT, b));
       } else 
         buffer.back().val += b;
     }

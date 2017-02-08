@@ -19,6 +19,8 @@ struct token_t {
   std::string val;
   int line;
   bool space;
+
+  std::map<std::string, bool> hideset; // for preprocessor
 };
 
 class Token {
