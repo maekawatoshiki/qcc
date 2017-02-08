@@ -212,11 +212,13 @@ llvm::Value *Codegen::statement(FunctionCallAST *st) {
         params <= i ? statement(a) : // varaible argument                                    
         type_cast(statement(a), f->getType()->getPointerElementType()->getFunctionParamType(i++))
         );
-  } 
-  auto callee = f;
-  auto ret = builder.CreateCall(callee, caller_args);
-  if(!callee->getReturnType()->isVoidTy())
-    return ret;
+  }
+
+  if(f == nullptr) error("f->getFunctionType() is nullptr");
+  if(f->getFunctionType() == nullptr) error("f->getFunctionType() is nullptr");
+
+  if(!f->getReturnType()->isVoidTy())
+    return builder.CreateCall(f, caller_args);
   return nullptr;
 }
 
@@ -537,7 +539,7 @@ llvm::Value *Codegen::get_value_struct(llvm::Value *parent, struct_t *sinfo, std
     if(m == elem_name) break;
     member_count++;
   }
-  return builder.CreateStructGEP(/*parent->getType()->getPointerElementType(), */ parent, member_count);
+  return builder.CreateStructGEP(parent->getType()->getPointerElementType(), parent, member_count);
 }
 llvm::Value *Codegen::get_value_union(llvm::Value *parent, union_t *uinfo, std::string elem_name) {
   llvm::Type *member_type = nullptr;

@@ -1,7 +1,7 @@
-CXX := clang++-3.6
-LLVM_CONFIG := llvm-config-3.6
-CXXFLAGS := -O3 -std=c++11 -MMD -MP $(shell $(LLVM_CONFIG) --cxxflags)
-LIBS := -lm $(shell $(LLVM_CONFIG) --system-libs --ldflags --libs all)
+CXX := clang++-3.8
+LLVM_CONFIG := llvm-config-3.8
+CXXFLAGS := -fsanitize=address -MMD -MP $(shell $(LLVM_CONFIG) --cxxflags)
+LIBS := $(shell $(LLVM_CONFIG) --system-libs --ldflags --libs all)
 
 PROG := qcc
 SRCS := $(wildcard src/*.cpp)

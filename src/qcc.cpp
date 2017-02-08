@@ -76,7 +76,7 @@ void QCC::show_usage() {
 void error(const char *errs, ...) {
   va_list args;
   va_start(args, errs);
-    vprintf(errs, args); puts("");
+    vfprintf(stderr,errs, args); fputs("\n",stderr);
   va_end(args);
-  exit(0);
+  exit(1);
 }
