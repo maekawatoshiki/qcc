@@ -537,7 +537,7 @@ llvm::Value *Codegen::get_value_struct(llvm::Value *parent, struct_t *sinfo, std
     if(m == elem_name) break;
     member_count++;
   }
-  return builder.CreateStructGEP(/*parent->getType()->getPointerElementType(), */ parent, member_count);
+  return builder.CreateStructGEP(parent->getType()->getPointerElementType(), parent, member_count);
 }
 llvm::Value *Codegen::get_value_union(llvm::Value *parent, union_t *uinfo, std::string elem_name) {
   llvm::Type *member_type = nullptr;
