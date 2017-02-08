@@ -22,8 +22,8 @@ void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
   }
   for(auto st : ast) statement(st);
   if(emit_llvm_ir) mod->dump();
-  std::string EC;
-  llvm::raw_fd_ostream out(out_file_name.c_str(), EC, llvm::sys::fs::OpenFlags::F_RW);
+  std::error_code EC;
+  llvm::raw_fd_ostream out(out_file_name, EC, llvm::sys::fs::OpenFlags::F_RW);
   llvm::WriteBitcodeToFile(mod, out);
 }
 
@@ -152,7 +152,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
     for(auto arg_it = function->llvm_function->arg_begin(); arg_it != function->llvm_function->arg_end(); ++arg_it) {
       arg_it->setName(*args_name_it);
       llvm::AllocaInst *ainst = create_entry_alloca(function->llvm_function, *args_name_it, arg_it->getType());
-      builder.CreateStore(arg_it, ainst);
+      builder.CreateStore(&*arg_it, ainst);
       var_t *v = lookup_var(*args_name_it);
       if(v) v->val = ainst;
       args_name_it++;
@@ -213,7 +213,7 @@ llvm::Value *Codegen::statement(FunctionCallAST *st) {
         type_cast(statement(a), f->getType()->getPointerElementType()->getFunctionParamType(i++))
         );
   } 
-  auto callee = (llvm::Function *)f;
+  auto callee = f;
   auto ret = builder.CreateCall(callee, caller_args);
   if(!callee->getReturnType()->isVoidTy())
     return ret;
@@ -227,8 +227,8 @@ void Codegen::create_var(var_t v, llvm::Value *init_val) {
   // get begin of current basic block
   llvm::IRBuilder<> B = [&]() -> llvm::IRBuilder<> {
     if(cur_func->llvm_function->begin()->empty())
-      return llvm::IRBuilder<>(cur_func->llvm_function->begin());
-    else return llvm::IRBuilder<>(cur_func->llvm_function->begin()->begin());
+      return llvm::IRBuilder<>(&*cur_func->llvm_function->begin());
+    else return llvm::IRBuilder<>(&*cur_func->llvm_function->begin()->begin());
   }();
   cur_var->val = B.CreateAlloca(cur_var->type, nullptr, cur_var->name);
   if(init_val) 
@@ -537,7 +537,7 @@ llvm::Value *Codegen::get_value_struct(llvm::Value *parent, struct_t *sinfo, std
     if(m == elem_name) break;
     member_count++;
   }
-  return builder.CreateStructGEP(parent, member_count);
+  return builder.CreateStructGEP(/*parent->getType()->getPointerElementType(), */ parent, member_count);
 }
 llvm::Value *Codegen::get_value_union(llvm::Value *parent, union_t *uinfo, std::string elem_name) {
   llvm::Type *member_type = nullptr;
@@ -586,7 +586,7 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
   } else {
     elem = llvm::GetElementPtrInst::CreateInBounds(
         a, 
-        std::vector<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
+        llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
         statement(st->idx)}, "elem", builder.GetInsertBlock());
   }
   return elem;

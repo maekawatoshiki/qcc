@@ -3,7 +3,6 @@
 #include "llvm/Analysis/Passes.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "llvm/ExecutionEngine/JIT.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/IRBuilder.h"
@@ -14,7 +13,7 @@
 #include "llvm/Linker/Linker.h"
 #include <llvm/Support/MemoryBuffer.h>
 #include "llvm/IRReader/IRReader.h"
-#include "llvm/PassManager.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Bitcode/ReaderWriter.h"
