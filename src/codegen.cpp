@@ -212,11 +212,13 @@ llvm::Value *Codegen::statement(FunctionCallAST *st) {
         params <= i ? statement(a) : // varaible argument                                    
         type_cast(statement(a), f->getType()->getPointerElementType()->getFunctionParamType(i++))
         );
-  } 
-  auto callee = f;
-  auto ret = builder.CreateCall(callee, caller_args);
-  if(!callee->getReturnType()->isVoidTy())
-    return ret;
+  }
+
+  if(f == nullptr) error("f->getFunctionType() is nullptr");
+  if(f->getFunctionType() == nullptr) error("f->getFunctionType() is nullptr");
+
+  if(!f->getReturnType()->isVoidTy())
+    return builder.CreateCall(f, caller_args);
   return nullptr;
 }
 
