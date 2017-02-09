@@ -214,10 +214,8 @@ llvm::Value *Codegen::statement(FunctionCallAST *st) {
         );
   } 
   auto callee = f;
-  auto ret = builder.CreateCall(callee, caller_args);
-  if(!callee->getReturnType()->isVoidTy())
-    return ret;
-  return nullptr;
+  auto ret = builder.CreateCall((llvm::Value *)callee, caller_args);
+  return ret;
 }
 
 void Codegen::create_var(var_t v, llvm::Value *init_val) {
