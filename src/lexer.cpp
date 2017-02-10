@@ -169,7 +169,7 @@ void Lexer::read_include() {
   } else if(t.type == TOK_TYPE_STRING) {
     file_name = t.val;
   }
-  std::function<std::string(int)> find_include_file = [&](int incl_n) -> std::string {
+  std::function<std::string(int)> find_include_file = [&](size_t incl_n) -> std::string {
     if(incl_n == default_include_path.size()) { error("error: not found such file '%s'", file_name.c_str()); }
     std::ifstream ifs_src(default_include_path[incl_n] + file_name);
     if(!ifs_src) { return find_include_file(incl_n+1); }
@@ -360,8 +360,8 @@ std::string Lexer::stringize(std::vector<token_t> &tok) {
 
 void Lexer::subst_macro(Token &tok, Token args, define_t macro) {
   auto body = macro.rep;
-  for(int i = 0; i < macro.rep.token.size(); i++) {
-  }
+  // for(int i = 0; i < macro.rep.token.size(); i++) {
+  // }
 }
 
 void Lexer::replace_macro_object(define_t macro) {
@@ -417,7 +417,7 @@ void Lexer::replace_macro_funclike(define_t macro) {
     stringify = tok.skip("#");
     cat = stringify && tok.skip("#");
     if(cat) stringify = false;
-    for(int i = 0; i < macro.args.size(); i++) {
+    for(size_t i = 0; i < macro.args.size(); i++) {
       if(tok.skip(macro.args[i])) { //it->token.val == macro.args[i]) {
         if(stringify) {
           std::string str = stringize(args[i]);

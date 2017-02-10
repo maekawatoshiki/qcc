@@ -277,7 +277,6 @@ llvm::ConstantStruct *Codegen::to_rectype_initializer(AST *ary, llvm::StructType
 // this(int [2]) -> int, this(Struct *[]) -> Struct
 llvm::Type *Codegen::get_base_type(llvm::Type *ty) {
   bool aryty;
-  llvm::Type *basety = ty;
   while((aryty = ty->isArrayTy()) || ty->isPointerTy()) {
     ty = aryty ? ty->getArrayElementType() : ty->getPointerElementType();
   }
@@ -303,10 +302,10 @@ llvm::Constant *Codegen::constinit_global_var(llvm::GlobalVariable *gv, AST *ini
         if(c->getType()->getArrayNumElements() != gv->getType()->getPointerElementType()->getArrayNumElements()) {
           llvm::ConstantArray *const_arr = static_cast<llvm::ConstantArray *>(c);
           c = create_const_array([&]() -> std::vector<llvm::Constant *> {
-              std::vector<llvm::Constant *> const_elems;
-              for(int i = 0; i < c->getType()->getArrayNumElements(); i++)
-              const_elems.push_back( const_arr->getAggregateElement(i) );
-              return const_elems;
+                std::vector<llvm::Constant *> const_elems;
+                for(size_t i = 0; i < c->getType()->getArrayNumElements(); i++)
+                  const_elems.push_back( const_arr->getAggregateElement(i) );
+                return const_elems;
               }(), gv->getType()->getPointerElementType()->getArrayNumElements());
         }
         return c;
@@ -833,7 +832,6 @@ llvm::Value *Codegen::statement(UnaryAST *st) {
 llvm::Value *Codegen::statement(BinaryAST *st) {
   auto lhs = statement(st->lhs),
        rhs = statement(st->rhs);
-  llvm::Value *ret = nullptr;
   if(st->op == "+") {
     return op_add(lhs, rhs);
   } else if(st->op == "-") {
@@ -922,7 +920,7 @@ llvm::Value *Codegen::statement(SizeofAST *st) {
   auto bgn = builder.GetInsertBlock()->getInstList().size();
   auto s = statement(st->expr);
   auto end = builder.GetInsertBlock()->getInstList().size();
-  for(int i = 0; i < (end-bgn); i++)
+  for(size_t i = 0; i < (end-bgn); i++)
     builder.GetInsertBlock()->getInstList().back().eraseFromParent();
   t = s->getType();
 

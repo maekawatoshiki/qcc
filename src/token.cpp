@@ -21,25 +21,25 @@ bool Token::is_end() {
 }
 
 void Token::add_ident_tok  (std::string val, int line, bool space) {
-  token.push_back((token_t) { TOK_TYPE_IDENT, val, line, space });
+  token.push_back(token_t(TOK_TYPE_IDENT, val, line, space));
 }
 void Token::add_symbol_tok (std::string val, int line, bool space) {
-  token.push_back((token_t) { TOK_TYPE_SYMBOL, val, line, space });
+  token.push_back(token_t(TOK_TYPE_SYMBOL, val, line, space));
 }
 void Token::add_number_tok (std::string val, int line, bool space) {
-  token.push_back((token_t) { TOK_TYPE_NUMBER, val, line, space });
+  token.push_back(token_t(TOK_TYPE_NUMBER, val, line, space));
 }
 void Token::add_string_tok (std::string val, int line, bool space) {
-  token.push_back((token_t) { TOK_TYPE_STRING, val, line, space });
+  token.push_back(token_t(TOK_TYPE_STRING, val, line, space));
 }
 void Token::add_char_tok   (std::string val, int line, bool space) {
-  token.push_back((token_t) { TOK_TYPE_CHAR, val, line, space });
+  token.push_back(token_t(TOK_TYPE_CHAR, val, line, space));
 }
 void Token::add_newline_tok () {
-  token.push_back((token_t) { TOK_TYPE_NEWLINE });
+  token.push_back(token_t(TOK_TYPE_NEWLINE));
 }
 void Token::add_end_tok    () {
-  token.push_back((token_t) { TOK_TYPE_END });
+  token.push_back(token_t(TOK_TYPE_END));
 }
 
 bool Token::is(std::string str) { return get().val == str && get().type != TOK_TYPE_STRING && get().type != TOK_TYPE_CHAR; }

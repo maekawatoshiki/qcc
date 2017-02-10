@@ -27,11 +27,9 @@ extern std::map<std::string, define_t> define_map;
 class Lexer {
   private:
     int cur_line = 1;
-    bool space = false; // means a leading space
     Token token;
     std::string line;
     std::ifstream ifs_src;
-    bool comment = false;
     std::vector<token_t> buffer;
 
     token_t read_token();

@@ -29,7 +29,7 @@ class Token {
     Token() {};
 
     std::vector<token_t> token;
-    int pos = 0;
+    size_t pos = 0;
 
     void add_ident_tok  (std::string, int, bool = false);
     void add_symbol_tok (std::string, int, bool = false);
