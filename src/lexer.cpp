@@ -2,7 +2,7 @@
 #include "token.hpp"
 #include "parse.hpp"
 
-std::map<std::string, define_t> define_map;
+std::map<std::string, macro_t> macro_map;
 Token Lexer::run(std::string file_name) {
   ifs_src.open(file_name);
   if(ifs_src.fail()) error("file not found %s", file_name.c_str());
@@ -219,9 +219,9 @@ void Lexer::read_undef() {
   auto t = read_token();
   if(t.type == TOK_TYPE_IDENT)
     macro = t.val;
-  auto it = define_map.find(macro);
-  if(it != define_map.end()) // if macro was declared
-    define_map.erase(it);
+  auto it = macro_map.find(macro);
+  if(it != macro_map.end()) // if macro was declared
+    macro_map.erase(it);
 }
 
 token_t Lexer::read_defined_op() {
@@ -233,7 +233,7 @@ token_t Lexer::read_defined_op() {
   } else {
     macro_name = t.val;
   }
-  std::cout << "MACRO " << macro_name << "DEFINED? " << define_map.count(macro_name) << std::endl;;
+  std::cout << "MACRO " << macro_name << "DEFINED? " << macro_map.count(macro_name) << std::endl;;
   return is_defined(macro_name) ? 
     token_t(TOK_TYPE_NUMBER, "1", t.line) : 
     token_t(TOK_TYPE_NUMBER, "0", t.line);
@@ -329,12 +329,12 @@ void Lexer::skip_cond_include() {
 }
 
 bool Lexer::is_defined(std::string name) {
-  std::cout << name << " " << define_map.count(name) << std::endl;
-  return define_map.count(name);
+  std::cout << name << " " << macro_map.count(name) << std::endl;
+  return macro_map.count(name);
 }
 
 void Lexer::replace_macro(std::string macro_name) {
-  auto macro = define_map[macro_name];
+  auto macro = macro_map[macro_name];
   puts("macro-entry");
   std::cout << macro.name << std::endl;
   macro.rep.show();
@@ -358,13 +358,13 @@ std::string Lexer::stringize(std::vector<token_t> &tok) {
   return str;
 }
 
-void Lexer::subst_macro(Token &tok, Token args, define_t macro) {
+void Lexer::subst_macro(Token &tok, Token args, macro_t macro) {
   auto body = macro.rep;
   // for(int i = 0; i < macro.rep.token.size(); i++) {
   // }
 }
 
-void Lexer::replace_macro_object(define_t macro) {
+void Lexer::replace_macro_object(macro_t macro) {
   auto rep_tok = macro.rep;
   puts("macro-object");
   rep_tok.show();
@@ -378,7 +378,7 @@ void Lexer::replace_macro_object(define_t macro) {
   }
 }
 
-void Lexer::replace_macro_funclike(define_t macro) {
+void Lexer::replace_macro_funclike(macro_t macro) {
   std::vector< std::vector<token_t> > args;
   int nest = 1;
   // funclike macro
@@ -449,18 +449,18 @@ void Lexer::replace_macro_funclike(define_t macro) {
 }
 
 void Lexer::add_macro_object(std::string name, std::vector<token_t> rep) {
-  define_t def;
+  macro_t def;
   def.name = name;
   def.type = DEFINE_MACRO;
   def.rep = Token(rep);
-  define_map[name] = def;
+  macro_map[name] = def;
 }
 
 void Lexer::add_macro_funclike(std::string name, std::vector<std::string> args_name, std::vector<token_t> rep) {
-  define_t def;
+  macro_t def;
   def.name = name;
   def.type = DEFINE_FUNCLIKE_MACRO;
   def.args = args_name;
   def.rep = Token(rep);
-  define_map[name] = def;
+  macro_map[name] = def;
 }

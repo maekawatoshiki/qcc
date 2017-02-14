@@ -15,14 +15,14 @@ struct macro_token_t {
   bool stringify;
 };
 
-struct define_t {
+struct macro_t {
   std::string name;
   int type;
   Token rep;
   std::vector<std::string> args; // for function like macro
 };
 
-extern std::map<std::string, define_t> define_map;
+extern std::map<std::string, macro_t> macro_map;
 
 class Lexer {
   private:
@@ -70,9 +70,9 @@ class Lexer {
     token_t read_defined_op();
 
     void replace_macro(std::string macro_name);
-    void replace_macro_object(define_t);
-    void replace_macro_funclike(define_t);
-    void subst_macro(Token &, Token args, define_t);
+    void replace_macro_object(macro_t);
+    void replace_macro_funclike(macro_t);
+    void subst_macro(Token &, Token args, macro_t);
     bool is_defined(std::string);
     std::string stringize(std::vector<token_t> &);
     void add_macro_object(std::string name, std::vector<token_t> rep);
