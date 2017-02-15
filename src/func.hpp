@@ -34,7 +34,7 @@ struct func_t {
 
 class FunctionList {
   private:
-    std::vector<func_t> func_list;
+    std::map<std::string, func_t> func_map;
   public:
     void add(func_t);
     func_t *get(std::string);

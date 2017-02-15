@@ -36,17 +36,9 @@ var_t *BlockList::lookup_var(std::string name) {
 }
 
 void FunctionList::add(func_t f) {
-  if(get(f.name)) { // exist?
-    auto it = std::find_if(func_list.begin(), func_list.end(), [&](func_t &fn) {
-        return f.name == fn.name; });
-    func_list.erase(it);
-  }
-  func_list.push_back(f);
+  func_map[f.name] = (f);
 }
 
 func_t *FunctionList::get(std::string name) {
-  for(auto &func : func_list) {
-    if(func.name == name) return &func;
-  }
-  return nullptr;
+  return func_map.count(name) ? &(func_map[name]) : nullptr;
 }

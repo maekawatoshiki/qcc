@@ -28,13 +28,12 @@ Token Lexer::run(std::string file_name) {
       replace_macro(t.val);
     } else if(t.type != TOK_TYPE_NEWLINE)
       token.token.push_back(t);
-    std::cout << t.val << std::endl;
   }
 
   token.add_end_tok();
   cur_line = 1;
   ifs_src.close();
-  token.show();
+  // token.show();
 
   return token;
 }
@@ -163,7 +162,7 @@ void Lexer::read_include() {
   auto t = read_token();
   if(t.val == "<") {
     while((t = read_token()).val != ">") {
-      std::cout << t.val <<std::endl;
+      // std::cout << t.val <<std::endl;
       file_name += t.val;
     }
   } else if(t.type == TOK_TYPE_STRING) {
@@ -233,7 +232,7 @@ token_t Lexer::read_defined_op() {
   } else {
     macro_name = t.val;
   }
-  std::cout << "MACRO " << macro_name << "DEFINED? " << macro_map.count(macro_name) << std::endl;;
+  // std::cout << "MACRO " << macro_name << "DEFINED? " << macro_map.count(macro_name) << std::endl;;
   return is_defined(macro_name) ? 
     token_t(TOK_TYPE_NUMBER, "1", t.line) : 
     token_t(TOK_TYPE_NUMBER, "0", t.line);
@@ -266,7 +265,7 @@ bool Lexer::read_constexpr() {
   tok.add_symbol_tok(";", 0);
   tok.add_end_tok();
   puts("EVAL");
-  tok.show();
+  // tok.show();
   tok.seek(0);
   Parser parser;
   auto expr = parser.run(tok, true)[0];
@@ -329,15 +328,15 @@ void Lexer::skip_cond_include() {
 }
 
 bool Lexer::is_defined(std::string name) {
-  std::cout << name << " " << macro_map.count(name) << std::endl;
+  // std::cout << name << " " << macro_map.count(name) << std::endl;
   return macro_map.count(name);
 }
 
 void Lexer::replace_macro(std::string macro_name) {
   auto macro = macro_map[macro_name];
   puts("macro-entry");
-  std::cout << macro.name << std::endl;
-  macro.rep.show();
+  // std::cout << macro.name << std::endl;
+  // macro.rep.show();
   puts("END");
   switch(macro.type) {
     case DEFINE_MACRO:          replace_macro_object(macro);
@@ -367,7 +366,7 @@ void Lexer::subst_macro(Token &tok, Token args, macro_t macro) {
 void Lexer::replace_macro_object(macro_t macro) {
   auto rep_tok = macro.rep;
   puts("macro-object");
-  rep_tok.show();
+  // rep_tok.show();
   auto push_to_buffer = [&](token_t t) {
     t.hideset[macro.name] = true;
     buffer.push_back(t);
