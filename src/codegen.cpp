@@ -701,11 +701,85 @@ llvm::Value *Codegen::op_and(llvm::Value *lhs, llvm::Value *rhs) {
   } else error("error: unknown operation");
   return nullptr;
 } 
+llvm::Value *Codegen::op_land(AST *lhs, AST *rhs) {
+  auto lhs_val = statement(lhs);
+  auto cond_val = builder.CreateICmpNE(
+      lhs_val,
+      lhs_val->getType()->isPointerTy() ?
+      llvm::ConstantPointerNull::getNullValue(lhs_val->getType()) :
+      make_int(0, lhs_val->getType()));
+  auto *func = builder.GetInsertBlock()->getParent();
+
+  llvm::BasicBlock *bb_then = llvm::BasicBlock::Create(context, "then", func);
+  llvm::BasicBlock *bb_else = llvm::BasicBlock::Create(context, "else", func);
+  llvm::BasicBlock *bb_merge= llvm::BasicBlock::Create(context, "merge",func);
+
+  builder.CreateCondBr(cond_val, bb_then, bb_else);
+  builder.SetInsertPoint(bb_then);
+    // lhs is TRUE
+    auto rhs_val = statement(rhs);
+    cond_val = builder.CreateICmpNE(
+        rhs_val,
+        rhs_val->getType()->isPointerTy() ?
+        llvm::ConstantPointerNull::getNullValue(rhs_val->getType()) :
+        make_int(0, rhs_val->getType()));
+    auto lhs_rhs_true = cond_val; // lhs is already true, cond_val means rhs is true or not.
+    builder.CreateBr(bb_merge);
+  bb_then = builder.GetInsertBlock();
+  builder.SetInsertPoint(bb_else);
+    // lhs is FALSE
+    builder.CreateBr(bb_merge);
+  bb_else = builder.GetInsertBlock();
+
+  builder.SetInsertPoint(bb_merge);
+
+  llvm::PHINode *pnode = builder.CreatePHI(builder.getInt1Ty(), 2);
+  pnode->addIncoming(lhs_rhs_true, bb_then);
+  pnode->addIncoming(make_int(false, builder.getInt1Ty()), bb_else);
+  return pnode;
+}
 llvm::Value *Codegen::op_or(llvm::Value *lhs, llvm::Value *rhs) {
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateOr(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
+} 
+llvm::Value *Codegen::op_lor(AST *lhs, AST *rhs) {
+  auto lhs_val = statement(lhs);
+  auto cond_val = builder.CreateICmpNE(
+      lhs_val,
+      lhs_val->getType()->isPointerTy() ?
+      llvm::ConstantPointerNull::getNullValue(lhs_val->getType()) :
+      make_int(0, lhs_val->getType()));
+  auto *func = builder.GetInsertBlock()->getParent();
+
+  llvm::BasicBlock *bb_then = llvm::BasicBlock::Create(context, "then", func);
+  llvm::BasicBlock *bb_else = llvm::BasicBlock::Create(context, "else", func);
+  llvm::BasicBlock *bb_merge= llvm::BasicBlock::Create(context, "merge",func);
+
+  builder.CreateCondBr(cond_val, bb_then, bb_else);
+  builder.SetInsertPoint(bb_then);
+    // lhs is TRUE
+    builder.CreateBr(bb_merge);
+  bb_then = builder.GetInsertBlock();
+  builder.SetInsertPoint(bb_else);
+    // lhs is FALSE
+    auto rhs_val = statement(rhs);
+    cond_val = builder.CreateICmpNE(
+        rhs_val,
+        rhs_val->getType()->isPointerTy() ?
+        llvm::ConstantPointerNull::getNullValue(rhs_val->getType()) :
+        make_int(0, rhs_val->getType()));
+    auto lhs_rhs_false = cond_val; // lhs is already false, cond_val means rhs is false or not.
+    builder.CreateBr(bb_merge);
+  bb_else = builder.GetInsertBlock();
+
+  builder.SetInsertPoint(bb_merge);
+
+  llvm::PHINode *pnode = builder.CreatePHI(builder.getInt1Ty(), 2);
+  pnode->addIncoming(make_int(true, builder.getInt1Ty()), bb_then);
+  pnode->addIncoming(lhs_rhs_false, bb_else);
+  return pnode;
 } 
 llvm::Value *Codegen::op_xor(llvm::Value *lhs, llvm::Value *rhs) {
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
@@ -830,41 +904,48 @@ llvm::Value *Codegen::statement(UnaryAST *st) {
 }
 
 llvm::Value *Codegen::statement(BinaryAST *st) {
-  auto lhs = statement(st->lhs),
-       rhs = statement(st->rhs);
-  if(st->op == "+") {
-    return op_add(lhs, rhs);
-  } else if(st->op == "-") {
-    return op_sub(lhs, rhs);
-  } else if(st->op == "*") {
-    return op_mul(lhs, rhs);
-  } else if(st->op == "/") {
-    return op_div(lhs, rhs);
-  } else if(st->op == "%") {
-    return op_rem(lhs, rhs);
-  } else if(st->op == "<<") {
-    return op_shl(lhs, rhs);
-  } else if(st->op == (">>")) {
-    return op_shr(lhs, rhs);
-  } else if(st->op == "==") {
-    return op_eq(lhs, rhs);
-  } else if(st->op == "!=") {
-    return op_ne(lhs, rhs);
-  } else if(st->op == "<=") {
-    return op_le(lhs, rhs);
-  } else if(st->op == (">=")) {
-    return op_ge(lhs, rhs);
-  } else if(st->op == "<") {
-    return op_lt(lhs, rhs);
-  } else if(st->op == (">")) {
-    return op_gt(lhs, rhs);
-  } else if(st->op == "&" || st->op == "&&") {
-    return op_and(lhs, rhs);
-  } else if(st->op == "|" || st->op == "||") {
-    return op_or(lhs, rhs);
-  } else if(st->op == "^") {
-    return op_xor(lhs, rhs);
-  } else error("error: in codegen: unknown binary op");
+  // TODO: these && || opeartors are left out...
+  if(st->op == "&&") {
+    return op_land(st->lhs, st->rhs);
+  } else if(st->op == "||") {
+    return op_lor(st->lhs, st->rhs);
+  } else {
+    auto lhs = statement(st->lhs),
+         rhs = statement(st->rhs);
+    if(st->op == "+") {
+      return op_add(lhs, rhs);
+    } else if(st->op == "-") {
+      return op_sub(lhs, rhs);
+    } else if(st->op == "*") {
+      return op_mul(lhs, rhs);
+    } else if(st->op == "/") {
+      return op_div(lhs, rhs);
+    } else if(st->op == "%") {
+      return op_rem(lhs, rhs);
+    } else if(st->op == "<<") {
+      return op_shl(lhs, rhs);
+    } else if(st->op == (">>")) {
+      return op_shr(lhs, rhs);
+    } else if(st->op == "==") {
+      return op_eq(lhs, rhs);
+    } else if(st->op == "!=") {
+      return op_ne(lhs, rhs);
+    } else if(st->op == "<=") {
+      return op_le(lhs, rhs);
+    } else if(st->op == (">=")) {
+      return op_ge(lhs, rhs);
+    } else if(st->op == "<") {
+      return op_lt(lhs, rhs);
+    } else if(st->op == (">")) {
+      return op_gt(lhs, rhs);
+    } else if(st->op == "&") {
+      return op_and(lhs, rhs);
+    } else if(st->op == "|") {
+      return op_or(lhs, rhs);
+    } else if(st->op == "^") {
+      return op_xor(lhs, rhs);
+    } else error("error: in codegen: unknown binary op");
+  }
   return nullptr;
 }
 

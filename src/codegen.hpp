@@ -35,6 +35,8 @@ class Codegen {
     llvm::Value *op_gt (llvm::Value *, llvm::Value *);
     llvm::Value *op_le (llvm::Value *, llvm::Value *);
     llvm::Value *op_ge (llvm::Value *, llvm::Value *);
+    llvm::Value *op_land(AST *, AST *);
+    llvm::Value *op_lor (AST *, AST *);
 
     llvm::Value *make_int(int, llvm::Type * = builder.getInt32Ty());
 
