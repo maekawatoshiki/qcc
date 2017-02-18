@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 int test() {
   int int_size  = sizeof(int);
   int char_size = sizeof(char);
