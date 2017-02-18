@@ -1,7 +1,7 @@
 #include "codegen.hpp"
 #include "parse.hpp"
 
-llvm::LLVMContext &context(llvm::getGlobalContext());
+llvm::LLVMContext context;
 llvm::IRBuilder<> builder(context);
 llvm::Module *mod;
 llvm::DataLayout *data_layout;
