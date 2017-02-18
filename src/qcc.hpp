@@ -5,7 +5,7 @@
 #include "parse.hpp"
 #include "codegen.hpp"
 
-#define QCC_VERSION "0.2"
+#define QCC_VERSION "0.3"
 
 class QCC {
   private:
