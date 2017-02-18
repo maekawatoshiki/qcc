@@ -1,9 +1,7 @@
-#include <stdio.h>
-
 struct something_t;
 struct vec {
   int x, y;
-  struct something_t something;
+  struct something_t* something;
 };
 
 typedef struct {
@@ -15,7 +13,7 @@ struct something_t {
   char *s;
 };
 
-void annonymas_struct() {
+void anonymous_struct() {
   struct {
     char *name;
     int age;
@@ -40,6 +38,6 @@ int test() {
   v.y = 10;
   func(&v);
   add_pair(&p);
-  annonymas_struct();
+  anonymous_struct();
   return 0;
 }

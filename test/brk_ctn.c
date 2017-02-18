@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 int test() {
   int count = 0;
   for(int i = 0; i < 10; i++) {
