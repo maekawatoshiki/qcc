@@ -17,9 +17,11 @@ $(PROG): $(OBJS)
 
 test: $(PROG)
 	@for t in $$(ls example); do \
+		echo "Compiling $$t"; \
 		./qcc example/$$t > /dev/null || exit; \
   done
 	@for t in $(TESTS); do \
+		echo "Compiling $$t"; \
 		./test/test.sh $$t; \
   done
 	@for t in $(TESTS); do \
