@@ -140,7 +140,7 @@ token_t Lexer::tok_symbol() {
 
 void Lexer::skip_line() {
   auto t = read_token();
-  while(t.type != TOK_TYPE_NEWLINE) t = read_token();
+  while(t.type != TOK_TYPE_NEWLINE && t.type != TOK_TYPE_END) t = read_token();
 }
 
 char Lexer::replace_escape() {
@@ -205,7 +205,7 @@ void Lexer::read_define() {
   }
 
   std::vector<token_t> body;
-  while(t.type != TOK_TYPE_NEWLINE) {
+  while(t.type != TOK_TYPE_NEWLINE && t.type != TOK_TYPE_END) {
     body.push_back(t);
     t = read_token();
   }
@@ -244,7 +244,7 @@ Token Lexer::read_expr_line() {
   Token expr_line;
   for(;;) {
     auto t = read_token();
-    if(t.type == TOK_TYPE_NEWLINE) break;
+    if(t.type == TOK_TYPE_NEWLINE || t.type == TOK_TYPE_END) break;
     if(t.val == ("defined")) {
       expr_line.token.push_back(read_defined_op());
     } else {
