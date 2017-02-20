@@ -132,7 +132,7 @@ token_t Lexer::tok_symbol() {
   }
 
   cn = ifs_src.get();
-  if(c == '.' && cn == '.') op += cn; // variable arguments '...'
+  if(op == ".." && cn == '.') op += cn; // variadic arguments '...'
   else if(/*TODO: fix=*/c != ']' && /*TODO: fix*/cn == '=') op += cn; // compare 'X=' e.g. <= ==
   else ifs_src.unget();
   return token_t(TOK_TYPE_SYMBOL, op, cur_line);
