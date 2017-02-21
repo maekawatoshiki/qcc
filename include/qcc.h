@@ -32,6 +32,7 @@
 #define __x86_64 1
 #define __x86_64__ 1
 #define linux 1
+#define NO_ANSI_KEYWORDS 1
 
 #define __alignof__ alignof
 #define __const__ const
