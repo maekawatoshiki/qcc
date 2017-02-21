@@ -196,7 +196,9 @@ void Lexer::read_define() {
   if(t.val == "(" && !t.space) {
     funclike = true;
     while(1) {
-      args_name.push_back(read_token().val);
+      t = read_token();
+      if(t.val == ")") break;
+      else args_name.push_back(t.val);
       t = read_token();
       if(t.val == ")") break;
       if(t.val != ",") error("error(%d): expected ','", t.line);
