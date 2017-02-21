@@ -20,6 +20,8 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/raw_ostream.h"
 
+extern llvm::LLVMContext context;
+
 // C
 #include <assert.h>
 #include <ctype.h>

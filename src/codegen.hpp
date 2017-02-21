@@ -5,7 +5,6 @@
 #include "func.hpp"
 #include "struct.hpp"
 
-extern llvm::LLVMContext context;
 extern llvm::IRBuilder<> builder;
 extern llvm::Module *mod;
 extern llvm::DataLayout *data_layout;
