@@ -116,30 +116,30 @@ llvm::Value *Codegen::statement(FunctionProtoAST *st) {
 }
 
 llvm::Value *Codegen::statement(FunctionDefAST *st) {
-  func_t func;
   // if prototype exists, use it instead
   func_t *proto = this->func_list.get(st->name);
-  if(proto) func = *proto;
-  else {
+  func_t *function = nullptr;
+  if(proto) {
+    function = proto;
+  } else {
+    func_t func;
     func.name = st->name;
-    func.ret_type = st->func_type->getReturnType();
-  }
-  func.args_name = st->args_name;
-
-  func.block_list.create_new_block();
-  int i = 0;
-  for(auto arg : st->args_name) {
-    func.block_list.get_varlist()->add(var_t(
-          arg, st->func_type->getFunctionParamType(i++)));
-  }
-  this->func_list.add(func);
-  func_t *function = this->func_list.get(func.name);
-
-  if(!proto) {
+    this->func_list.add(func);
+    function = this->func_list.get(func.name);
     llvm::FunctionType *llvm_func_type = st->func_type;
     llvm::Function *llvm_func = llvm::Function::Create(llvm_func_type, 
         st->stg == STG_STATIC ? llvm::Function::InternalLinkage : llvm::Function::ExternalLinkage, func.name, mod);
     function->llvm_function = llvm_func;
+  }
+
+  function->ret_type = st->func_type->getReturnType();
+  function->args_name = st->args_name;
+
+  function->block_list.create_new_block();
+  int i = 0;
+  for(auto arg : st->args_name) {
+    function->block_list.get_varlist()->add(var_t(
+          arg, st->func_type->getFunctionParamType(i++)));
   }
 
   { // create function body
