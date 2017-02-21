@@ -23,6 +23,8 @@ Token Lexer::run(std::string file_name) {
       else if(s == "ifdef"  ) read_ifdef();
       else if(s == "endif"  ) skip_line();
       else if(s == "error"  ) skip_line();
+      else if(s == "warning") skip_line();
+      else if(s == "pragma" ) skip_line();
       else error("PREPROCESSOR ERR '%s'", t.val.c_str());
     } else if(t.type == TOK_TYPE_IDENT && !t.hideset.count(t.val) && is_defined(t.val)) {
       replace_macro(t.val);
@@ -50,7 +52,7 @@ token_t Lexer::read_token() {
     c = ifs_src.get();
     if(c == '*') {
       for(; !ifs_src.eof();) {
-        if(c == '*' && (c = ifs_src.get()) == '/') 
+        if(c == '*' && (c = ifs_src.get()) == '/')
           break;
         else c = ifs_src.get();
       }
@@ -90,7 +92,7 @@ token_t Lexer::tok_number() {
 token_t Lexer::tok_ident() {
   std::string ident;
   char c = ifs_src.get();
-  for(; isalpha(c) || isdigit(c) || 
+  for(; isalpha(c) || isdigit(c) ||
       c == '_'; c = ifs_src.get())
     ident += c;
   ifs_src.unget();
@@ -99,7 +101,7 @@ token_t Lexer::tok_ident() {
 token_t Lexer::tok_string() {
   std::string content;
   ifs_src.get(); // "
-  for(char c = ifs_src.get(); c != '\"'; c = ifs_src.get()) 
+  for(char c = ifs_src.get(); c != '\"'; c = ifs_src.get())
     content += (c == '\\') ? replace_escape() : c;
   return token_t(TOK_TYPE_STRING, content, cur_line);
 }
@@ -114,7 +116,7 @@ token_t Lexer::tok_symbol() {
   char c = ifs_src.get();
   std::string op; op = c;
   char cn = ifs_src.get();
-  if(               
+  if(
       (c == '+' && cn == '+') ||
       (c == '-' && cn == '-') ||
       (c == '&' && cn == '&') ||
@@ -130,7 +132,7 @@ token_t Lexer::tok_symbol() {
   }
 
   cn = ifs_src.get();
-  if(c == '.' && cn == '.') op += cn; // variable arguments '...'
+  if(op == ".." && cn == '.') op += cn; // variadic arguments '...'
   else if(/*TODO: fix=*/c != ']' && /*TODO: fix*/cn == '=') op += cn; // compare 'X=' e.g. <= ==
   else ifs_src.unget();
   return token_t(TOK_TYPE_SYMBOL, op, cur_line);
@@ -138,7 +140,7 @@ token_t Lexer::tok_symbol() {
 
 void Lexer::skip_line() {
   auto t = read_token();
-  while(t.type != TOK_TYPE_NEWLINE) t = read_token();
+  while(t.type != TOK_TYPE_NEWLINE && t.type != TOK_TYPE_END) t = read_token();
 }
 
 char Lexer::replace_escape() {
@@ -203,13 +205,13 @@ void Lexer::read_define() {
   }
 
   std::vector<token_t> body;
-  while(t.type != TOK_TYPE_NEWLINE) {
+  while(t.type != TOK_TYPE_NEWLINE && t.type != TOK_TYPE_END) {
     body.push_back(t);
     t = read_token();
   }
   if(funclike)
     add_macro_funclike(macro_name, args_name, body);
-  else 
+  else
     add_macro_object(macro_name, body);
 }
 
@@ -233,8 +235,8 @@ token_t Lexer::read_defined_op() {
     macro_name = t.val;
   }
   // std::cout << "MACRO " << macro_name << "DEFINED? " << macro_map.count(macro_name) << std::endl;;
-  return is_defined(macro_name) ? 
-    token_t(TOK_TYPE_NUMBER, "1", t.line) : 
+  return is_defined(macro_name) ?
+    token_t(TOK_TYPE_NUMBER, "1", t.line) :
     token_t(TOK_TYPE_NUMBER, "0", t.line);
 }
 
@@ -242,7 +244,7 @@ Token Lexer::read_expr_line() {
   Token expr_line;
   for(;;) {
     auto t = read_token();
-    if(t.type == TOK_TYPE_NEWLINE) break;
+    if(t.type == TOK_TYPE_NEWLINE || t.type == TOK_TYPE_END) break;
     if(t.val == ("defined")) {
       expr_line.token.push_back(read_defined_op());
     } else {
@@ -283,7 +285,7 @@ void Lexer::read_if() {
 }
 
 void Lexer::read_elif() {
-  if(cond_stack.top() || !read_constexpr()) 
+  if(cond_stack.top() || !read_constexpr())
     skip_cond_include();
   else
     cond_stack.top() = true;
@@ -348,10 +350,10 @@ void Lexer::replace_macro(std::string macro_name) {
 
 std::string Lexer::stringize(std::vector<token_t> &tok) {
   std::string str;
-  for(auto s : tok) 
-    str += (s.space && !str.empty() ? " " : "") + 
-      (s.type == TOK_TYPE_STRING ? 
-       "\"" + s.val + "\"" : 
+  for(auto s : tok)
+    str += (s.space && !str.empty() ? " " : "") +
+      (s.type == TOK_TYPE_STRING ?
+       "\"" + s.val + "\"" :
        s.type == TOK_TYPE_CHAR   ?
        "\'" + s.val + "\'" : s.val);
   return str;
@@ -390,7 +392,7 @@ void Lexer::replace_macro_funclike(macro_t macro) {
     std::vector<token_t> arg;
     while(1) {
       if(t.val == "(") nest++; if(t.val == ")") nest--;
-      if((t.val == ")" && !nest) || 
+      if((t.val == ")" && !nest) ||
          (nest == 1 && t.val == ",")) break;
       arg.push_back(t);
       t = read_token();
@@ -403,7 +405,7 @@ void Lexer::replace_macro_funclike(macro_t macro) {
   // puts("END_ARG");
 
   auto &tok = macro.rep;
-    
+
   // TODO: implement subst and remove this redundancy code!
   auto push_to_buffer = [&](token_t t) {
     t.hideset[macro.name] = true;
@@ -431,7 +433,7 @@ void Lexer::replace_macro_funclike(macro_t macro) {
         }
         expand = true;
         break;
-      } 
+      }
     }
     if(!expand) {
       push_to_buffer(tok.next());
@@ -441,7 +443,7 @@ void Lexer::replace_macro_funclike(macro_t macro) {
       buffer.pop_back();
       if(buffer.empty()) {
         push_to_buffer(token_t(TOK_TYPE_IDENT, b));
-      } else 
+      } else
         buffer.back().val += b;
     }
   }

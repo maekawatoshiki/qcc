@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 void loop() {
   for(int i = 0; i < 10; i++)
     i + 2;
@@ -10,7 +8,7 @@ int test() {
   int i, sum;
   sum = 0;
   loop();
-  for(i = 1; i <= 10; i += 1) 
+  for(i = 1; i <= 10; i += 1)
     sum += i;
   return 0;
 }
