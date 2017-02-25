@@ -33,6 +33,7 @@ enum {
 
 class AST {
   public:
+    virtual ~AST() = default;
     virtual int get_type() const = 0;
     virtual void show() = 0;
 };
@@ -144,7 +145,7 @@ struct declarator_t {
   AST *init_expr = nullptr;
 };
 class VarDeclarationAST : public AST {
-  public: 
+  public:
     std::vector<declarator_t *> decls;
     int stg;
     virtual int get_type() const { return AST_VAR_DECLARATION; };
