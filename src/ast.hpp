@@ -24,6 +24,8 @@ enum {
   AST_FOR,
   AST_ASGMT,
   AST_RETURN,
+  AST_GOTO,
+  AST_LABEL,
   AST_SIZEOF,
   AST_NUMBER,
   AST_STRING,
@@ -32,6 +34,7 @@ enum {
 class AST {
   public:
     virtual int get_type() const = 0;
+    virtual void show() = 0;
 };
 
 typedef std::vector<AST *> AST_vec;
@@ -49,6 +52,7 @@ class FunctionProtoAST : public AST {
     llvm::FunctionType *func_type;
     virtual int get_type() const { return AST_FUNCTION_PROTO; };
     FunctionProtoAST(std::string func_name, llvm::FunctionType *, int = 0);
+    virtual void show();
 };
 
 class FunctionDefAST : public AST {
@@ -60,6 +64,7 @@ class FunctionDefAST : public AST {
     AST_vec body;
     virtual int get_type() const { return AST_FUNCTION_DEF; };
     FunctionDefAST(std::string, llvm::FunctionType *, std::vector<std::string>, AST_vec, int = 0);
+    virtual void show();
 };
 
 class FunctionCallAST : public AST {
@@ -68,6 +73,7 @@ class FunctionCallAST : public AST {
     AST_vec args;
     virtual int get_type() const { return AST_FUNCTION_CALL; };
     FunctionCallAST(AST *callee, AST_vec args);
+    virtual void show();
 };
 
 class BlockAST : public AST {
@@ -75,6 +81,7 @@ class BlockAST : public AST {
     AST_vec body;
     virtual int get_type() const { return AST_BLOCK; };
     BlockAST(AST_vec);
+    virtual void show();
 };
 
 class ArrayAST : public AST {
@@ -82,6 +89,7 @@ class ArrayAST : public AST {
     AST_vec elems;
     virtual int get_type() const { return AST_ARRAY; };
     ArrayAST(AST_vec);
+    virtual void show();
 };
 
 class TypeCastAST : public AST {
@@ -90,6 +98,7 @@ class TypeCastAST : public AST {
     llvm::Type *cast_to;
     virtual int get_type() const { return AST_TYPECAST; };
     TypeCastAST(AST *, llvm::Type *);
+    virtual void show();
 };
 
 class UnaryAST : public AST {
@@ -99,6 +108,7 @@ class UnaryAST : public AST {
     bool postfix = false;
     virtual int get_type() const { return AST_UNARY; };
     UnaryAST(std::string, AST *, bool = false);
+    virtual void show();
 };
 
 class BinaryAST : public AST {
@@ -107,6 +117,7 @@ class BinaryAST : public AST {
     AST *lhs, *rhs;
     virtual int get_type() const { return AST_BINARY; };
     BinaryAST(std::string, AST *, AST *);
+    virtual void show();
 };
 
 class TernaryAST : public AST {
@@ -114,6 +125,7 @@ class TernaryAST : public AST {
     AST *cond, *then_expr, *else_expr;
     virtual int get_type() const { return AST_TERNARY; };
     TernaryAST(AST *, AST *, AST *);
+    virtual void show();
 };
 
 class DotOpAST : public AST {
@@ -122,6 +134,7 @@ class DotOpAST : public AST {
     bool is_arrow = false;
     virtual int get_type() const { return AST_DOT; };
     DotOpAST(AST *, AST *, bool = false);
+    virtual void show();
 };
 
 struct declarator_t {
@@ -136,6 +149,7 @@ class VarDeclarationAST : public AST {
     int stg;
     virtual int get_type() const { return AST_VAR_DECLARATION; };
     VarDeclarationAST(std::vector<declarator_t *>, int = 0);
+    virtual void show();
 };
 
 class TypedefAST : public AST {
@@ -144,6 +158,7 @@ class TypedefAST : public AST {
     std::string to;
     virtual int get_type() const { return AST_TYPEDEF; };
     TypedefAST(llvm::Type *, std::string);
+    virtual void show();
 };
 
 class VariableAST : public AST {
@@ -151,6 +166,7 @@ class VariableAST : public AST {
     std::string name;
     virtual int get_type() const { return AST_VARIABLE; };
     VariableAST(std::string);
+    virtual void show();
 };
 
 class IndexAST : public AST {
@@ -158,16 +174,19 @@ class IndexAST : public AST {
    AST *ary, *idx;
    virtual int get_type() const { return AST_INDEX; };
    IndexAST(AST *, AST *);
+   virtual void show();
 };
 
 class BreakAST : public AST {
   public:
     virtual int get_type() const { return AST_BREAK; };
+    virtual void show();
 };
 
 class ContinueAST : public AST {
   public:
     virtual int get_type() const { return AST_CONTINUE; };
+    virtual void show();
 };
 
 class IfAST : public AST {
@@ -175,6 +194,7 @@ class IfAST : public AST {
     AST *cond, *b_then, *b_else;
     virtual int get_type() const { return AST_IF; };
     IfAST(AST *, AST *, AST * = nullptr);
+    virtual void show();
 };
 
 class WhileAST : public AST {
@@ -182,6 +202,7 @@ class WhileAST : public AST {
     AST *cond, *body;
     virtual int get_type() const { return AST_WHILE; };
     WhileAST(AST *, AST *);
+    virtual void show();
 };
 
 class ForAST : public AST {
@@ -189,6 +210,7 @@ class ForAST : public AST {
     AST *init, *cond, *reinit, *body;
     virtual int get_type() const { return AST_FOR; };
     ForAST(AST *, AST *, AST *, AST *);
+    virtual void show();
 };
 
 class AsgmtAST : public AST {
@@ -196,6 +218,7 @@ class AsgmtAST : public AST {
     AST *dst, *src;
     virtual int get_type() const { return AST_ASGMT; };
     AsgmtAST(AST *, AST *);
+    virtual void show();
 };
 
 class ReturnAST : public AST {
@@ -203,6 +226,23 @@ class ReturnAST : public AST {
     AST *expr;
     virtual int get_type() const { return AST_RETURN; };
     ReturnAST(AST *);
+    virtual void show();
+};
+
+class GotoAST : public AST {
+  public:
+    std::string label_name;
+    virtual int get_type() const { return AST_GOTO; };
+    GotoAST(std::string);
+    virtual void show();
+};
+
+class LabelAST : public AST {
+  public:
+    std::string name;
+    virtual int get_type() const { return AST_LABEL; };
+    LabelAST(std::string);
+    virtual void show();
 };
 
 class SizeofAST : public AST {
@@ -210,6 +250,7 @@ class SizeofAST : public AST {
     AST *expr;
     virtual int get_type() const { return AST_SIZEOF; };
     SizeofAST(AST *);
+    virtual void show();
 };
 
 class NumberAST : public AST {
@@ -222,6 +263,7 @@ class NumberAST : public AST {
     virtual int get_type() const { return AST_NUMBER; };
     NumberAST(int);
     NumberAST(double);
+    virtual void show();
 };
 
 class StringAST : public AST {
@@ -229,4 +271,11 @@ class StringAST : public AST {
     std::string str;
     virtual int get_type() const { return AST_STRING; }
     StringAST(std::string);
+    virtual void show();
+};
+
+namespace debug_ast {
+  void show(AST_vec);
+  void show(AST *);
+  std::string llvmty_to_str(llvm::Type *ty);
 };

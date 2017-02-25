@@ -932,7 +932,7 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
       return op_ne(lhs, rhs);
     } else if(st->op == "<=") {
       return op_le(lhs, rhs);
-    } else if(st->op == (">=")) {
+    } else if(st->op == ">=") {
       return op_ge(lhs, rhs);
     } else if(st->op == "<") {
       return op_lt(lhs, rhs);

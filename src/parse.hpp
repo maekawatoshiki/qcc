@@ -52,6 +52,8 @@ class Parser {
     AST *make_while();
     AST *make_for();
     AST *make_return();
+    AST *make_goto();
+    AST *make_label();
 
     llvm::Type *read_type_spec();
     llvm::Type *read_type_spec(int &);

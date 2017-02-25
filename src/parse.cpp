@@ -54,7 +54,15 @@ AST *Parser::statement() {
   if(token.skip("return")) return make_return();
   if(token.skip("break")) return make_break();
   if(token.skip("continue")) return make_continue();
+  if(token.skip("goto")) return make_goto();
   if(token.is("{")) return make_block();
+  if([&]() {
+      bool is_label = false;
+      if(token.next().type == TOK_TYPE_IDENT &&
+          token.is(":")) is_label = true;
+      token.prev();
+      return is_label;
+    }()) return make_label(); 
   auto e = expr_entry();
   token.skip(";");
   return e;
@@ -227,6 +235,16 @@ AST *Parser::make_break() {
 AST *Parser::make_continue() {
   return new ContinueAST;
 }
+
+AST *Parser::make_goto() {
+  std::string label_name = token.next().val;
+  return new GotoAST(label_name);
+}
+AST *Parser::make_label() {
+  std::string name = token.next().val;
+  return new LabelAST(name);
+} 
+
 
 AST *Parser::make_if() {
   token.expect_skip("(");
