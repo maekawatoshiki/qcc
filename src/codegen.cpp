@@ -8,16 +8,16 @@ llvm::DataLayout *data_layout;
 
 void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
   { // create function(s) used in array initialization
-    llvm::FunctionType *llvm_func_type_memcpy = 
+    llvm::FunctionType *llvm_func_type_memcpy =
       llvm::FunctionType::get(
           builder.getVoidTy(),
           std::vector<llvm::Type *>{
-          builder.getInt8PtrTy(), 
+          builder.getInt8PtrTy(),
           builder.getInt8PtrTy(),
           builder.getInt32Ty(),
           builder.getInt32Ty(),
           builder.getInt1Ty()}, /*var arg=*/false);
-    tool_memcpy = llvm::Function::Create(llvm_func_type_memcpy, 
+    tool_memcpy = llvm::Function::Create(llvm_func_type_memcpy,
         llvm::Function::ExternalLinkage, "llvm.memcpy.p0i8.p0i8.i32", mod);
   }
   for(auto st : ast) statement(st);
@@ -37,7 +37,7 @@ llvm::Value *Codegen::type_cast(llvm::Value *val, llvm::Type *to) {
   if(val->getType()->isIntegerTy() && to->isIntegerTy()) {
     llvm::IntegerType *ival = (llvm::IntegerType *)val->getType();
     llvm::IntegerType *ito  = (llvm::IntegerType *)to;
-    if(ival->getBitWidth() < ito->getBitWidth()) 
+    if(ival->getBitWidth() < ito->getBitWidth())
       return builder.CreateZExtOrBitCast(val, to);
   } else if(val->getType()->isIntegerTy() && to->isDoubleTy()) {
     return builder.CreateSIToFP(val, to);
@@ -105,10 +105,10 @@ llvm::Value *Codegen::statement(FunctionProtoAST *st) {
   func.ret_type = st->func_type->getReturnType();
   this->func_list.add(func);
   func_t *function = this->func_list.get(func.name);
-  
+
   llvm::FunctionType *llvm_func_type = st->func_type;
-  llvm::Function *llvm_func = 
-    llvm::Function::Create(llvm_func_type, 
+  llvm::Function *llvm_func =
+    llvm::Function::Create(llvm_func_type,
         st->stg == STG_STATIC ? llvm::Function::InternalLinkage : llvm::Function::ExternalLinkage, func.name, mod);
   function->llvm_function = llvm_func;
 
@@ -127,7 +127,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
     this->func_list.add(func);
     function = this->func_list.get(func.name);
     llvm::FunctionType *llvm_func_type = st->func_type;
-    llvm::Function *llvm_func = llvm::Function::Create(llvm_func_type, 
+    llvm::Function *llvm_func = llvm::Function::Create(llvm_func_type,
         st->stg == STG_STATIC ? llvm::Function::InternalLinkage : llvm::Function::ExternalLinkage, func.name, mod);
     function->llvm_function = llvm_func;
   }
@@ -145,7 +145,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
   { // create function body
     llvm::BasicBlock *entry = llvm::BasicBlock::Create(context, "entry", function->llvm_function);
     builder.SetInsertPoint(entry);
-    
+
     cur_func = function;
     // auto llvm_args_type_it = function->llvm_function->arg_begin();
     auto args_name_it = function->args_name.begin();
@@ -161,7 +161,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
 
     for(auto stmt : st->body)
       statement(stmt);
-    for(auto it = cur_func->llvm_function->getBasicBlockList().begin(); 
+    for(auto it = cur_func->llvm_function->getBasicBlockList().begin();
         it != cur_func->llvm_function->getBasicBlockList().end(); ++it) {
       auto term = !it->empty();
       if(term) term = it->back().isTerminator();
@@ -186,7 +186,7 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
 
 llvm::Value *Codegen::statement(BlockAST *st) {
   this->cur_func->block_list.create_new_block();
-  for(auto a : st->body) 
+  for(auto a : st->body)
     statement(a);
   this->cur_func->block_list.escape_block();
   return nullptr;
@@ -201,7 +201,7 @@ llvm::Value *Codegen::statement(FunctionCallAST *st) {
         auto var = lookup_var(va->name);
         if(!var) error("error: not found the function \'%s\'", va->name.c_str());
         return (llvm::Function *)builder.CreateLoad(var->val);
-      } else return func->llvm_function; 
+      } else return func->llvm_function;
     }() : reinterpret_cast<llvm::Function *>( statement(st->callee) );
 
   int params = f->getType()->getPointerElementType()->getFunctionNumParams();
@@ -209,10 +209,10 @@ llvm::Value *Codegen::statement(FunctionCallAST *st) {
   int i = 0;
   for(auto a : st->args) {
     caller_args.push_back(
-        params <= i ? statement(a) : // varaible argument                                    
+        params <= i ? statement(a) : // varaible argument
         type_cast(statement(a), f->getType()->getPointerElementType()->getFunctionParamType(i++))
         );
-  } 
+  }
   auto callee = f;
   auto ret = builder.CreateCall((llvm::Value *)callee, caller_args);
   return ret;
@@ -229,7 +229,7 @@ void Codegen::create_var(var_t v, llvm::Value *init_val) {
     else return llvm::IRBuilder<>(&*cur_func->llvm_function->begin()->begin());
   }();
   cur_var->val = B.CreateAlloca(cur_var->type, nullptr, cur_var->name);
-  if(init_val) 
+  if(init_val)
     asgmt_value(cur_var->val, init_val);
 }
 
@@ -247,8 +247,18 @@ void Codegen::create_global_var(var_t v, int stg, AST *init_val) {
     gv->setLinkage(stg == STG_STATIC ? llvm::GlobalVariable::InternalLinkage :
         stg == STG_EXTERN ? llvm::GlobalVariable::ExternalLinkage : llvm::GlobalVariable::CommonLinkage);
     if(stg != STG_EXTERN) {
-      llvm::ConstantAggregateZero *zeroinit = llvm::ConstantAggregateZero::get(gv->getType()->getElementType());
-      gv->setInitializer(zeroinit);
+      auto gv_type = gv->getType()->getElementType();
+      llvm::Constant* zero_init = nullptr;
+      if(gv_type->isPointerTy()){
+        zero_init = llvm::ConstantPointerNull::get((llvm::PointerType*)gv_type);
+      } else if(gv_type->isFloatingPointTy()){
+        zero_init = llvm::ConstantFP::get(gv_type,0.0);
+      } else if(gv_type->isIntegerTy()){
+        zero_init = llvm::ConstantInt::get(gv_type,0);
+      } else {
+        zero_init = llvm::ConstantAggregateZero::get(gv_type);
+      }
+      gv->setInitializer(zero_init);
     }
   }
   cur_var->val = gv;
@@ -258,16 +268,16 @@ llvm::ConstantStruct *Codegen::to_rectype_initializer(AST *ary, llvm::StructType
   if(ary->get_type() == AST_ARRAY) {
     ArrayAST *ary_ast = static_cast<ArrayAST *>(ary);
     std::vector<llvm::Constant *> vals;
-    if(ary_ast->elems.size() > recty->getNumElements()) 
+    if(ary_ast->elems.size() > recty->getNumElements())
       error("error: excess elements");
     int i = 0;
     for(auto e : ary_ast->elems) {
       if(recty->getStructElementType(i++)->isStructTy()) {
         vals.push_back(to_rectype_initializer(e, (llvm::StructType *)recty->getStructElementType(i-1)));
-      } else 
+      } else
         vals.push_back((llvm::Constant *)statement(e));
     }
-      
+
     return (llvm::ConstantStruct *)llvm::ConstantStruct::get(recty, vals);
   }
   error("error: initializer of record type must be constant array");
@@ -309,14 +319,14 @@ llvm::Constant *Codegen::constinit_global_var(llvm::GlobalVariable *gv, AST *ini
               }(), gv->getType()->getPointerElementType()->getArrayNumElements());
         }
         return c;
-      } else 
+      } else
         error("error: initialization of global variables must be constant");
     }
   } else {
     auto expr = type_cast(statement(init_expr), varty);
-    if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(expr)) 
+    if(llvm::Constant *c = llvm::dyn_cast<llvm::Constant>(expr))
       return c;
-    else 
+    else
       error("error: initialization of global variables must be constant");
   }
   error("error: in constinit_global_var");
@@ -329,7 +339,7 @@ llvm::Value *Codegen::statement(VarDeclarationAST *st) {
     if(v->init_expr) init_val = statement(v->init_expr);
     // int a[] = {1, 2}; -->> int a[2] = {1, 2};
     if(v->type->isPointerTy() && init_val && init_val->getType()->isArrayTy()) v->type = init_val->getType();
-    if(cur_func == nullptr) { // global 
+    if(cur_func == nullptr) { // global
       create_global_var(var_t(v->name, v->type), st->stg, v->init_expr);
     } else {
       create_var(var_t(v->name, v->type), init_val);
@@ -350,7 +360,7 @@ llvm::Value *Codegen::statement(ContinueAST *st) {
 llvm::Value *Codegen::statement(IfAST *st) {
   llvm::Value *val_cond = statement(st->cond);
   val_cond = builder.CreateICmpNE(
-      val_cond, 
+      val_cond,
       val_cond->getType()->isPointerTy() ?
       llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
       make_int(0, val_cond->getType()));
@@ -390,7 +400,7 @@ llvm::Value *Codegen::statement(IfAST *st) {
     func->getBasicBlockList().push_back(bb_merge);
     builder.SetInsertPoint(bb_merge);
   }
-  
+
   return nullptr;
 }
 
@@ -404,7 +414,7 @@ llvm::Value *Codegen::statement(WhileAST *st) {
   builder.SetInsertPoint(bb_before_loop);
   llvm::Value *val_cond_1 = statement(st->cond);
   llvm::Value *first_val_cond = builder.CreateICmpNE(
-      val_cond_1, 
+      val_cond_1,
       val_cond_1->getType()->isPointerTy() ?
       llvm::ConstantPointerNull::getNullValue(val_cond_1->getType()) :
       llvm::ConstantInt::get(val_cond_1->getType(), 0, true));
@@ -439,7 +449,7 @@ llvm::Value *Codegen::statement(ForAST *st) {
   if(st->cond) {
     auto val_cond = statement(st->cond);
     llvm::Value *first_val_cond = builder.CreateICmpNE(
-        val_cond, 
+        val_cond,
         val_cond->getType()->isPointerTy() ?
         llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
         llvm::ConstantInt::get(val_cond->getType(), 0, true));
@@ -466,7 +476,7 @@ llvm::Value *Codegen::statement(ForAST *st) {
 
 llvm::Value *Codegen::statement(ReturnAST *st) {
   if(!cur_func->br_list.empty()) cur_func->br_list.top() = true;
-  if(st->expr) 
+  if(st->expr)
     return builder.CreateRet(type_cast(statement(st->expr), cur_func->llvm_function->getReturnType()));
   else
     return builder.CreateRetVoid();
@@ -478,12 +488,12 @@ llvm::Value *Codegen::statement(VariableAST *st) {
     if(var->type->isArrayTy()) {
       llvm::Value *a = var->val;
       llvm::Value *elem = llvm::GetElementPtrInst::CreateInBounds(
-          a, 
+          a,
           std::vector<llvm::Value *>{
-            llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
+            llvm::ConstantInt::get(builder.getInt32Ty(), 0),
             llvm::ConstantInt::get(builder.getInt32Ty(), 0)}, "elem", builder.GetInsertBlock());
       return elem;
-    } else 
+    } else
       return builder.CreateLoad(var->val);
   } else { // function name?
     auto f = func_list.get(st->name);
@@ -543,7 +553,7 @@ llvm::Value *Codegen::get_value_union(llvm::Value *parent, union_t *uinfo, std::
       member_type = m.type;
       break;
     }
-  } if(member_type == nullptr) error("error: not found element '%s' in union '%s'", 
+  } if(member_type == nullptr) error("error: not found element '%s' in union '%s'",
       elem_name.c_str(), uinfo->name.c_str());
   return type_cast(parent, member_type->getPointerTo());
 }
@@ -559,7 +569,7 @@ llvm::Constant *Codegen::create_const_array(std::vector<llvm::Constant *> elems,
 llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
   llvm::Value *a = nullptr;
   bool ptr = false;
-  if(st->ary->get_type() == AST_VARIABLE) { 
+  if(st->ary->get_type() == AST_VARIABLE) {
     VariableAST *va = (VariableAST *)st->ary;
     auto v = lookup_var(va->name);
     if(!v) error("error: not found variable '%s'", va->name.c_str());
@@ -577,13 +587,13 @@ llvm::Value *Codegen::get_element_ptr(IndexAST *st) {
   llvm::Value *elem;
   if(ptr) {
     elem = llvm::GetElementPtrInst::CreateInBounds(
-        a, 
+        a,
         llvm::ArrayRef<llvm::Value *>(
         statement(st->idx)), "elem", builder.GetInsertBlock());
   } else {
     elem = llvm::GetElementPtrInst::CreateInBounds(
-        a, 
-        llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0), 
+        a,
+        llvm::ArrayRef<llvm::Value *>{llvm::ConstantInt::get(builder.getInt32Ty(), 0),
         statement(st->idx)}, "elem", builder.GetInsertBlock());
   }
   return elem;
@@ -593,7 +603,7 @@ llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
   if(dst->getType()->getPointerElementType()->isArrayTy()) {
     if(src->getType()->isArrayTy() && llvm::dyn_cast<llvm::Constant>(src)) {
       // if src is constant array, copy it to global variable
-      std::string name = []() -> std::string { 
+      std::string name = []() -> std::string {
         std::string str;
         int len = 8; while(len--)
           str += (rand() % 26) + 65;
@@ -607,7 +617,7 @@ llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
 
     return builder.CreateCall(tool_memcpy,
         std::vector<llvm::Value *> {
-          type_cast(dst, builder.getInt8Ty()->getPointerTo()), type_cast(src, builder.getInt8Ty()->getPointerTo()), 
+          type_cast(dst, builder.getInt8Ty()->getPointerTo()), type_cast(src, builder.getInt8Ty()->getPointerTo()),
           make_int(data_layout->getTypeAllocSize(src->getType()->getPointerElementType())),
           make_int(data_layout->getTypeAllocSize(
             [&]() -> llvm::Type * {
@@ -615,7 +625,7 @@ llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
                 while(basety->isArrayTy()) basety = basety->getArrayElementType();
                 return basety;
             }())), make_int(0, builder.getInt1Ty())});
-  } else 
+  } else
     src = this->type_cast(src, dst->getType()->getPointerElementType());
   return builder.CreateStore(src, dst);
 }
@@ -634,7 +644,7 @@ llvm::Value *Codegen::statement(IndexAST *st) {
 }
 
 llvm::Value *Codegen::make_int(int n, llvm::Type *ty) {
-  if(ty->isPointerTy()) 
+  if(ty->isPointerTy())
     return llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(ty));
   return llvm::ConstantInt::get(ty, n);
 }
@@ -649,7 +659,7 @@ llvm::Value *Codegen::op_add(llvm::Value *lhs, llvm::Value *rhs) {
   IMPLICIT_CAST;
   if(lhs->getType()->isPointerTy() && rhs->getType()->isIntegerTy()) {
     return llvm::GetElementPtrInst::CreateInBounds(
-        lhs, 
+        lhs,
         llvm::ArrayRef<llvm::Value *>(rhs), "elem", builder.GetInsertBlock());
   } else if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateAdd(lhs, type_cast(rhs, lhs->getType()));
@@ -679,7 +689,7 @@ llvm::Value *Codegen::op_mul(llvm::Value *lhs, llvm::Value *rhs) {
     return builder.CreateFMul(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_div(llvm::Value *lhs, llvm::Value *rhs) {
   IMPLICIT_CAST;
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
@@ -688,19 +698,19 @@ llvm::Value *Codegen::op_div(llvm::Value *lhs, llvm::Value *rhs) {
     return builder.CreateFDiv(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_rem(llvm::Value *lhs, llvm::Value *rhs) {
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateSRem(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_and(llvm::Value *lhs, llvm::Value *rhs) {
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateAnd(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_land(AST *lhs, AST *rhs) {
   auto lhs_val = statement(lhs);
   auto cond_val = builder.CreateICmpNE(
@@ -743,7 +753,7 @@ llvm::Value *Codegen::op_or(llvm::Value *lhs, llvm::Value *rhs) {
     return builder.CreateOr(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_lor(AST *lhs, AST *rhs) {
   auto lhs_val = statement(lhs);
   auto cond_val = builder.CreateICmpNE(
@@ -780,25 +790,25 @@ llvm::Value *Codegen::op_lor(AST *lhs, AST *rhs) {
   pnode->addIncoming(make_int(true, builder.getInt1Ty()), bb_then);
   pnode->addIncoming(lhs_rhs_false, bb_else);
   return pnode;
-} 
+}
 llvm::Value *Codegen::op_xor(llvm::Value *lhs, llvm::Value *rhs) {
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateXor(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_shl(llvm::Value *lhs, llvm::Value *rhs) {
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateShl(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_shr(llvm::Value *lhs, llvm::Value *rhs) {
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
     return builder.CreateAShr(lhs, type_cast(rhs, lhs->getType()));
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_eq(llvm::Value *lhs, llvm::Value *rhs) {
   IMPLICIT_CAST;
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
@@ -807,7 +817,7 @@ llvm::Value *Codegen::op_eq(llvm::Value *lhs, llvm::Value *rhs) {
     return builder.CreateFCmpOEQ(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_ne(llvm::Value *lhs, llvm::Value *rhs) {
   IMPLICIT_CAST;
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
@@ -816,7 +826,7 @@ llvm::Value *Codegen::op_ne(llvm::Value *lhs, llvm::Value *rhs) {
     return builder.CreateFCmpONE(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_lt(llvm::Value *lhs, llvm::Value *rhs) {
   IMPLICIT_CAST;
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
@@ -825,7 +835,7 @@ llvm::Value *Codegen::op_lt(llvm::Value *lhs, llvm::Value *rhs) {
     return builder.CreateFCmpOLT(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_gt(llvm::Value *lhs, llvm::Value *rhs) {
   IMPLICIT_CAST;
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
@@ -834,7 +844,7 @@ llvm::Value *Codegen::op_gt(llvm::Value *lhs, llvm::Value *rhs) {
     return builder.CreateFCmpOGT(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_le(llvm::Value *lhs, llvm::Value *rhs) {
   IMPLICIT_CAST;
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
@@ -843,7 +853,7 @@ llvm::Value *Codegen::op_le(llvm::Value *lhs, llvm::Value *rhs) {
     return builder.CreateFCmpOLE(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 llvm::Value *Codegen::op_ge(llvm::Value *lhs, llvm::Value *rhs) {
   IMPLICIT_CAST;
   if(lhs->getType()->isIntegerTy() && rhs->getType()->isIntegerTy()) {
@@ -852,13 +862,13 @@ llvm::Value *Codegen::op_ge(llvm::Value *lhs, llvm::Value *rhs) {
     return builder.CreateFCmpOGE(lhs, rhs);
   } else error("error: unknown operation");
   return nullptr;
-} 
+}
 
 #undef IMPLICIT_CAST
 
 llvm::Value *Codegen::statement(ArrayAST *st) {
   std::vector<llvm::Constant *> const_elems;
-  for(auto e : st->elems) 
+  for(auto e : st->elems)
     const_elems.push_back(static_cast<llvm::Constant *>(statement(e)));
   return create_const_array(const_elems);
 }
@@ -894,7 +904,7 @@ llvm::Value *Codegen::statement(UnaryAST *st) {
     return type_cast(
         builder.CreateXor(
           builder.CreateICmpNE(v, make_int(0, v->getType())),
-          make_int(1, builder.getInt1Ty())), 
+          make_int(1, builder.getInt1Ty())),
         v->getType());
   } else if(st->op == "~") {
     auto v = statement(st->expr);
@@ -952,7 +962,7 @@ llvm::Value *Codegen::statement(BinaryAST *st) {
 llvm::Value *Codegen::statement(TernaryAST *st) {
   llvm::Value *val_cond = statement(st->cond);
   val_cond = builder.CreateICmpNE(
-      val_cond, 
+      val_cond,
       val_cond->getType()->isPointerTy() ?
       llvm::ConstantPointerNull::getNullValue(val_cond->getType()) :
       make_int(0, val_cond->getType()));
@@ -987,7 +997,7 @@ llvm::Value *Codegen::statement(TernaryAST *st) {
     pnode->addIncoming(val_then, bb_then);
     pnode->addIncoming(val_else, bb_else);
     return pnode;
-  } 
+  }
   return nullptr;
 }
 
@@ -1015,7 +1025,7 @@ llvm::Value *Codegen::statement(StringAST *st) {
 llvm::Value *Codegen::statement(NumberAST *st) {
   if(st->is_float) {
     return llvm::ConstantFP::get(builder.getDoubleTy(), st->f_number);
-  } else 
+  } else
     return make_int(st->i_number);
 }
 
