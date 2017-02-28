@@ -1019,7 +1019,12 @@ llvm::Value *Codegen::statement(SizeofAST *st) {
 }
 
 llvm::Value *Codegen::statement(StringAST *st) {
-  return builder.CreateGlobalStringPtr(st->str);
+  auto s = llvm::ConstantDataArray::getString(context, st->str);
+  llvm::GlobalVariable *gv = new llvm::GlobalVariable(*mod, s->getType(),
+      true, llvm::GlobalValue::PrivateLinkage,
+      s, "", nullptr,
+      llvm::GlobalVariable::NotThreadLocal, 0);
+  return builder.CreateInBoundsGEP(gv->getValueType(), gv, std::vector<llvm::Value *> { make_int(0), make_int(0) });
 }
 
 llvm::Value *Codegen::statement(NumberAST *st) {
