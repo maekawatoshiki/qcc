@@ -20,6 +20,7 @@ void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
     tool_memcpy = llvm::Function::Create(llvm_func_type_memcpy,
         llvm::Function::ExternalLinkage, "llvm.memcpy.p0i8.p0i8.i32", mod);
   }
+  // debug_ast::show(ast);
   for(auto st : ast) statement(st);
   if(emit_llvm_ir) mod->dump();
   std::error_code EC;
@@ -69,6 +70,10 @@ llvm::Value *Codegen::statement(AST *st) {
       return statement((ForAST *)st);
     case AST_RETURN:
       return statement((ReturnAST *)st);
+    case AST_GOTO:
+      return statement((GotoAST *)st);
+    case AST_LABEL:
+      return statement((LabelAST *)st);
     case AST_VAR_DECLARATION:
       return statement((VarDeclarationAST *)st);
     case AST_VARIABLE:
@@ -480,6 +485,29 @@ llvm::Value *Codegen::statement(ReturnAST *st) {
     return builder.CreateRet(type_cast(statement(st->expr), cur_func->llvm_function->getReturnType()));
   else
     return builder.CreateRetVoid();
+}
+
+llvm::Value *Codegen::statement(GotoAST *st) {
+  llvm::BasicBlock *bb_label;
+  if(!label_map.count(st->label_name)) {
+    bb_label = llvm::BasicBlock::Create(context, st->label_name, cur_func->llvm_function);
+    label_map[st->label_name] = bb_label;
+  } else bb_label = label_map[st->label_name];
+  builder.CreateBr(bb_label);
+  llvm::BasicBlock *bb_tmp = llvm::BasicBlock::Create(context, "tmp", cur_func->llvm_function);
+  builder.SetInsertPoint(bb_tmp);
+  return nullptr;
+}
+
+llvm::Value *Codegen::statement(LabelAST *st) {
+  llvm::BasicBlock *bb_label;
+  if(!label_map.count(st->name)) {
+    bb_label = llvm::BasicBlock::Create(context, st->name, cur_func->llvm_function);
+  } else bb_label = label_map[st->name];
+  builder.CreateBr(bb_label);
+  builder.SetInsertPoint(bb_label);
+  label_map[st->name] = bb_label;
+  return nullptr;
 }
 
 llvm::Value *Codegen::statement(VariableAST *st) {

@@ -242,6 +242,7 @@ AST *Parser::make_goto() {
 }
 AST *Parser::make_label() {
   std::string name = token.next().val;
+  token.expect_skip(":");
   return new LabelAST(name);
 } 
 

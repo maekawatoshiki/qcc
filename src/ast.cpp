@@ -197,7 +197,7 @@ ReturnAST::ReturnAST(AST *_expr):
 }
 void ReturnAST::show() {
   std::cerr << "(return ";
-  this->expr->show();
+  if(this->expr) this->expr->show();
   std::cerr << ")" << std::endl;
 }
 

@@ -15,6 +15,7 @@ class Codegen {
     std::map<std::string, llvm::Type *> typedef_map;
     VariableList global_var;
     func_t *cur_func = nullptr;
+    std::map<std::string, llvm::BasicBlock *> label_map;
 
     llvm::Function *tool_memcpy;
 
@@ -54,6 +55,8 @@ class Codegen {
     llvm::Value *statement(WhileAST *            ); 
     llvm::Value *statement(ForAST *              ); 
     llvm::Value *statement(ReturnAST *           ); 
+    llvm::Value *statement(GotoAST *             );
+    llvm::Value *statement(LabelAST *            );
     llvm::Value *statement(AsgmtAST *            ); 
     llvm::Value *statement(ArrayAST *            ); 
     llvm::Value *statement(TypeCastAST *         ); 
