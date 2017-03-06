@@ -22,6 +22,7 @@ void Codegen::run(AST_vec ast, std::string out_file_name, bool emit_llvm_ir) {
   }
   // debug_ast::show(ast);
   for(auto st : ast) statement(st);
+  llvm::verifyModule(*mod);
   if(emit_llvm_ir) mod->dump();
   std::error_code EC;
   llvm::raw_fd_ostream out(out_file_name, EC, llvm::sys::fs::OpenFlags::F_RW);
@@ -668,7 +669,9 @@ llvm::Value *Codegen::statement(AsgmtAST *st) {
 
 llvm::Value *Codegen::statement(IndexAST *st) {
   auto elem = get_element_ptr(st);
-  return builder.CreateLoad(elem);
+  if(!elem->getType()->getPointerElementType()->isArrayTy())
+    return builder.CreateLoad(elem);
+  else return elem;
 }
 
 llvm::Value *Codegen::make_int(int n, llvm::Type *ty) {

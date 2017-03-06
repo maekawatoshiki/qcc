@@ -51,14 +51,17 @@ token_t Lexer::read_token() {
   if(c == '/') {
     c = ifs_src.get();
     if(c == '*') {
+      char last = c;
       for(; !ifs_src.eof();) {
-        if(c == '*' && (c = ifs_src.get()) == '/')
+        c = ifs_src.get();
+        if(last == '*' && c == '/')
           break;
-        else c = ifs_src.get();
+        last = c;
       }
       return read_token();
     } else if(c == '/') {
       for(; c != '\n' && !ifs_src.eof(); c = ifs_src.get()) {};
+      ifs_src.unget();
       return read_token();
     } else { ifs_src.unget(); c = '/'; }
   }
@@ -133,7 +136,7 @@ token_t Lexer::tok_symbol() {
 
   cn = ifs_src.get();
   if(op == ".." && cn == '.') op += cn; // variadic arguments '...'
-  else if(/*TODO: fix=*/c != ']' && /*TODO: fix*/cn == '=') op += cn; // compare 'X=' e.g. <= ==
+  else if(/*TODO: fix=*/op[0] != ']' && /*TODO: fix*/cn == '=') op += cn; // compare 'X=' e.g. <= ==
   else ifs_src.unget();
   return token_t(TOK_TYPE_SYMBOL, op, cur_line);
 }
