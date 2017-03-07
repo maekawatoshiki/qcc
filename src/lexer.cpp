@@ -20,7 +20,6 @@ Token Lexer::run(std::string file_name) {
       else if(s == "ifndef" ) read_ifndef();
       else if(s == "elif"   ) read_elif();
       else if(s == "else"   ) read_else();
-      else if(s == "ifdef"  ) read_ifdef();
       else if(s == "endif"  ) skip_line();
       else if(s == "error"  ) skip_line();
       else if(s == "warning") skip_line();
@@ -72,7 +71,6 @@ token_t Lexer::read_token() {
     } else if(isblank(c)) { ifs_src.get(); auto t = read_token(); t.space = true; return t;
     } else if(c == '\n') { cur_line++; ifs_src.get(); return token_t(TOK_TYPE_NEWLINE);
     } else if(c == '\\') { while(ifs_src.get() != '\n'){}; cur_line++; return read_token();
-    } else if(c == '\\') { ifs_src.get();             return read_token();
     } else if(c == '\"') {                            return tok_string();
     } else if(c == '\'') {                            return tok_char();
     } else                                            return tok_symbol();
@@ -418,10 +416,8 @@ void Lexer::replace_macro_funclike(macro_t macro) {
   };
   for(; !tok.is_end();) {
     bool expand = false;
-    bool stringify = false;
-    bool cat = false;
-    stringify = tok.skip("#");
-    cat = stringify && tok.skip("#");
+    bool stringify = tok.skip("#");
+    bool cat = stringify && tok.skip("#");
     if(cat) stringify = false;
     for(size_t i = 0; i < macro.args.size(); i++) {
       if(tok.skip(macro.args[i])) { //it->token.val == macro.args[i]) {
