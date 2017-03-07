@@ -23,10 +23,10 @@ AST *Parser::expr_rhs(int prec, AST *lhs) {
       AST *rhs = expr_asgmt();
       if(token.get().type == TOK_TYPE_SYMBOL) {
         next_prec = get_op_prec(token.get().val);
-        if(tok_prec < next_prec) 
+        if(tok_prec < next_prec)
           rhs = expr_rhs(tok_prec + 1, rhs);
-      } 
-      lhs = new BinaryAST(op, lhs, rhs);    
+      }
+      lhs = new BinaryAST(op, lhs, rhs);
     }
   }
 }
@@ -43,40 +43,32 @@ AST *Parser::expr_asgmt() {
       op == "|=" ||
       op == "^=" ||
       op == "=") {
-    bool add = op == "+=", sub = op == "-=", mul = op == "*=", div = op == "/=", 
+    bool add = op == "+=", sub = op == "-=", mul = op == "*=", div = op == "/=",
          aand = op == "&=", aor = op == "|=", axor = op == "^=", normal = op == "=";
     token.skip();
     rhs = expr_entry();
     lhs = new AsgmtAST(lhs, normal ? rhs :
         new BinaryAST(
-          add ? "+" : 
-          sub ? "-" : 
-          mul ? "*" : 
-          div ? "/" : 
-          aand? "&" : 
+          add ? "+" :
+          sub ? "-" :
+          mul ? "*" :
+          div ? "/" :
+          aand? "&" :
           aor ? "|" :
-          axor? "^" : "ERROR", lhs, rhs));  
+          axor? "^" : "ERROR", lhs, rhs));
     op = token.get().val;
   }
   return lhs;
 }
 
 AST *Parser::expr_unary() {
-  bool op_addr = false, 
-       op_aste = false, 
-       op_inc  = false, 
-       op_dec  = false,
-       op_not  = false,
-       op_minus= false,
-       op_cast = false,
-       op_flip = false;
-  op_addr  = token.is("&");
-  op_aste  = token.is("*");
-  op_inc   = token.is("++");
-  op_dec   = token.is("--");
-  op_minus = token.is("-");
-  op_not   = token.is("!");
-  op_flip  = token.is("~");
+  const bool op_addr  = token.is("&"),
+  op_aste  = token.is("*"),
+  op_inc   = token.is("++"),
+  op_dec   = token.is("--"),
+  op_minus = token.is("-"),
+  op_not   = token.is("!"),
+  op_flip  = token.is("~"),
   op_cast  = [&]() -> bool {
     if(!token.skip("(")) return false;
     if(!is_type()) { token.prev(); return false; }
@@ -86,12 +78,12 @@ AST *Parser::expr_unary() {
   if(op_addr || op_aste || op_inc || op_dec || op_minus || op_not || op_flip) {
     token.skip();
     expr = expr_unary();
-    return new UnaryAST(op_addr ? "&" : 
+    return new UnaryAST(op_addr ? "&" :
                         op_aste ? "*" :
                         op_inc  ? "++":
-                        op_dec  ? "--": 
-                        op_minus? "-" : 
-                        op_not  ? "!" : 
+                        op_dec  ? "--":
+                        op_minus? "-" :
+                        op_not  ? "!" :
                         op_flip ? "~" : "", expr);
   } else if(op_cast) {
     token.expect_skip("(");
@@ -100,7 +92,7 @@ AST *Parser::expr_unary() {
     token.expect_skip(")");
     expr = expr_unary();
     return new TypeCastAST(expr, cast_to);
-  } else 
+  } else
     expr = expr_func_call();
   return expr_unary_postfix(expr);
 }
@@ -109,7 +101,7 @@ AST *Parser::expr_unary_postfix(AST *expr) {
   bool op_inc = token.is("++"), op_dec = token.is("--");
   if(op_inc || op_dec) {
     token.skip();
-    return new UnaryAST(op_inc ? "++" : 
+    return new UnaryAST(op_inc ? "++" :
                         op_dec ? "--" : "", expr, /*postfix=*/true);
   }
   return expr;
@@ -176,7 +168,7 @@ AST *Parser::expr_primary() {
     token.expect_skip("(");
     if(is_type()) {
       llvm::Type *type = read_type_spec(); // base type
-      std::string _; 
+      std::string _;
       type = read_declarator(_, type);
       token.expect_skip(")");
       return new NumberAST((int)data_layout->getTypeAllocSize(type));
