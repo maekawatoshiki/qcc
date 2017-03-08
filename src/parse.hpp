@@ -14,6 +14,8 @@ enum StorageType {
 class Parser {
   private:
     Token token;
+    StructList struct_list;
+    UnionList   union_list;
   public:
     AST_vec run(Token, bool isexpr = false);
 
@@ -38,8 +40,8 @@ class Parser {
     llvm::Type *read_func_param(std::string &);
     std::vector<argument_t *> read_declarator_param();
     // Type_vec read_field();
-    StructList struct_list;
-    UnionList   union_list;
+    StructList get_structlist() const { return struct_list; };
+    UnionList  get_unionlist() const  { return union_list;  };
     llvm::Type *make_struct_declaration();
     llvm::Type *make_union_declaration();
     std::map<std::string, NumberAST *> enum_list;

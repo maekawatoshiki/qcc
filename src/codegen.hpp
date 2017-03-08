@@ -11,6 +11,8 @@ extern llvm::DataLayout *data_layout;
 
 class Codegen {
   private:
+    StructList struct_list;
+    UnionList   union_list;
     FunctionList func_list;
     std::map<std::string, llvm::Type *> typedef_map;
     VariableList global_var;
@@ -83,7 +85,8 @@ class Codegen {
     llvm::AllocaInst *create_entry_alloca(llvm::Function *TheFunction, std::string &VarName, llvm::Type *type = nullptr);
     var_t *lookup_var(std::string);
   public:
-    StructList struct_list;
-    UnionList   union_list;
     void run(AST_vec, std::string = "a.bc", bool emit_llvm_ir = false);    
+
+    void set(StructList s) { struct_list = s; };
+    void set(UnionList u) { union_list = u; };
 };

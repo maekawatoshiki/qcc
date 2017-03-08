@@ -7,8 +7,8 @@ AST_vec Parser::run(Token tok, bool isexpr) {
   op_prec["*"] =  500;
   op_prec["/"] =  500;
   op_prec["%"] =  500;  
-  op_prec["<<"] =  500;  
-  op_prec[">>"] =  500;  
+  op_prec["<<"] = 500;
+  op_prec[">>"] = 500;
   op_prec["+"] =  400;
   op_prec["-"] =  400;
   op_prec["=="] = 300;
@@ -605,7 +605,7 @@ int eval_constexpr(AST *expr) {
     if(op == "!=")return lhs !=rhs;
     if(op == "<<")return lhs <<rhs;
     if(op == ">>")return lhs >>rhs;
-    std::cout << op << std::endl;getchar();
+    std::cout << "unknown operator: " << op << std::endl;getchar();
   } else if(expr->get_type() == AST_TERNARY) {
     TernaryAST *tern = static_cast<TernaryAST *>(expr);
     int cond = eval_constexpr(tern->cond);

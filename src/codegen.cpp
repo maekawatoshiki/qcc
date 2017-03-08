@@ -153,7 +153,6 @@ llvm::Value *Codegen::statement(FunctionDefAST *st) {
     builder.SetInsertPoint(entry);
 
     cur_func = function;
-    // auto llvm_args_type_it = function->llvm_function->arg_begin();
     auto args_name_it = function->args_name.begin();
     for(auto arg_it = function->llvm_function->arg_begin(); arg_it != function->llvm_function->arg_end(); ++arg_it) {
       arg_it->setName(*args_name_it);

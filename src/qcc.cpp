@@ -17,8 +17,8 @@ int QCC::run(std::string source) {
   // puts("after preprocess:");
   // token.show(); getchar();
   auto ast = PARSE.run(token); puts("parser process exited successfully");
-  CODEGEN.struct_list = PARSE.struct_list;
-  CODEGEN. union_list = PARSE. union_list;
+  CODEGEN.set(PARSE.get_structlist());
+  CODEGEN.set(PARSE.get_unionlist());
   CODEGEN.run(ast, out_file_name, emit_llvm_ir);
   return 0;
 }
