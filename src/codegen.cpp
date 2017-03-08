@@ -387,7 +387,6 @@ llvm::Value *Codegen::statement(IfAST *st) {
   has_br = cur_func->br_list.top();
   cur_func->br_list.pop();
   if(!cur_func->br_list.empty()) cur_func->br_list.top() = has_br;
-  bb_then = builder.GetInsertBlock();
 
   func->getBasicBlockList().push_back(bb_else);
   builder.SetInsertPoint(bb_else);
@@ -399,7 +398,6 @@ llvm::Value *Codegen::statement(IfAST *st) {
   has_br = cur_func->br_list.top();
   cur_func->br_list.pop();
   if(!cur_func->br_list.empty()) cur_func->br_list.top() = has_br;
-  bb_else = builder.GetInsertBlock();
 
   if(necessary_merge) {
     func->getBasicBlockList().push_back(bb_merge);
@@ -544,8 +542,6 @@ llvm::Value *Codegen::get_value(AST *st) {
   } else if(st->get_type() == AST_UNARY) {
     UnaryAST *ua = (UnaryAST *)st;
     return statement(ua->expr);
-  } else if(st->get_type() == AST_INDEX) {
-    return get_element_ptr((IndexAST *)st);
   } else if(st->get_type() == AST_DOT) {
     DotOpAST *da = (DotOpAST *)st;
     std::string expected_name = ((VariableAST *)da->rhs)->name;
@@ -660,8 +656,7 @@ llvm::Value *Codegen::asgmt_value(llvm::Value *dst, llvm::Value *src) {
 
 llvm::Value *Codegen::statement(AsgmtAST *st) {
   auto src = statement(st->src);
-  llvm::Value *dst = nullptr;
-  dst = get_value(st->dst);
+  llvm::Value *dst = get_value(st->dst);
   asgmt_value(dst, src);
   return builder.CreateLoad(dst);
 }
