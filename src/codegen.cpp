@@ -462,7 +462,7 @@ llvm::Value *Codegen::statement(ForAST *st) {
 
   cur_func->break_list.push(bb_after_loop);
   cur_func->continue_list.push(bb_step);
-  statement(st->body);
+  if(st->body) statement(st->body);
   cur_func->break_list.pop();
   cur_func->continue_list.pop();
   builder.CreateBr(bb_step);

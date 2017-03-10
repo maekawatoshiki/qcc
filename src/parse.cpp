@@ -46,7 +46,7 @@ AST *Parser::statement_top() {
 }
 
 AST *Parser::statement() {
-  if(token.skip(";")) return statement();
+  if(token.skip(";")) return nullptr;// statement();
   if(is_type()) return read_declaration();
   if(token.skip("if")) return make_if();
   if(token.skip("while")) return make_while();
