@@ -20,6 +20,8 @@ $ clang c.s # c.s -> a.out
 - used tools: clang, llvm-3.8
 - if you are using Ubuntu or Debian, maybe you can see what you have to apt-get install if you look at Dockerfile.
 ```
+$ (export CXX=clang++-3.8)
+$ cmake .
 $ make
 $ make test
 $ ./qcc.sh <SOURCE CODE>
